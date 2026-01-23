@@ -1,0 +1,264 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AppLayout } from '@/components/AppLayout';
+import { KPICard } from '@/components/KPICard';
+import { StatusBadge } from '@/components/StatusBadge';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Users, 
+  AlertTriangle, 
+  Clock, 
+  HelpCircle, 
+  FileCheck, 
+  AlertCircle,
+  Train,
+  TrendingUp
+} from 'lucide-react';
+import { calcularKPIs, calcularPlanUso, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { Base } from '@/types';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  const [baseFilter, setBaseFilter] = useState<string>('all');
+  
+  const kpis = calcularKPIs(baseFilter === 'all' ? undefined : baseFilter);
+  const planUso = calcularPlanUso();
+
+  // Filtrar elementos críticos para mostrar
+  const elementosCriticos = planUso
+    .filter(p => p.estado === 'Vencido' || p.estado === 'Próximo')
+    .slice(0, 5);
+
+  return (
+    <AppLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Visión general del estado de vigilancia • {format(new Date(), "d 'de' MMMM yyyy", { locale: es })}
+            </p>
+          </div>
+          <Select value={baseFilter} onValueChange={setBaseFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Todas las bases" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las bases</SelectItem>
+              {bases.map(base => (
+                <SelectItem key={base} value={base}>{base}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* KPI Cards - Row 1: General */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard
+            title="Maquinistas Activos"
+            value={kpis.maquinistasActivos}
+            subtitle={`de ${kpis.totalMaquinistas} en censo`}
+            icon={Users}
+            variant="default"
+            onClick={() => navigate('/maquinistas')}
+          />
+          <KPICard
+            title="Uso Vencido"
+            value={kpis.usoVencido}
+            subtitle="competencias > 12 meses"
+            icon={AlertTriangle}
+            variant="danger"
+            onClick={() => navigate('/competencias')}
+          />
+          <KPICard
+            title="Uso Próximo"
+            value={kpis.usoProximo}
+            subtitle="vencen en < 30 días"
+            icon={Clock}
+            variant="warning"
+            onClick={() => navigate('/competencias')}
+          />
+          <KPICard
+            title="Sin Evidencia"
+            value={kpis.usoSinEvidencia}
+            subtitle="sin registro de paso/conducción"
+            icon={HelpCircle}
+            variant="default"
+          />
+        </div>
+
+        {/* KPI Cards - Row 2: SGS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard
+            title="PE 16.03 Activos"
+            value={kpis.exp1603Activos}
+            subtitle="expedientes de nuevo acceso"
+            icon={FileCheck}
+            variant="success"
+            onClick={() => navigate('/pe-1603')}
+          />
+          <KPICard
+            title="Actuaciones 16.03 Vencidas"
+            value={kpis.exp1603Vencidas}
+            subtitle="fuera de ventana"
+            icon={AlertCircle}
+            variant="danger"
+            onClick={() => navigate('/pe-1603')}
+          />
+          <KPICard
+            title="PE 12.01 Abiertas"
+            value={kpis.exp1201Abiertas}
+            subtitle="fichas factor humano"
+            icon={AlertTriangle}
+            variant="warning"
+            onClick={() => navigate('/pe-1201')}
+          />
+          <KPICard
+            title="Actuaciones 12.01 Pendientes"
+            value={kpis.exp1201Pendientes}
+            subtitle="programadas sin realizar"
+            icon={Clock}
+            variant="warning"
+            onClick={() => navigate('/pe-1201')}
+          />
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Competencias Críticas */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Train className="w-4 h-4 text-primary" />
+                Competencias de Uso Críticas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {elementosCriticos.length > 0 ? (
+                <div className="space-y-3">
+                  {elementosCriticos.map((item) => {
+                    const maquinista = maquinistasMock.find(m => m.id === item.maquinistaId);
+                    return (
+                      <div 
+                        key={item.id} 
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => navigate(`/maquinistas/${item.maquinistaId}`)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {maquinista?.nombreApellidos}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.competencia?.nombre} • {item.competencia?.tipo}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              {item.diasRestantes !== null && item.diasRestantes >= 0
+                                ? `${item.diasRestantes} días`
+                                : item.diasRestantes !== null 
+                                  ? `${Math.abs(item.diasRestantes)} días vencido`
+                                  : '-'}
+                            </p>
+                          </div>
+                          <StatusBadge estado={item.estado} size="sm" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No hay competencias en estado crítico
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Expedientes Activos */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Expedientes SGS Activos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* PE 16.03 */}
+                {expedientes1603Mock.filter(e => e.estado === 'Activo').map(exp => {
+                  const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
+                  return (
+                    <div 
+                      key={exp.id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => navigate(`/maquinistas/${exp.maquinistaId}?tab=pe1603`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-status-ok-bg flex items-center justify-center">
+                          <FileCheck className="w-4 h-4 text-status-ok" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{maquinista?.nombreApellidos}</p>
+                          <p className="text-xs text-muted-foreground">
+                            PE 16.03 • Inicio: {format(exp.fechaInicio, 'dd/MM/yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge estado="Activo" size="sm" />
+                    </div>
+                  );
+                })}
+
+                {/* PE 12.01 */}
+                {expedientes1201Mock.filter(e => e.estado === 'Abierta').map(exp => {
+                  const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
+                  return (
+                    <div 
+                      key={exp.id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => navigate(`/maquinistas/${exp.maquinistaId}?tab=pe1201`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-status-proximo-bg flex items-center justify-center">
+                          <AlertTriangle className="w-4 h-4 text-status-proximo" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{maquinista?.nombreApellidos}</p>
+                          <p className="text-xs text-muted-foreground">
+                            PE 12.01 • Suceso: {exp.idSuceso}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge estado="Abierta" size="sm" />
+                    </div>
+                  );
+                })}
+
+                {expedientes1603Mock.filter(e => e.estado === 'Activo').length === 0 &&
+                 expedientes1201Mock.filter(e => e.estado === 'Abierta').length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No hay expedientes activos
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}
