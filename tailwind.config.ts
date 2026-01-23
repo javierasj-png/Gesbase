@@ -57,28 +57,47 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Status colors
+        status: {
+          ok: "hsl(var(--status-ok))",
+          "ok-bg": "hsl(var(--status-ok-bg))",
+          proximo: "hsl(var(--status-proximo))",
+          "proximo-bg": "hsl(var(--status-proximo-bg))",
+          vencido: "hsl(var(--status-vencido))",
+          "vencido-bg": "hsl(var(--status-vencido-bg))",
+          "sin-evidencia": "hsl(var(--status-sin-evidencia))",
+          "sin-evidencia-bg": "hsl(var(--status-sin-evidencia-bg))",
+          pendiente: "hsl(var(--status-pendiente))",
+          "pendiente-bg": "hsl(var(--status-pendiente-bg))",
+          "no-procede": "hsl(var(--status-no-procede))",
+          "no-procede-bg": "hsl(var(--status-no-procede-bg))",
+          cumplida: "hsl(var(--status-cumplida))",
+          "cumplida-bg": "hsl(var(--status-cumplida-bg))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      boxShadow: {
+        'card': 'var(--shadow-card)',
+        'sm': 'var(--shadow-sm)',
+        'md': 'var(--shadow-md)',
+        'lg': 'var(--shadow-lg)',
+      },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
