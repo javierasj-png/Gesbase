@@ -191,29 +191,38 @@ export function calcularPlanUso(): PlanUso[] {
 }
 
 // ===== PLANTILLA 16.03 =====
+// Según imagen: ACOMPAÑAMIENTOS (5 bloques) + REGISTROS (10 bloques: 4 trim 1er año + 2 sem 2º año + 2 sem 3er año)
 export const plantilla1603Mock: Plantilla1603[] = [
-  // Acompañamientos
+  // ACOMPAÑAMIENTOS (5 bloques)
   { id: 'pl1', tipo: 'Acompañamiento', etiqueta: 'Primera Quincena', orden: 1, offsetInicioDias: 0, offsetFinDias: 15 },
-  { id: 'pl2', tipo: 'Acompañamiento', etiqueta: '1er Trimestre', orden: 2, offsetInicioDias: 16, offsetFinDias: 90 },
-  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: '2º Trimestre', orden: 3, offsetInicioDias: 91, offsetFinDias: 180 },
-  { id: 'pl4', tipo: 'Acompañamiento', etiqueta: '1er Año', orden: 4, offsetInicioDias: 181, offsetFinDias: 365 },
-  { id: 'pl5', tipo: 'Acompañamiento', etiqueta: '2º Año', orden: 5, offsetInicioDias: 366, offsetFinDias: 730 },
-  { id: 'pl6', tipo: 'Acompañamiento', etiqueta: '3er Año', orden: 6, offsetInicioDias: 731, offsetFinDias: 1095 },
-  // Registros
-  { id: 'pl7', tipo: 'Registro', etiqueta: 'Primera Quincena', orden: 1, offsetInicioDias: 0, offsetFinDias: 15 },
-  { id: 'pl8', tipo: 'Registro', etiqueta: '1er Trimestre', orden: 2, offsetInicioDias: 16, offsetFinDias: 90 },
-  { id: 'pl9', tipo: 'Registro', etiqueta: '2º Trimestre', orden: 3, offsetInicioDias: 91, offsetFinDias: 180 },
-  { id: 'pl10', tipo: 'Registro', etiqueta: '1er Año', orden: 4, offsetInicioDias: 181, offsetFinDias: 365 },
-  { id: 'pl11', tipo: 'Registro', etiqueta: '2º Año', orden: 5, offsetInicioDias: 366, offsetFinDias: 730 },
-  { id: 'pl12', tipo: 'Registro', etiqueta: '3er Año', orden: 6, offsetInicioDias: 731, offsetFinDias: 1095 },
-  // Alcohol
-  { id: 'pl13', tipo: 'Alcohol', etiqueta: '1er Año', orden: 1, offsetInicioDias: 0, offsetFinDias: 365 },
-  { id: 'pl14', tipo: 'Alcohol', etiqueta: '2º Año', orden: 2, offsetInicioDias: 366, offsetFinDias: 730 },
-  { id: 'pl15', tipo: 'Alcohol', etiqueta: '3er Año', orden: 3, offsetInicioDias: 731, offsetFinDias: 1095 },
-  // Drogas
-  { id: 'pl16', tipo: 'Drogas', etiqueta: '1er Año', orden: 1, offsetInicioDias: 0, offsetFinDias: 365 },
-  { id: 'pl17', tipo: 'Drogas', etiqueta: '2º Año', orden: 2, offsetInicioDias: 366, offsetFinDias: 730 },
-  { id: 'pl18', tipo: 'Drogas', etiqueta: '3er Año', orden: 3, offsetInicioDias: 731, offsetFinDias: 1095 },
+  { id: 'pl2', tipo: 'Acompañamiento', etiqueta: 'Primer Trimestre', orden: 2, offsetInicioDias: 16, offsetFinDias: 90 },
+  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: 'Primer Semestre', orden: 3, offsetInicioDias: 91, offsetFinDias: 182 },
+  { id: 'pl4', tipo: 'Acompañamiento', etiqueta: 'Segundo Semestre', orden: 4, offsetInicioDias: 183, offsetFinDias: 365 },
+  { id: 'pl5', tipo: 'Acompañamiento', etiqueta: 'Tercer Semestre', orden: 5, offsetInicioDias: 366, offsetFinDias: 547 },
+  
+  // REGISTROS - Primer Año (4 trimestres)
+  { id: 'pl6', tipo: 'Registro', etiqueta: 'Primer Trimestre', orden: 1, offsetInicioDias: 0, offsetFinDias: 90 },
+  { id: 'pl7', tipo: 'Registro', etiqueta: 'Segundo Trimestre', orden: 2, offsetInicioDias: 91, offsetFinDias: 182 },
+  { id: 'pl8', tipo: 'Registro', etiqueta: 'Tercer Trimestre', orden: 3, offsetInicioDias: 183, offsetFinDias: 273 },
+  { id: 'pl9', tipo: 'Registro', etiqueta: 'Cuarto Trimestre', orden: 4, offsetInicioDias: 274, offsetFinDias: 365 },
+  
+  // REGISTROS - Segundo Año (2 semestres)
+  { id: 'pl10', tipo: 'Registro', etiqueta: 'Primer Semestre (2º Año)', orden: 5, offsetInicioDias: 366, offsetFinDias: 547 },
+  { id: 'pl11', tipo: 'Registro', etiqueta: 'Segundo Semestre (2º Año)', orden: 6, offsetInicioDias: 548, offsetFinDias: 730 },
+  
+  // REGISTROS - Tercer Año (2 semestres)
+  { id: 'pl12', tipo: 'Registro', etiqueta: 'Primer Semestre (3er Año)', orden: 7, offsetInicioDias: 731, offsetFinDias: 912 },
+  { id: 'pl13', tipo: 'Registro', etiqueta: 'Segundo Semestre (3er Año)', orden: 8, offsetInicioDias: 913, offsetFinDias: 1095 },
+  
+  // ALCOHOL (1 por año)
+  { id: 'pl14', tipo: 'Alcohol', etiqueta: '1er Año', orden: 1, offsetInicioDias: 0, offsetFinDias: 365 },
+  { id: 'pl15', tipo: 'Alcohol', etiqueta: '2º Año', orden: 2, offsetInicioDias: 366, offsetFinDias: 730 },
+  { id: 'pl16', tipo: 'Alcohol', etiqueta: '3er Año', orden: 3, offsetInicioDias: 731, offsetFinDias: 1095 },
+  
+  // DROGAS (1 por año)
+  { id: 'pl17', tipo: 'Drogas', etiqueta: '1er Año', orden: 1, offsetInicioDias: 0, offsetFinDias: 365 },
+  { id: 'pl18', tipo: 'Drogas', etiqueta: '2º Año', orden: 2, offsetInicioDias: 366, offsetFinDias: 730 },
+  { id: 'pl19', tipo: 'Drogas', etiqueta: '3er Año', orden: 3, offsetInicioDias: 731, offsetFinDias: 1095 },
 ];
 
 // ===== EXPEDIENTES 16.03 MOCK =====
