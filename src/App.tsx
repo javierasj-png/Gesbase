@@ -14,6 +14,7 @@ import CompetenciasPage from "./pages/CompetenciasPage";
 import PE1603Page from "./pages/PE1603Page";
 import PE1201Page from "./pages/PE1201Page";
 import AdminPage from "./pages/AdminPage";
+import PartesPage from "./pages/PartesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/competencias" element={<CompetenciasPage />} />
             <Route path="/pe-1603" element={<PE1603Page />} />
             <Route path="/pe-1201" element={<PE1201Page />} />
+            <Route path="/partes" element={<PartesPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
