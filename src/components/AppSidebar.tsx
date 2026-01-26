@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut,
   FileCheck,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,6 +20,7 @@ const navItems = [
   { path: '/competencias', label: 'Competencias Uso', icon: Train },
   { path: '/pe-1603', label: 'PE 16.03', icon: FileCheck },
   { path: '/pe-1201', label: 'PE 12.01', icon: AlertTriangle },
+  { path: '/partes', label: 'Control de Partes', icon: ClipboardList },
 ];
 
 const adminItems = [
