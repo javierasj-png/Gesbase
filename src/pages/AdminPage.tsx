@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Loader2 } from 'lucide-react';
 import { 
   Users, 
   Train, 
@@ -15,25 +16,25 @@ import {
   Shield
 } from 'lucide-react';
 import { 
-  maquinistasMock, 
   certificacionesMock, 
   actualizarCertificacion
 } from '@/data/mockData';
-import { Certificacion, Maquinista } from '@/types';
+import { Certificacion } from '@/types';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
 import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacionCertificaciones';
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
+import { useMaquinistas, MaquinistaDB, MaquinistaInput } from '@/hooks/useMaquinistas';
 
 export default function AdminPage() {
   const [editingCertificacion, setEditingCertificacion] = useState<Certificacion | null>(null);
   const [isNewCertificacion, setIsNewCertificacion] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Estado para maquinistas
-  const [maquinistas, setMaquinistas] = useState<Maquinista[]>(maquinistasMock);
-  const [editingMaquinista, setEditingMaquinista] = useState<Maquinista | null>(null);
+  // Hook para maquinistas con Supabase
+  const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo } = useMaquinistas();
+  const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaDB | null>(null);
   const [isNewMaquinista, setIsNewMaquinista] = useState(false);
 
   const handleSaveCertificacion = (cert: Certificacion) => {
@@ -56,32 +57,26 @@ export default function AdminPage() {
     setIsNewMaquinista(true);
   };
 
-  const handleEditMaquinista = (maquinista: Maquinista) => {
+  const handleEditMaquinista = (maquinista: MaquinistaDB) => {
     setEditingMaquinista(maquinista);
     setIsNewMaquinista(false);
   };
 
-  const handleSaveMaquinista = (maquinista: Maquinista) => {
-    setMaquinistas(prev => {
-      const index = prev.findIndex(m => m.id === maquinista.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = maquinista;
-        return updated;
-      }
-      return [...prev, maquinista];
-    });
+  const handleSaveMaquinista = async (input: MaquinistaInput) => {
+    if (editingMaquinista) {
+      await updateMaquinista(editingMaquinista.id, input);
+    } else {
+      await createMaquinista(input);
+    }
   };
 
-  const handleToggleMaquinistaActivo = (maquinista: Maquinista) => {
-    setMaquinistas(prev => 
-      prev.map(m => m.id === maquinista.id ? { ...m, activo: !m.activo } : m)
-    );
+  const handleToggleMaquinistaActivo = async (maquinista: MaquinistaDB) => {
+    await toggleActivo(maquinista.id, maquinista.activo);
   };
 
-  const handleDeleteMaquinista = (maquinista: Maquinista) => {
-    if (confirm(`¿Eliminar a ${maquinista.nombreApellidos}?`)) {
-      setMaquinistas(prev => prev.filter(m => m.id !== maquinista.id));
+  const handleDeleteMaquinista = async (maquinista: MaquinistaDB) => {
+    if (confirm(`¿Eliminar a ${maquinista.nombre_apellidos}?`)) {
+      await deleteMaquinista(maquinista.id);
     }
   };
   return (
@@ -139,52 +134,71 @@ export default function AdminPage() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left p-3 font-medium text-sm">Matrícula</th>
-                      <th className="text-left p-3 font-medium text-sm">Nombre</th>
-                      <th className="text-left p-3 font-medium text-sm">Base</th>
-                      <th className="text-left p-3 font-medium text-sm">Estado</th>
-                      <th className="text-left p-3 font-medium text-sm">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {maquinistas.map((maquinista) => (
-                      <tr key={maquinista.id} className="border-b last:border-b-0">
-                        <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
-                        <td className="p-3 text-sm">{maquinista.nombreApellidos}</td>
-                        <td className="p-3 text-sm text-muted-foreground">{maquinista.base}</td>
-                        <td className="p-3">
-                          <Switch 
-                            checked={maquinista.activo} 
-                            onCheckedChange={() => handleToggleMaquinistaActivo(maquinista)}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => handleEditMaquinista(maquinista)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => handleDeleteMaquinista(maquinista)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
+                {loadingMaquinistas ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-muted-foreground">Cargando maquinistas...</span>
+                  </div>
+                ) : maquinistas.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay maquinistas registrados
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium text-sm">Matrícula</th>
+                        <th className="text-left p-3 font-medium text-sm">Nombre</th>
+                        <th className="text-left p-3 font-medium text-sm">Base</th>
+                        <th className="text-left p-3 font-medium text-sm">PE 16.03</th>
+                        <th className="text-left p-3 font-medium text-sm">Estado</th>
+                        <th className="text-left p-3 font-medium text-sm">Acciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {maquinistas.map((maquinista) => (
+                        <tr key={maquinista.id} className="border-b last:border-b-0">
+                          <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
+                          <td className="p-3 text-sm">{maquinista.nombre_apellidos}</td>
+                          <td className="p-3 text-sm text-muted-foreground">{maquinista.base}</td>
+                          <td className="p-3">
+                            {maquinista.bajo_pe_1603 ? (
+                              <Badge variant="secondary" className="text-xs">Vigilancia</Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <Switch 
+                              checked={maquinista.activo} 
+                              onCheckedChange={() => handleToggleMaquinistaActivo(maquinista)}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleEditMaquinista(maquinista)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => handleDeleteMaquinista(maquinista)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

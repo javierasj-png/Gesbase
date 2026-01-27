@@ -127,6 +127,51 @@ export type Database = {
         }
         Relationships: []
       }
+      maquinistas: {
+        Row: {
+          activo: boolean
+          bajo_pe_1603: boolean
+          base: string
+          created_at: string
+          created_by: string | null
+          fecha_primer_servicio: string | null
+          id: string
+          matricula: string
+          nombre_apellidos: string
+          observaciones: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          bajo_pe_1603?: boolean
+          base: string
+          created_at?: string
+          created_by?: string | null
+          fecha_primer_servicio?: string | null
+          id?: string
+          matricula: string
+          nombre_apellidos: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          bajo_pe_1603?: boolean
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          fecha_primer_servicio?: string | null
+          id?: string
+          matricula?: string
+          nombre_apellidos?: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       partes: {
         Row: {
           acciones_tomadas: string | null
