@@ -77,7 +77,7 @@ export default function AdminPage() {
           <TabsList>
             <TabsTrigger value="usuarios" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
-              Usuarios
+              Mandos
             </TabsTrigger>
             <TabsTrigger value="maquinistas" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
