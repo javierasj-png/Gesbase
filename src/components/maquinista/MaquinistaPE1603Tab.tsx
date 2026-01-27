@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -27,9 +27,10 @@ import {
   CheckCircle2,
   XCircle,
   FileCheck,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isWithinInterval, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -61,21 +62,61 @@ export function MaquinistaPE1603Tab({
   const [saving, setSaving] = useState(false);
   
   // Form state
-  const [selectedBloque, setSelectedBloque] = useState<string>('');
+  const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [indicePrever, setIndicePrever] = useState('');
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
-  // Get blocks that are "En ventana" or "Vencida" (pending to complete)
-  const bloquesPendientes = plan1603.filter(
-    b => b.estadoCalculado === 'En ventana' || b.estadoCalculado === 'Vencida'
-  );
+  // Get blocks that are pending (En ventana or Vencida) for each type
+  const bloquesPendientesPorTipo = useMemo(() => {
+    const result: Record<TipoActuacion1603, PlanBloque1603[]> = {
+      'Acompañamiento': [],
+      'Registro': [],
+      'Alcohol': [],
+      'Drogas': []
+    };
+    
+    plan1603.forEach(b => {
+      if (b.estadoCalculado === 'En ventana' || b.estadoCalculado === 'Vencida') {
+        result[b.tipo].push(b);
+      }
+    });
+    
+    return result;
+  }, [plan1603]);
+
+  // Find matching block based on type and date
+  const bloqueCoincidente = useMemo(() => {
+    if (!selectedTipo || !fechaActuacion) return null;
+    
+    const fecha = parseISO(fechaActuacion);
+    const bloquesTipo = plan1603.filter(b => b.tipo === selectedTipo);
+    
+    // First, try to find a block where the date is within the window
+    const bloqueEnVentana = bloquesTipo.find(b => {
+      const inicio = parseISO(b.inicio_ventana);
+      const fin = parseISO(b.fin_ventana);
+      return isWithinInterval(fecha, { start: inicio, end: fin });
+    });
+    
+    if (bloqueEnVentana) return bloqueEnVentana;
+    
+    // If not in any window, find the first pending block (En ventana or Vencida)
+    const bloquePendiente = bloquesTipo.find(
+      b => b.estadoCalculado === 'En ventana' || b.estadoCalculado === 'Vencida'
+    );
+    
+    return bloquePendiente || null;
+  }, [selectedTipo, fechaActuacion, plan1603]);
+
+  // Check if selected type has pending blocks
+  const tipoTienePendientes = selectedTipo 
+    ? bloquesPendientesPorTipo[selectedTipo].length > 0 
+    : false;
 
   const handleRegistrar = async () => {
-    if (!selectedBloque || !fechaActuacion || !expediente1603) return;
-
-    const bloque = plan1603.find(b => b.id === selectedBloque);
-    if (!bloque) return;
+    if (!selectedTipo || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
 
     setSaving(true);
     try {
@@ -84,10 +125,13 @@ export function MaquinistaPE1603Tab({
         .from('actuaciones_1603')
         .insert({
           expediente_id: expediente1603.id,
-          tipo: bloque.tipo,
+          tipo: selectedTipo,
           fecha_real: fechaActuacion,
           resultado: resultado || null,
-          observaciones: observaciones || null,
+          observaciones: [
+            indicePrever ? `Índice PREVER: ${indicePrever}` : '',
+            observaciones
+          ].filter(Boolean).join('\n') || null,
         })
         .select()
         .single();
@@ -101,18 +145,19 @@ export function MaquinistaPE1603Tab({
           actuacion_id: actuacion.id,
           estado: 'Cumplida',
         })
-        .eq('id', selectedBloque);
+        .eq('id', bloqueCoincidente.id);
 
       if (planError) throw planError;
 
       toast({
         title: 'Actuación registrada',
-        description: `${bloque.tipo} - ${bloque.etiqueta} marcada como cumplida`,
+        description: `${selectedTipo} - ${bloqueCoincidente.etiqueta} marcada como cumplida`,
       });
 
       // Reset form and close
-      setSelectedBloque('');
+      setSelectedTipo('');
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
+      setIndicePrever('');
       setResultado('');
       setObservaciones('');
       setRegistrarOpen(false);
@@ -130,6 +175,9 @@ export function MaquinistaPE1603Tab({
       setSaving(false);
     }
   };
+
+  // Check if there are any pending blocks at all
+  const hayBloquesPendientes = Object.values(bloquesPendientesPorTipo).some(arr => arr.length > 0);
 
   if (!expediente1603) {
     return (
@@ -251,12 +299,12 @@ export function MaquinistaPE1603Tab({
             variant="outline" 
             className="w-full"
             onClick={() => setRegistrarOpen(true)}
-            disabled={bloquesPendientes.length === 0}
+            disabled={!hayBloquesPendientes}
           >
             <Plus className="w-4 h-4 mr-2" />
             Registrar Actuación
           </Button>
-          {bloquesPendientes.length === 0 && (
+          {!hayBloquesPendientes && (
             <p className="text-xs text-muted-foreground text-center">
               No hay bloques en ventana o vencidos para registrar
             </p>
@@ -273,45 +321,37 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Registra una actuación del plan PE 16.03 para marcarla como cumplida
+              Selecciona el tipo de actuación y la fecha. El sistema determinará automáticamente el bloque correspondiente.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Select bloque */}
+            {/* Select tipo de actuación */}
             <div className="space-y-2">
-              <Label>Bloque a registrar</Label>
-              <Select value={selectedBloque} onValueChange={setSelectedBloque}>
+              <Label>Tipo de acción de vigilancia</Label>
+              <Select 
+                value={selectedTipo} 
+                onValueChange={(v) => setSelectedTipo(v as TipoActuacion1603)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un bloque" />
+                  <SelectValue placeholder="Selecciona un tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {bloquesPendientes.length > 0 ? (
-                    bloquesPendientes.map(bloque => (
-                      <SelectItem key={bloque.id} value={bloque.id}>
-                        <span className={
-                          bloque.estadoCalculado === 'Vencida' 
-                            ? 'text-destructive' 
-                            : bloque.estadoCalculado === 'En ventana'
-                              ? 'text-status-proximo'
-                              : ''
-                        }>
-                          [{bloque.tipo}] {bloque.etiqueta}
-                          {bloque.estadoCalculado === 'Vencida' && ' (Vencida)'}
-                          {bloque.estadoCalculado === 'En ventana' && ' (En ventana)'}
-                        </span>
+                  {tiposActuacion.map(tipo => {
+                    const pendientes = bloquesPendientesPorTipo[tipo].length;
+                    const disabled = pendientes === 0;
+                    return (
+                      <SelectItem 
+                        key={tipo} 
+                        value={tipo}
+                        disabled={disabled}
+                      >
+                        {tipo} {pendientes > 0 ? `(${pendientes} pendiente${pendientes > 1 ? 's' : ''})` : '(sin pendientes)'}
                       </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__empty__" disabled>
-                      No hay bloques pendientes
-                    </SelectItem>
-                  )}
+                    );
+                  })}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Solo bloques en ventana o vencidos
-              </p>
             </div>
 
             {/* Fecha */}
@@ -325,31 +365,63 @@ export function MaquinistaPE1603Tab({
               />
             </div>
 
-            {/* Resultado (para Alcohol/Drogas) */}
-            {selectedBloque && (() => {
-              const bloque = plan1603.find(b => b.id === selectedBloque);
-              if (bloque && (bloque.tipo === 'Alcohol' || bloque.tipo === 'Drogas')) {
-                return (
-                  <div className="space-y-2">
-                    <Label>Resultado</Label>
-                    <Select value={resultado} onValueChange={setResultado}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona resultado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Negativo">Negativo</SelectItem>
-                        <SelectItem value="Positivo">Positivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+            {/* Bloque detectado */}
+            {selectedTipo && fechaActuacion && (
+              <div className="p-3 rounded-lg bg-muted/50 border">
+                {bloqueCoincidente ? (
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-status-ok mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Bloque detectado:</p>
+                      <p className="text-sm text-muted-foreground">
+                        {bloqueCoincidente.etiqueta} ({format(parseISO(bloqueCoincidente.inicio_ventana), 'dd/MM/yy')} - {format(parseISO(bloqueCoincidente.fin_ventana), 'dd/MM/yy')})
+                      </p>
+                    </div>
                   </div>
-                );
-              }
-              return null;
-            })()}
+                ) : (
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-destructive">Sin bloque coincidente</p>
+                      <p className="text-xs text-muted-foreground">
+                        No hay bloques pendientes para este tipo de actuación
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Índice PREVER (opcional) */}
+            <div className="space-y-2">
+              <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                type="text"
+                value={indicePrever}
+                onChange={(e) => setIndicePrever(e.target.value)}
+                placeholder="Ej: PRV-2026-0042"
+              />
+            </div>
+
+            {/* Resultado (para Alcohol/Drogas) */}
+            {selectedTipo && (selectedTipo === 'Alcohol' || selectedTipo === 'Drogas') && (
+              <div className="space-y-2">
+                <Label>Resultado</Label>
+                <Select value={resultado} onValueChange={setResultado}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona resultado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Negativo">Negativo</SelectItem>
+                    <SelectItem value="Positivo">Positivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Observaciones */}
             <div className="space-y-2">
-              <Label>Observaciones (opcional)</Label>
+              <Label>Observaciones <span className="text-muted-foreground font-normal">(opcional)</span></Label>
               <Textarea
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
@@ -365,7 +437,7 @@ export function MaquinistaPE1603Tab({
             </Button>
             <Button 
               onClick={handleRegistrar} 
-              disabled={saving || !selectedBloque || !fechaActuacion}
+              disabled={saving || !selectedTipo || !fechaActuacion || !bloqueCoincidente}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar
