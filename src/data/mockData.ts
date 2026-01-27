@@ -66,7 +66,7 @@ export const maquinistasMock: Maquinista[] = [
 ];
 
 // ===== CATÁLOGO DE CERTIFICACIONES =====
-export const certificacionesMock: Certificacion[] = [
+export let certificacionesMock: Certificacion[] = [
   { id: 'c1', tipo: 'linea', nombre: 'Túnel de Guadarrama', descripcion: 'Certificación para conducción en el túnel de alta velocidad Guadarrama', activo: true },
   { id: 'c2', tipo: 'linea', nombre: 'Variante de Pajares', descripcion: 'Certificación para la variante de Pajares', activo: true },
   { id: 'c3', tipo: 'linea', nombre: 'LAV Madrid-Sevilla Km 100-150', descripcion: 'Tramo específico de la línea AVE Madrid-Sevilla', activo: true },
@@ -75,6 +75,16 @@ export const certificacionesMock: Certificacion[] = [
   { id: 'c6', tipo: 'vehiculo', nombre: 'Serie 103 (AVE S-103)', descripcion: 'Certificación vehículo Serie 103', activo: true },
   { id: 'c7', tipo: 'linea', nombre: 'Túnel del Pertús', descripcion: 'Certificación para el túnel internacional Francia-España', activo: true },
 ];
+
+// ===== FUNCIÓN PARA ACTUALIZAR CATÁLOGO DE CERTIFICACIONES =====
+export function actualizarCertificacion(cert: Certificacion): void {
+  const index = certificacionesMock.findIndex(c => c.id === cert.id);
+  if (index >= 0) {
+    certificacionesMock[index] = cert;
+  } else {
+    certificacionesMock.push(cert);
+  }
+}
 
 // ===== CERTIFICACIONES POR BASE (BaseCertificacion) =====
 export let baseCertificacionesMock: BaseCertificacion[] = [

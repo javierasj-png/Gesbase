@@ -25,20 +25,39 @@ import {
   baseCertificacionesMock,
   plantilla1603Mock,
   catalogoHitos1201Mock,
-  actualizarBaseCertificaciones
+  actualizarBaseCertificaciones,
+  actualizarCertificacion
 } from '@/data/mockData';
-import { Base, BaseCertificacion } from '@/types';
+import { Base, BaseCertificacion, Certificacion } from '@/types';
 import { EditBaseCertificacionesModal } from '@/components/admin/EditBaseCertificacionesModal';
+import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
 
 export default function AdminPage() {
   const [editingBase, setEditingBase] = useState<Base | null>(null);
+  const [editingCertificacion, setEditingCertificacion] = useState<Certificacion | null>(null);
+  const [isNewCertificacion, setIsNewCertificacion] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleSaveBaseCertificaciones = (baseId: Base, certificaciones: BaseCertificacion[]) => {
     actualizarBaseCertificaciones(baseId, certificaciones);
-    setRefreshKey(prev => prev + 1); // Force re-render
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleSaveCertificacion = (cert: Certificacion) => {
+    actualizarCertificacion(cert);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleEditCertificacion = (cert: Certificacion) => {
+    setEditingCertificacion(cert);
+    setIsNewCertificacion(false);
+  };
+
+  const handleNewCertificacion = () => {
+    setEditingCertificacion(null);
+    setIsNewCertificacion(true);
   };
   return (
     <AppLayout>
@@ -131,7 +150,7 @@ export default function AdminPage() {
                   <CardTitle>Catálogo de Certificaciones</CardTitle>
                   <CardDescription>Certificaciones de vehículos y líneas</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={handleNewCertificacion}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nueva Certificación
                 </Button>
@@ -162,7 +181,12 @@ export default function AdminPage() {
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleEditCertificacion(cert)}
+                            >
                               <Pencil className="w-4 h-4" />
                             </Button>
                           </div>
@@ -341,6 +365,19 @@ export default function AdminPage() {
           open={!!editingBase}
           onOpenChange={(open) => !open && setEditingBase(null)}
           onSave={handleSaveBaseCertificaciones}
+        />
+
+        {/* Modal de edición de certificación del catálogo */}
+        <EditCertificacionModal
+          certificacion={editingCertificacion}
+          open={!!editingCertificacion || isNewCertificacion}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingCertificacion(null);
+              setIsNewCertificacion(false);
+            }
+          }}
+          onSave={handleSaveCertificacion}
         />
       </div>
     </AppLayout>
