@@ -23,29 +23,18 @@ import {
 import { 
   maquinistasMock, 
   certificacionesMock, 
-  baseCertificacionesMock,
-  plantilla1603Mock,
-  catalogoHitos1201Mock,
-  actualizarBaseCertificaciones,
   actualizarCertificacion
 } from '@/data/mockData';
-import { Base, BaseCertificacion, Certificacion } from '@/types';
-import { EditBaseCertificacionesModal } from '@/components/admin/EditBaseCertificacionesModal';
+import { Certificacion } from '@/types';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacionCertificaciones';
 
 export default function AdminPage() {
-  const [editingBase, setEditingBase] = useState<Base | null>(null);
   const [editingCertificacion, setEditingCertificacion] = useState<Certificacion | null>(null);
   const [isNewCertificacion, setIsNewCertificacion] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleSaveBaseCertificaciones = (baseId: Base, certificaciones: BaseCertificacion[]) => {
-    actualizarBaseCertificaciones(baseId, certificaciones);
-    setRefreshKey(prev => prev + 1);
-  };
 
   const handleSaveCertificacion = (cert: Certificacion) => {
     actualizarCertificacion(cert);
@@ -217,97 +206,10 @@ export default function AdminPage() {
 
           {/* Asignación por Base */}
           <TabsContent value="asignacion">
-            <div className="space-y-4">
-              <Card className="bg-muted/30">
-                <CardContent className="pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Instrucciones:</strong> Asigna las certificaciones disponibles a cada base. 
-                    El icono <Eye className="w-4 h-4 inline mx-1" /> indica que la certificación se vigila 
-                    (control de vencimiento por inactividad). Los maquinistas de cada base heredan automáticamente 
-                    la configuración de vigilancia al asignárseles la certificación.
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {bases.map(base => {
-                  const asignadas = baseCertificacionesMock
-                    .filter(bc => bc.baseId === base)
-                    .map(bc => {
-                      const cert = certificacionesMock.find(c => c.id === bc.certificacionId);
-                      return cert ? { ...cert, ...bc } : null;
-                    })
-                    .filter(Boolean);
-                  
-                  return (
-                    <Card key={base}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-base">{base}</CardTitle>
-                            <CardDescription className="text-xs">
-                              {asignadas.length} certificación(es) asignada(s)
-                            </CardDescription>
-                          </div>
-                          <Button variant="outline" size="sm" onClick={() => setEditingBase(base)}>
-                            <Pencil className="w-3 h-3 mr-2" />
-                            Editar
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {asignadas.length > 0 ? (
-                          <div className="space-y-2">
-                            {asignadas.map(cert => cert && (
-                              <div 
-                                key={cert.id} 
-                                className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs capitalize">
-                                    {cert.tipo}
-                                  </Badge>
-                                  <span className="text-sm">{cert.nombre}</span>
-                                  {cert.obligatoria && (
-                                    <Badge variant="secondary" className="text-[10px]">Obligatoria</Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {cert.vigilarVencimiento ? (
-                                    <span className="flex items-center gap-1 text-xs text-primary">
-                                      <Eye className="w-3 h-3" />
-                                      {cert.periodoInactividadMeses}m / {cert.avisoDias}d
-                                    </span>
-                                  ) : (
-                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <EyeOff className="w-3 h-3" />
-                                      No vigilar
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Sin certificaciones asignadas</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
+            <BaseAsignacionCertificaciones />
           </TabsContent>
 
         </Tabs>
-
-        {/* Modal de edición de certificaciones por base */}
-        <EditBaseCertificacionesModal
-          base={editingBase}
-          open={!!editingBase}
-          onOpenChange={(open) => !open && setEditingBase(null)}
-          onSave={handleSaveBaseCertificaciones}
-        />
 
         {/* Modal de edición de certificación del catálogo */}
         <EditCertificacionModal
