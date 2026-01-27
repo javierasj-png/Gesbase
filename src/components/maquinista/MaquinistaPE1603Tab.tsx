@@ -28,9 +28,12 @@ import {
   XCircle,
   FileCheck,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Printer,
+  Lock
 } from 'lucide-react';
-import { format, isWithinInterval, parseISO } from 'date-fns';
+import { format, isWithinInterval, parseISO, isAfter } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -38,10 +41,15 @@ import {
   PlanBloque1603, 
   TipoActuacion1603 
 } from '@/hooks/useMaquinistaDetail';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface MaquinistaPE1603TabProps {
   maquinista: {
     id: string;
+    nombre_apellidos: string;
+    matricula: string;
+    base: string;
     bajo_pe_1603: boolean;
   };
   expediente1603: Expediente1603Detail | null;
@@ -59,7 +67,9 @@ export function MaquinistaPE1603Tab({
 }: MaquinistaPE1603TabProps) {
   const { toast } = useToast();
   const [registrarOpen, setRegistrarOpen] = useState(false);
+  const [cerrarOpen, setCerrarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [closing, setClosing] = useState(false);
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
@@ -110,10 +120,20 @@ export function MaquinistaPE1603Tab({
     return bloquePendiente || null;
   }, [selectedTipo, fechaActuacion, plan1603]);
 
-  // Check if selected type has pending blocks
-  const tipoTienePendientes = selectedTipo 
-    ? bloquesPendientesPorTipo[selectedTipo].length > 0 
-    : false;
+  // Check if there are any pending blocks at all
+  const hayBloquesPendientes = Object.values(bloquesPendientesPorTipo).some(arr => arr.length > 0);
+
+  // Check if all blocks are completed (can close)
+  const todosCumplidos = useMemo(() => {
+    return plan1603.length > 0 && plan1603.every(b => b.estadoCalculado === 'Cumplida');
+  }, [plan1603]);
+
+  // Check if expediente should be auto-closed (past end date)
+  const deberiaCerrarseAuto = useMemo(() => {
+    if (!expediente1603 || expediente1603.estado === 'Cerrado') return false;
+    const fechaFin = parseISO(expediente1603.fecha_fin_prevista);
+    return isAfter(new Date(), fechaFin);
+  }, [expediente1603]);
 
   const handleRegistrar = async () => {
     if (!selectedTipo || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
@@ -176,8 +196,188 @@ export function MaquinistaPE1603Tab({
     }
   };
 
-  // Check if there are any pending blocks at all
-  const hayBloquesPendientes = Object.values(bloquesPendientesPorTipo).some(arr => arr.length > 0);
+  const handleCerrarExpediente = async () => {
+    if (!expediente1603) return;
+
+    setClosing(true);
+    try {
+      const { error } = await supabase
+        .from('expedientes_1603')
+        .update({ estado: 'Cerrado' })
+        .eq('id', expediente1603.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Expediente cerrado',
+        description: 'El expediente PE 16.03 ha sido cerrado correctamente',
+      });
+
+      setCerrarOpen(false);
+      onRefetch();
+    } catch (err) {
+      console.error('Error closing expediente:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cerrar el expediente',
+        variant: 'destructive',
+      });
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!expediente1603) return;
+
+    // Fetch actuaciones for this expediente
+    const { data: actuaciones, error } = await supabase
+      .from('actuaciones_1603')
+      .select('*')
+      .eq('expediente_id', expediente1603.id)
+      .order('fecha_real', { ascending: true });
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar las actuaciones',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create PDF
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SEGUIMIENTO PE 16.03 - NUEVO ACCESO', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha de emisión: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, pageWidth / 2, 28, { align: 'center' });
+
+    // Maquinista info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL MAQUINISTA', 14, 42);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Nombre: ${maquinista.nombre_apellidos}`, 14, 50);
+    doc.text(`Matrícula: ${maquinista.matricula}`, 14, 56);
+    doc.text(`Base: ${maquinista.base}`, 14, 62);
+
+    // Expediente info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL EXPEDIENTE', 14, 76);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Fecha primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 14, 84);
+    doc.text(`Fecha inicio vigilancia: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')}`, 14, 90);
+    doc.text(`Fecha fin prevista: ${format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}`, 14, 96);
+    doc.text(`Estado: ${expediente1603.estado}`, 14, 102);
+
+    // Plan summary table
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 116);
+
+    const planData = tiposActuacion.map(tipo => {
+      const bloques = plan1603.filter(b => b.tipo === tipo);
+      const cumplidos = bloques.filter(b => b.estadoCalculado === 'Cumplida').length;
+      const enVentana = bloques.filter(b => b.estadoCalculado === 'En ventana').length;
+      const vencidos = bloques.filter(b => b.estadoCalculado === 'Vencida').length;
+      const pendientes = bloques.filter(b => b.estadoCalculado === 'Pendiente').length;
+      return [tipo, bloques.length.toString(), cumplidos.toString(), enVentana.toString(), vencidos.toString(), pendientes.toString()];
+    });
+
+    autoTable(doc, {
+      startY: 120,
+      head: [['Tipo', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
+      body: planData,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 9 },
+    });
+
+    // Detailed blocks table
+    const finalY = (doc as any).lastAutoTable.finalY || 150;
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
+
+    const bloquesData = plan1603
+      .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.orden - b.orden)
+      .map(b => {
+        const actuacion = actuaciones?.find(a => a.tipo === b.tipo && b.actuacion_id === a.id);
+        return [
+          b.tipo,
+          b.etiqueta,
+          `${format(parseISO(b.inicio_ventana), 'dd/MM/yy')} - ${format(parseISO(b.fin_ventana), 'dd/MM/yy')}`,
+          b.estadoCalculado,
+          actuacion ? format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy') : '-',
+          actuacion?.resultado || '-'
+        ];
+      });
+
+    autoTable(doc, {
+      startY: finalY + 18,
+      head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Resultado']],
+      body: bloquesData,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        2: { cellWidth: 35 },
+      },
+    });
+
+    // Actuaciones list if any
+    if (actuaciones && actuaciones.length > 0) {
+      const finalY2 = (doc as any).lastAutoTable.finalY || 200;
+      
+      if (finalY2 > 240) {
+        doc.addPage();
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ACTUACIONES REGISTRADAS', 14, 20);
+      } else {
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ACTUACIONES REGISTRADAS', 14, finalY2 + 14);
+      }
+
+      const actuacionesData = actuaciones.map(a => [
+        a.tipo,
+        format(parseISO(a.fecha_real), 'dd/MM/yyyy'),
+        a.resultado || '-',
+        a.observaciones || '-'
+      ]);
+
+      autoTable(doc, {
+        startY: finalY2 > 240 ? 24 : finalY2 + 18,
+        head: [['Tipo', 'Fecha', 'Resultado', 'Observaciones']],
+        body: actuacionesData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 8 },
+      });
+    }
+
+    // Save
+    doc.save(`PE1603_${maquinista.matricula}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+
+    toast({
+      title: 'PDF generado',
+      description: 'El documento se ha descargado correctamente',
+    });
+  };
 
   if (!expediente1603) {
     return (
@@ -203,15 +403,44 @@ export function MaquinistaPE1603Tab({
     );
   }
 
+  const expedienteCerrado = expediente1603.estado === 'Cerrado';
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">PE 16.03 - Nuevo Acceso</h2>
-        <p className="text-sm text-muted-foreground">
-          Vigilancia durante 3 años desde primer servicio. 
-          El expediente se genera automáticamente al dar de alta al maquinista.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">PE 16.03 - Nuevo Acceso</h2>
+          <p className="text-sm text-muted-foreground">
+            Vigilancia durante 3 años desde primer servicio.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <Printer className="w-4 h-4 mr-2" />
+          Imprimir PDF
+        </Button>
       </div>
+
+      {/* Warning if should auto-close */}
+      {deberiaCerrarseAuto && !expedienteCerrado && (
+        <Card className="border-amber-500/50 bg-amber-500/10">
+          <CardContent className="py-3 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-700">
+                El período de vigilancia ha finalizado
+              </p>
+              <p className="text-xs text-amber-600">
+                La fecha fin prevista ({format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}) ya ha pasado. 
+                Se recomienda cerrar el expediente.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setCerrarOpen(true)}>
+              <Lock className="w-4 h-4 mr-2" />
+              Cerrar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
@@ -295,16 +524,42 @@ export function MaquinistaPE1603Tab({
             </div>
           </div>
 
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setRegistrarOpen(true)}
-            disabled={!hayBloquesPendientes}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Registrar Actuación
-          </Button>
-          {!hayBloquesPendientes && (
+          {/* Action buttons */}
+          {!expedienteCerrado && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setRegistrarOpen(true)}
+                disabled={!hayBloquesPendientes}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar Actuación
+              </Button>
+              
+              {(todosCumplidos || deberiaCerrarseAuto) && (
+                <Button 
+                  variant="default"
+                  onClick={() => setCerrarOpen(true)}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Cerrar Expediente
+                </Button>
+              )}
+            </div>
+          )}
+
+          {expedienteCerrado && (
+            <div className="p-3 rounded-lg bg-muted/50 border text-center">
+              <Lock className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium">Expediente Cerrado</p>
+              <p className="text-xs text-muted-foreground">
+                Este expediente ha sido cerrado y no admite más actuaciones
+              </p>
+            </div>
+          )}
+
+          {!hayBloquesPendientes && !expedienteCerrado && !todosCumplidos && (
             <p className="text-xs text-muted-foreground text-center">
               No hay bloques en ventana o vencidos para registrar
             </p>
@@ -441,6 +696,60 @@ export function MaquinistaPE1603Tab({
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Cerrar Expediente */}
+      <Dialog open={cerrarOpen} onOpenChange={setCerrarOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              Cerrar Expediente
+            </DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas cerrar este expediente? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
+              <p className="text-sm">
+                <span className="font-medium">Maquinista:</span> {maquinista.nombre_apellidos}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Fecha fin prevista:</span> {format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Bloques cumplidos:</span> {plan1603.filter(b => b.estadoCalculado === 'Cumplida').length} de {plan1603.length}
+              </p>
+            </div>
+
+            {!todosCumplidos && (
+              <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <p className="text-sm text-amber-700">
+                    Hay bloques sin cumplir. Al cerrar el expediente quedarán marcados como incompletos.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCerrarOpen(false)} disabled={closing}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleCerrarExpediente} 
+              disabled={closing}
+            >
+              {closing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Cerrar Expediente
             </Button>
           </DialogFooter>
         </DialogContent>
