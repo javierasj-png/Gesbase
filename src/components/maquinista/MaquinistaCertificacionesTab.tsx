@@ -233,39 +233,29 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Certificación</Label>
+              <Label>Certificación obtenida</Label>
               <Select value={selectedCert} onValueChange={setSelectedCert}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona una certificación" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Mostrar primero las ya asignadas, luego las disponibles */}
-                  {certificaciones.length > 0 && (
-                    <>
-                      <SelectItem value="__header_asignadas__" disabled>
-                        — Asignadas —
+                  {/* Solo mostrar certificaciones obtenidas */}
+                  {certificaciones.filter(c => c.obtenida).length > 0 ? (
+                    certificaciones.filter(c => c.obtenida).map(cert => (
+                      <SelectItem key={cert.certificacion_id} value={cert.certificacion_id}>
+                        <span className="capitalize">[{cert.certificacion_tipo}]</span> {cert.certificacion_nombre}
                       </SelectItem>
-                      {certificaciones.map(cert => (
-                        <SelectItem key={cert.certificacion_id} value={cert.certificacion_id}>
-                          <span className="capitalize">[{cert.certificacion_tipo}]</span> {cert.certificacion_nombre}
-                        </SelectItem>
-                      ))}
-                    </>
-                  )}
-                  {disponibles.filter(d => !d.asignada).length > 0 && (
-                    <>
-                      <SelectItem value="__header_nuevas__" disabled>
-                        — Nuevas —
-                      </SelectItem>
-                      {disponibles.filter(d => !d.asignada).map(cert => (
-                        <SelectItem key={cert.id} value={cert.id}>
-                          <span className="capitalize">[{cert.tipo}]</span> {cert.nombre}
-                        </SelectItem>
-                      ))}
-                    </>
+                    ))
+                  ) : (
+                    <SelectItem value="__empty__" disabled>
+                      No hay certificaciones obtenidas
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Solo puedes registrar servicios en certificaciones ya obtenidas
+              </p>
             </div>
 
             <div className="space-y-2">
