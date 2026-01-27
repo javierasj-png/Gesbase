@@ -85,10 +85,6 @@ export default function AdminPage() {
               <Building2 className="w-4 h-4" />
               Asignación por Base
             </TabsTrigger>
-            <TabsTrigger value="plantillas" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Plantillas SGS
-            </TabsTrigger>
           </TabsList>
 
           {/* Maquinistas */}
@@ -283,80 +279,6 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
-          {/* Plantillas SGS */}
-          <TabsContent value="plantillas" className="space-y-6">
-            {/* Plantilla 16.03 */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <FileCheck className="w-5 h-5 text-primary" />
-                  <CardTitle>Plantilla PE 16.03</CardTitle>
-                </div>
-                <CardDescription>
-                  Definición de bloques obligatorios con ventanas temporales (offsets desde primer servicio)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left p-2 font-medium">Tipo</th>
-                      <th className="text-left p-2 font-medium">Etiqueta</th>
-                      <th className="text-left p-2 font-medium">Orden</th>
-                      <th className="text-left p-2 font-medium">Inicio (días)</th>
-                      <th className="text-left p-2 font-medium">Fin (días)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plantilla1603Mock.map((item) => (
-                      <tr key={item.id} className="border-b last:border-b-0">
-                        <td className="p-2">{item.tipo}</td>
-                        <td className="p-2">{item.etiqueta}</td>
-                        <td className="p-2">{item.orden}</td>
-                        <td className="p-2 font-mono">{item.offsetInicioDias}</td>
-                        <td className="p-2 font-mono">{item.offsetFinDias}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-
-            {/* Catálogo Hitos 12.01 */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-status-proximo" />
-                  <CardTitle>Catálogo Hitos PE 12.01</CardTitle>
-                </div>
-                <CardDescription>
-                  Hitos disponibles para programación ad-hoc (offsets desde 1er servicio tras suceso)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left p-2 font-medium">Bloque</th>
-                      <th className="text-left p-2 font-medium">Etiqueta</th>
-                      <th className="text-left p-2 font-medium">Orden</th>
-                      <th className="text-left p-2 font-medium">Offset (días)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {catalogoHitos1201Mock.map((item) => (
-                      <tr key={item.id} className="border-b last:border-b-0">
-                        <td className="p-2">{item.bloque}</td>
-                        <td className="p-2">{item.etiqueta}</td>
-                        <td className="p-2">{item.orden}</td>
-                        <td className="p-2 font-mono">{item.offsetDias}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Modal de edición de certificaciones por base */}
