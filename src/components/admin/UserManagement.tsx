@@ -23,29 +23,39 @@ interface UserWithDetails {
   nombre?: string;
   apellidos?: string;
   roles: AppRole[];
-  bases: Base[];
+  bases: string[];
 }
 
-const ALL_BASES: Base[] = [
-  'Madrid-Chamartín',
-  'Barcelona-Sants',
-  'Sevilla-Santa Justa',
-  'Valencia-Joaquín Sorolla'
-];
+interface BaseConduccion {
+  id: string;
+  nombre: string;
+  activa: boolean;
+}
 
 export function UserManagement() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserWithDetails[]>([]);
+  const [allBases, setAllBases] = useState<BaseConduccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUsers();
+    fetchData();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
+      // Fetch bases de conducción
+      const { data: basesConduccion, error: basesConduccionError } = await supabase
+        .from('bases_conduccion')
+        .select('id, nombre, activa')
+        .eq('activa', true)
+        .order('nombre');
+
+      if (basesConduccionError) throw basesConduccionError;
+      setAllBases(basesConduccion || []);
+
       // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -78,16 +88,16 @@ export function UserManagement() {
           .map(r => r.role as AppRole),
         bases: (bases || [])
           .filter(b => b.user_id === profile.id)
-          .map(b => b.base as Base),
+          .map(b => b.base as string),
       }));
 
       setUsers(usersWithDetails);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching data:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudieron cargar los usuarios',
+        description: 'No se pudieron cargar los datos',
       });
     } finally {
       setLoading(false);
@@ -149,7 +159,7 @@ export function UserManagement() {
     }
   };
 
-  const handleToggleBase = async (userId: string, base: Base) => {
+  const handleToggleBase = async (userId: string, base: string) => {
     setSaving(userId);
     const user = users.find(u => u.id === userId);
     if (!user) return;
@@ -297,12 +307,12 @@ export function UserManagement() {
                         )}
                       </Label>
                       <div className="space-y-2">
-                        {ALL_BASES.map(base => (
-                          <div key={base} className="flex items-center justify-between">
-                            <span className="text-sm">{base}</span>
+                        {allBases.map(base => (
+                          <div key={base.id} className="flex items-center justify-between">
+                            <span className="text-sm">{base.nombre}</span>
                             <Switch
-                              checked={user.bases.includes(base) || user.roles.includes('admin')}
-                              onCheckedChange={() => handleToggleBase(user.id, base)}
+                              checked={user.bases.includes(base.nombre) || user.roles.includes('admin')}
+                              onCheckedChange={() => handleToggleBase(user.id, base.nombre)}
                               disabled={saving === user.id || user.roles.includes('admin')}
                             />
                           </div>
