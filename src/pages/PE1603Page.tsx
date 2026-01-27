@@ -14,7 +14,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   Search, 
-  Plus, 
   FileCheck,
   Calendar,
   ChevronRight,
@@ -55,17 +54,12 @@ export default function PE1603Page() {
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">PE 16.03 - Nuevo Acceso</h1>
-            <p className="text-muted-foreground">
-              Vigilancia durante 3 años desde primer servicio en la dependencia
-            </p>
-          </div>
-          <Button disabled>
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Expediente
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">PE 16.03 - Nuevo Acceso</h1>
+          <p className="text-muted-foreground">
+            Vigilancia durante 3 años desde primer servicio en la dependencia. 
+            Los expedientes se generan automáticamente al dar de alta maquinistas de nuevo acceso.
+          </p>
         </div>
 
         {/* Quick Stats */}
