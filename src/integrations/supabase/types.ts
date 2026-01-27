@@ -567,6 +567,7 @@ export type Database = {
         Args: { _base: string; _user_id: string }
         Returns: boolean
       }
+      cerrar_expedientes_1603_expirados: { Args: never; Returns: undefined }
       get_user_bases: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
