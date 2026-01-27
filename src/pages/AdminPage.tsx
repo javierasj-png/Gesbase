@@ -16,11 +16,6 @@ import {
   Shield,
   FileText
 } from 'lucide-react';
-import { 
-  certificacionesMock, 
-  actualizarCertificacion
-} from '@/data/mockData';
-import { Certificacion } from '@/types';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
@@ -28,23 +23,28 @@ import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacion
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { useMaquinistas, MaquinistaDB, MaquinistaInput } from '@/hooks/useMaquinistas';
+import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 
 export default function AdminPage() {
-  const [editingCertificacion, setEditingCertificacion] = useState<Certificacion | null>(null);
-  const [isNewCertificacion, setIsNewCertificacion] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  
   // Hook para maquinistas con Supabase
   const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo } = useMaquinistas();
   const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaDB | null>(null);
   const [isNewMaquinista, setIsNewMaquinista] = useState(false);
 
-  const handleSaveCertificacion = (cert: Certificacion) => {
-    actualizarCertificacion(cert);
-    setRefreshKey(prev => prev + 1);
+  // Hook para certificaciones con Supabase
+  const { certificaciones, loading: loadingCertificaciones, createCertificacion, updateCertificacion, toggleActivo: toggleCertificacionActivo } = useCertificaciones();
+  const [editingCertificacion, setEditingCertificacion] = useState<CertificacionDB | null>(null);
+  const [isNewCertificacion, setIsNewCertificacion] = useState(false);
+
+  const handleSaveCertificacion = async (input: CertificacionInput, id?: string): Promise<boolean> => {
+    if (id) {
+      return await updateCertificacion(id, input);
+    } else {
+      return await createCertificacion(input);
+    }
   };
 
-  const handleEditCertificacion = (cert: Certificacion) => {
+  const handleEditCertificacion = (cert: CertificacionDB) => {
     setEditingCertificacion(cert);
     setIsNewCertificacion(false);
   };
@@ -223,45 +223,59 @@ export default function AdminPage() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left p-3 font-medium text-sm">Nombre</th>
-                      <th className="text-left p-3 font-medium text-sm">Tipo</th>
-                      <th className="text-left p-3 font-medium text-sm">Descripción</th>
-                      <th className="text-left p-3 font-medium text-sm">Activa</th>
-                      <th className="text-left p-3 font-medium text-sm">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {certificacionesMock.map((cert) => (
-                      <tr key={cert.id} className="border-b last:border-b-0">
-                        <td className="p-3 text-sm font-medium">{cert.nombre}</td>
-                        <td className="p-3">
-                          <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
-                        </td>
-                        <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
-                          {cert.descripcion || '-'}
-                        </td>
-                        <td className="p-3">
-                          <Switch checked={cert.activo} />
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => handleEditCertificacion(cert)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
+                {loadingCertificaciones ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-muted-foreground">Cargando certificaciones...</span>
+                  </div>
+                ) : certificaciones.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay certificaciones registradas
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium text-sm">Nombre</th>
+                        <th className="text-left p-3 font-medium text-sm">Tipo</th>
+                        <th className="text-left p-3 font-medium text-sm">Descripción</th>
+                        <th className="text-left p-3 font-medium text-sm">Activa</th>
+                        <th className="text-left p-3 font-medium text-sm">Acciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {certificaciones.map((cert) => (
+                        <tr key={cert.id} className="border-b last:border-b-0">
+                          <td className="p-3 text-sm font-medium">{cert.nombre}</td>
+                          <td className="p-3">
+                            <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
+                            {cert.descripcion || '-'}
+                          </td>
+                          <td className="p-3">
+                            <Switch 
+                              checked={cert.activo} 
+                              onCheckedChange={() => toggleCertificacionActivo(cert.id, cert.activo)}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleEditCertificacion(cert)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -294,6 +308,7 @@ export default function AdminPage() {
             }
           }}
           onSave={handleSaveCertificacion}
+          isNew={isNewCertificacion}
         />
 
         {/* Modal de maquinista */}

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Eye, EyeOff, Pencil, Loader2, Building2, Train } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { certificacionesMock } from '@/data/mockData';
+import { useCertificaciones, CertificacionDB } from '@/hooks/useCertificaciones';
 
 interface BaseConduccion {
   id: string;
@@ -235,11 +235,15 @@ function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChang
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [certificaciones, setCertificaciones] = useState<CertConfig[]>([]);
+  
+  // Cargar certificaciones desde la BD
+  const { certificaciones: catalogoCertificaciones, loading: loadingCatalogo } = useCertificaciones();
 
   useEffect(() => {
-    if (base && open) {
-      // Inicializar con las certificaciones del mock, marcando las ya asignadas
-      const certs = certificacionesMock.map(cert => {
+    if (base && open && !loadingCatalogo) {
+      // Usar las certificaciones activas de la BD
+      const activeCerts = catalogoCertificaciones.filter(c => c.activo);
+      const certs = activeCerts.map(cert => {
         const existing = existingAsignaciones.find(e => e.certificacion_id === cert.id);
         return {
           id: cert.id,
@@ -254,7 +258,7 @@ function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChang
       });
       setCertificaciones(certs);
     }
-  }, [base, open, existingAsignaciones]);
+  }, [base, open, existingAsignaciones, catalogoCertificaciones, loadingCatalogo]);
 
   const handleToggleAsignada = (certId: string) => {
     setCertificaciones(prev => prev.map(c => 
@@ -343,17 +347,29 @@ function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChang
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto min-h-0 py-4 -mx-6 px-6">
-          <div className="space-y-6">
-            {/* Vehículos */}
-            <div>
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2 sticky top-0 bg-background py-1">
-                <Badge variant="outline">Vehículo</Badge>
-                Certificaciones de vehículos ({vehiculos.filter(v => v.asignada).length}/{vehiculos.length})
-              </h4>
-              <div className="space-y-2">
-                {vehiculos.map(cert => (
-                  <CertificacionRow
-                    key={cert.id}
+          {loadingCatalogo ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Cargando catálogo...</span>
+            </div>
+          ) : certificaciones.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Train className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No hay certificaciones en el catálogo.</p>
+              <p className="text-sm">Añade certificaciones en la pestaña "Certificaciones".</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Vehículos */}
+              <div>
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2 sticky top-0 bg-background py-1">
+                  <Badge variant="outline">Vehículo</Badge>
+                  Certificaciones de vehículos ({vehiculos.filter(v => v.asignada).length}/{vehiculos.length})
+                </h4>
+                <div className="space-y-2">
+                  {vehiculos.map(cert => (
+                    <CertificacionRow
+                      key={cert.id}
                     cert={cert}
                     onToggleAsignada={() => handleToggleAsignada(cert.id)}
                     onToggleObligatoria={() => handleToggleObligatoria(cert.id)}
@@ -382,8 +398,8 @@ function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChang
               </div>
             </div>
           </div>
+          )}
         </div>
-
         <div className="flex-shrink-0 border-t pt-4 -mx-6 px-6 bg-background">
           <p className="text-sm text-muted-foreground mb-4">
             {asignadas.length} certificación(es) seleccionada(s)
