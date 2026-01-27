@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Maquinista, Base } from '@/types';
 import { format } from 'date-fns';
 
@@ -25,8 +26,9 @@ interface BaseConduccion {
 
 export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: MaquinistaFormModalProps) {
   const { toast } = useToast();
+  const { isAdmin, assignedBases } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [bases, setBases] = useState<BaseConduccion[]>([]);
+  const [allBases, setAllBases] = useState<BaseConduccion[]>([]);
   
   const [formData, setFormData] = useState({
     matricula: '',
@@ -37,6 +39,11 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
     bajoPE1603: false,
     fechaPrimerServicio: '',
   });
+
+  // Filtrar bases según permisos del usuario
+  const availableBases = isAdmin 
+    ? allBases 
+    : allBases.filter(b => assignedBases.includes(b.nombre as Base));
 
   useEffect(() => {
     if (open) {
@@ -52,10 +59,12 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
           fechaPrimerServicio: '',
         });
       } else {
+        // Si el mando solo tiene una base asignada, preseleccionarla
+        const defaultBase = !isAdmin && assignedBases.length === 1 ? assignedBases[0] : '';
         setFormData({
           matricula: '',
           nombreApellidos: '',
-          base: '',
+          base: defaultBase,
           activo: true,
           observaciones: '',
           bajoPE1603: false,
@@ -63,7 +72,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
         });
       }
     }
-  }, [open, maquinista]);
+  }, [open, maquinista, isAdmin, assignedBases]);
 
   const fetchBases = async () => {
     const { data, error } = await supabase
@@ -73,7 +82,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
       .order('nombre');
 
     if (!error && data) {
-      setBases(data);
+      setAllBases(data);
     }
   };
 
@@ -175,7 +184,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
                 <SelectValue placeholder="Seleccionar base" />
               </SelectTrigger>
               <SelectContent>
-                {bases.map((base) => (
+                {availableBases.map((base) => (
                   <SelectItem key={base.id} value={base.nombre}>
                     {base.nombre}
                   </SelectItem>
