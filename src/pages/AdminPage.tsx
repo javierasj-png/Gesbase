@@ -33,7 +33,7 @@ import { Base, BaseCertificacion, Certificacion } from '@/types';
 import { EditBaseCertificacionesModal } from '@/components/admin/EditBaseCertificacionesModal';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
-
+import { BasesManagement } from '@/components/admin/BasesManagement';
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
 
 export default function AdminPage() {
@@ -87,8 +87,12 @@ export default function AdminPage() {
               <Train className="w-4 h-4" />
               Certificaciones
             </TabsTrigger>
-            <TabsTrigger value="asignacion" className="flex items-center gap-2">
+            <TabsTrigger value="bases" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
+              Bases
+            </TabsTrigger>
+            <TabsTrigger value="asignacion" className="flex items-center gap-2">
+              <Train className="w-4 h-4" />
               Asignación por Base
             </TabsTrigger>
           </TabsList>
@@ -204,6 +208,11 @@ export default function AdminPage() {
                 </table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Bases de Conducción */}
+          <TabsContent value="bases">
+            <BasesManagement />
           </TabsContent>
 
           {/* Asignación por Base */}

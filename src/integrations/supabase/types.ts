@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bases_conduccion: {
+        Row: {
+          activa: boolean
+          codigo: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nombre: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activa?: boolean
+          codigo?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activa?: boolean
+          codigo?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       partes: {
         Row: {
           acciones_tomadas: string | null
