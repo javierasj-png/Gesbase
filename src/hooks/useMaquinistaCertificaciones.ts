@@ -76,23 +76,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
     setLoading(true);
     try {
-      // Obtener certificaciones asignadas al maquinista
-      const { data: asignadas, error: errorAsignadas } = await supabase
-        .from('maquinista_certificaciones')
-        .select('*')
-        .eq('maquinista_id', maquinistaId);
-
-      if (errorAsignadas) throw errorAsignadas;
-
-      // Obtener el catálogo de certificaciones
-      const { data: catalogo, error: errorCatalogo } = await supabase
-        .from('certificaciones')
-        .select('*')
-        .eq('activo', true);
-
-      if (errorCatalogo) throw errorCatalogo;
-
-      // Obtener la base y sus certificaciones configuradas
+      // 1. Obtener la base
       const { data: baseData, error: errorBase } = await supabase
         .from('bases_conduccion')
         .select('id')
@@ -100,52 +84,80 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
         .maybeSingle();
 
       if (errorBase) throw errorBase;
-
-      let baseCertificaciones: any[] = [];
-      if (baseData) {
-        const { data: baseCerts, error: errorBaseCerts } = await supabase
-          .from('base_certificaciones')
-          .select('*')
-          .eq('base_id', baseData.id);
-
-        if (!errorBaseCerts) {
-          baseCertificaciones = baseCerts || [];
-        }
+      if (!baseData) {
+        console.log('Base no encontrada:', baseName);
+        setCertificaciones([]);
+        setDisponibles([]);
+        setLoading(false);
+        return;
       }
 
-      // Procesar certificaciones asignadas con su estado
-      const certificacionesConEstado: CertificacionConEstado[] = (asignadas || []).map(mc => {
-        const cert = catalogo?.find(c => c.id === mc.certificacion_id);
+      // 2. Obtener certificaciones configuradas para esta base
+      const { data: baseCerts, error: errorBaseCerts } = await supabase
+        .from('base_certificaciones')
+        .select('*')
+        .eq('base_id', baseData.id);
+
+      if (errorBaseCerts) throw errorBaseCerts;
+      
+      const baseCertificaciones = baseCerts || [];
+      console.log('Certificaciones de la base:', baseCertificaciones);
+
+      // 3. Obtener certificaciones ya asignadas al maquinista
+      const { data: asignadas, error: errorAsignadas } = await supabase
+        .from('maquinista_certificaciones')
+        .select('*')
+        .eq('maquinista_id', maquinistaId);
+
+      if (errorAsignadas) throw errorAsignadas;
+
+      // 4. Construir lista de certificaciones con estado
+      // Usar las certificaciones de la base como fuente principal
+      const certificacionesConEstado: CertificacionConEstado[] = baseCertificaciones.map(bc => {
+        // Buscar si ya está asignada al maquinista
+        const asignada = asignadas?.find(a => a.certificacion_id === bc.certificacion_id);
+        
+        const fechaServicio = asignada?.fecha_ultimo_servicio || null;
+        const vigilar = asignada?.vigilar_vencimiento ?? bc.vigilar_vencimiento;
+        const periodo = asignada?.periodo_inactividad_meses ?? bc.periodo_inactividad_meses;
+        const aviso = asignada?.aviso_dias ?? bc.aviso_dias;
+
         const { estado, diasRestantes, fechaVencimiento } = calcularEstado(
-          mc.fecha_ultimo_servicio,
-          mc.vigilar_vencimiento,
-          mc.periodo_inactividad_meses,
-          mc.aviso_dias
+          fechaServicio,
+          vigilar,
+          periodo,
+          aviso
         );
 
         return {
-          ...mc,
-          certificacion_nombre: cert?.nombre || 'Desconocida',
-          certificacion_tipo: (cert?.tipo as 'vehiculo' | 'linea') || 'vehiculo',
+          id: asignada?.id || bc.id,
+          maquinista_id: maquinistaId,
+          certificacion_id: bc.certificacion_id,
+          obligatoria: bc.obligatoria,
+          vigilar_vencimiento: vigilar,
+          periodo_inactividad_meses: periodo,
+          aviso_dias: aviso,
+          fecha_ultimo_servicio: fechaServicio,
+          certificacion_nombre: bc.certificacion_nombre,
+          certificacion_tipo: bc.certificacion_tipo as 'vehiculo' | 'linea',
           estado,
           dias_restantes: diasRestantes,
           fecha_vencimiento: fechaVencimiento,
         };
       });
 
-      // Crear lista de certificaciones disponibles (del catálogo que están en la base)
-      const disponiblesData: CertificacionDisponible[] = (catalogo || []).map(cert => {
-        const baseCert = baseCertificaciones.find(bc => bc.certificacion_id === cert.id);
-        const asignada = asignadas?.find(a => a.certificacion_id === cert.id);
-
+      // 5. Construir lista de disponibles para el selector
+      const disponiblesData: CertificacionDisponible[] = baseCertificaciones.map(bc => {
+        const asignada = asignadas?.find(a => a.certificacion_id === bc.certificacion_id);
+        
         return {
-          id: cert.id,
-          nombre: cert.nombre,
-          tipo: cert.tipo as 'vehiculo' | 'linea',
-          obligatoria: baseCert?.obligatoria ?? false,
-          vigilar_vencimiento: baseCert?.vigilar_vencimiento ?? true,
-          periodo_inactividad_meses: baseCert?.periodo_inactividad_meses ?? 12,
-          aviso_dias: baseCert?.aviso_dias ?? 30,
+          id: bc.certificacion_id,
+          nombre: bc.certificacion_nombre,
+          tipo: bc.certificacion_tipo as 'vehiculo' | 'linea',
+          obligatoria: bc.obligatoria,
+          vigilar_vencimiento: bc.vigilar_vencimiento,
+          periodo_inactividad_meses: bc.periodo_inactividad_meses,
+          aviso_dias: bc.aviso_dias,
           asignada: !!asignada,
           fecha_ultimo_servicio: asignada?.fecha_ultimo_servicio || null,
         };
