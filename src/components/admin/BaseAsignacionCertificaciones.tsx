@@ -4,9 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Dialog,
   DialogContent,
@@ -26,7 +23,7 @@ interface BaseConduccion {
   activa: boolean;
 }
 
-interface CertificacionAsignada {
+interface BaseCertificacionDB {
   id: string;
   base_id: string;
   certificacion_id: string;
@@ -43,44 +40,43 @@ export function BaseAsignacionCertificaciones() {
   const [bases, setBases] = useState<BaseConduccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
-  const [asignaciones, setAsignaciones] = useState<Record<string, CertificacionAsignada[]>>({});
+  const [asignaciones, setAsignaciones] = useState<Record<string, BaseCertificacionDB[]>>({});
 
-  useEffect(() => {
-    fetchBases();
-  }, []);
-
-  const fetchBases = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('bases_conduccion')
-        .select('*')
-        .eq('activa', true)
-        .order('nombre');
+      const [basesRes, certsRes] = await Promise.all([
+        supabase.from('bases_conduccion').select('*').eq('activa', true).order('nombre'),
+        supabase.from('base_certificaciones').select('*'),
+      ]);
 
-      if (error) throw error;
-      setBases(data || []);
+      if (basesRes.error) throw basesRes.error;
+      if (certsRes.error) throw certsRes.error;
 
-      // Por ahora usamos datos mock para las asignaciones
-      // En el futuro esto vendrá de la tabla base_certificaciones
-      const mockAsignaciones: Record<string, CertificacionAsignada[]> = {};
-      (data || []).forEach(base => {
-        // Simular algunas asignaciones de ejemplo
-        mockAsignaciones[base.id] = [];
+      setBases(basesRes.data || []);
+
+      // Agrupar asignaciones por base
+      const grouped: Record<string, BaseCertificacionDB[]> = {};
+      (basesRes.data || []).forEach(base => {
+        grouped[base.id] = (certsRes.data || []).filter(c => c.base_id === base.id);
       });
-      setAsignaciones(mockAsignaciones);
+      setAsignaciones(grouped);
 
     } catch (error) {
-      console.error('Error fetching bases:', error);
+      console.error('Error fetching data:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudieron cargar las bases de conducción',
+        description: 'No se pudieron cargar los datos',
       });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   if (loading) {
     return (
@@ -203,10 +199,11 @@ export function BaseAsignacionCertificaciones() {
       {/* Modal de edición */}
       <EditBaseAsignacionModal
         base={editingBase}
+        existingAsignaciones={editingBase ? asignaciones[editingBase.id] || [] : []}
         open={!!editingBase}
         onOpenChange={(open) => !open && setEditingBase(null)}
         onSave={() => {
-          fetchBases();
+          fetchData();
           setEditingBase(null);
         }}
       />
@@ -217,41 +214,47 @@ export function BaseAsignacionCertificaciones() {
 // Modal para editar las asignaciones de una base
 interface EditBaseAsignacionModalProps {
   base: BaseConduccion | null;
+  existingAsignaciones: BaseCertificacionDB[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
 }
 
-function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseAsignacionModalProps) {
+interface CertConfig {
+  id: string;
+  nombre: string;
+  tipo: string;
+  asignada: boolean;
+  obligatoria: boolean;
+  vigilar: boolean;
+  periodoMeses: number;
+  avisoDias: number;
+}
+
+function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChange, onSave }: EditBaseAsignacionModalProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [certificaciones, setCertificaciones] = useState<Array<{
-    id: string;
-    nombre: string;
-    tipo: string;
-    asignada: boolean;
-    obligatoria: boolean;
-    vigilar: boolean;
-    periodoMeses: number;
-    avisoDias: number;
-  }>>([]);
+  const [certificaciones, setCertificaciones] = useState<CertConfig[]>([]);
 
   useEffect(() => {
     if (base && open) {
-      // Inicializar con las certificaciones del mock
-      const certs = certificacionesMock.map(cert => ({
-        id: cert.id,
-        nombre: cert.nombre,
-        tipo: cert.tipo,
-        asignada: false,
-        obligatoria: false,
-        vigilar: false,
-        periodoMeses: 12,
-        avisoDias: 30,
-      }));
+      // Inicializar con las certificaciones del mock, marcando las ya asignadas
+      const certs = certificacionesMock.map(cert => {
+        const existing = existingAsignaciones.find(e => e.certificacion_id === cert.id);
+        return {
+          id: cert.id,
+          nombre: cert.nombre,
+          tipo: cert.tipo,
+          asignada: !!existing,
+          obligatoria: existing?.obligatoria ?? false,
+          vigilar: existing?.vigilar_vencimiento ?? true,
+          periodoMeses: existing?.periodo_inactividad_meses ?? 12,
+          avisoDias: existing?.aviso_dias ?? 30,
+        };
+      });
       setCertificaciones(certs);
     }
-  }, [base, open]);
+  }, [base, open, existingAsignaciones]);
 
   const handleToggleAsignada = (certId: string) => {
     setCertificaciones(prev => prev.map(c => 
@@ -272,15 +275,47 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
   };
 
   const handleSave = async () => {
+    if (!base) return;
+    
     setSaving(true);
     try {
-      // TODO: Guardar en la base de datos cuando exista la tabla base_certificaciones
+      // Eliminar asignaciones existentes para esta base
+      const { error: deleteError } = await supabase
+        .from('base_certificaciones')
+        .delete()
+        .eq('base_id', base.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insertar las nuevas asignaciones
+      const asignadas = certificaciones.filter(c => c.asignada);
+      
+      if (asignadas.length > 0) {
+        const toInsert = asignadas.map(c => ({
+          base_id: base.id,
+          certificacion_id: c.id,
+          certificacion_nombre: c.nombre,
+          certificacion_tipo: c.tipo,
+          obligatoria: c.obligatoria,
+          vigilar_vencimiento: c.vigilar,
+          periodo_inactividad_meses: c.periodoMeses,
+          aviso_dias: c.avisoDias,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('base_certificaciones')
+          .insert(toInsert);
+
+        if (insertError) throw insertError;
+      }
+
       toast({
         title: 'Configuración guardada',
-        description: `Las certificaciones de ${base?.nombre} se han actualizado`,
+        description: `Se asignaron ${asignadas.length} certificación(es) a ${base.nombre}`,
       });
       onSave();
     } catch (error) {
+      console.error('Error saving:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -294,10 +329,12 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
   if (!base) return null;
 
   const asignadas = certificaciones.filter(c => c.asignada);
+  const vehiculos = certificaciones.filter(c => c.tipo === 'vehiculo');
+  const lineas = certificaciones.filter(c => c.tipo === 'linea');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Certificaciones de {base.nombre}</DialogTitle>
           <DialogDescription>
@@ -305,19 +342,16 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea
-          type="always"
-          className="flex-1 min-h-0 h-[55vh] overscroll-contain -mr-4 pr-4"
-        >
-          <div className="space-y-4 py-4 pr-4">
+        <div className="flex-1 overflow-y-auto min-h-0 py-4 -mx-6 px-6">
+          <div className="space-y-6">
             {/* Vehículos */}
             <div>
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2 sticky top-0 bg-background py-1">
                 <Badge variant="outline">Vehículo</Badge>
-                Certificaciones de vehículos
+                Certificaciones de vehículos ({vehiculos.filter(v => v.asignada).length}/{vehiculos.length})
               </h4>
               <div className="space-y-2">
-                {certificaciones.filter(c => c.tipo === 'vehiculo').map(cert => (
+                {vehiculos.map(cert => (
                   <CertificacionRow
                     key={cert.id}
                     cert={cert}
@@ -331,12 +365,12 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
 
             {/* Líneas */}
             <div>
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2 sticky top-0 bg-background py-1">
                 <Badge variant="outline">Línea</Badge>
-                Certificaciones de líneas
+                Certificaciones de líneas ({lineas.filter(l => l.asignada).length}/{lineas.length})
               </h4>
               <div className="space-y-2">
-                {certificaciones.filter(c => c.tipo === 'linea').map(cert => (
+                {lineas.map(cert => (
                   <CertificacionRow
                     key={cert.id}
                     cert={cert}
@@ -348,9 +382,9 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
               </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        <div className="border-t pt-4">
+        <div className="flex-shrink-0 border-t pt-4 -mx-6 px-6 bg-background">
           <p className="text-sm text-muted-foreground mb-4">
             {asignadas.length} certificación(es) seleccionada(s)
           </p>
@@ -371,16 +405,7 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
 
 // Fila de certificación
 interface CertificacionRowProps {
-  cert: {
-    id: string;
-    nombre: string;
-    tipo: string;
-    asignada: boolean;
-    obligatoria: boolean;
-    vigilar: boolean;
-    periodoMeses: number;
-    avisoDias: number;
-  };
+  cert: CertConfig;
   onToggleAsignada: () => void;
   onToggleObligatoria: () => void;
   onToggleVigilar: () => void;
@@ -388,22 +413,20 @@ interface CertificacionRowProps {
 
 function CertificacionRow({ cert, onToggleAsignada, onToggleObligatoria, onToggleVigilar }: CertificacionRowProps) {
   return (
-    <div className={`p-3 rounded-lg border ${cert.asignada ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <Switch
-            checked={cert.asignada}
-            onCheckedChange={onToggleAsignada}
-          />
-          <span className={`text-sm ${cert.asignada ? 'font-medium' : 'text-muted-foreground'}`}>
-            {cert.nombre}
-          </span>
-        </div>
+    <div className={`p-3 rounded-lg border transition-colors ${cert.asignada ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-transparent'}`}>
+      <div className="flex items-center gap-3">
+        <Switch
+          checked={cert.asignada}
+          onCheckedChange={onToggleAsignada}
+        />
+        <span className={`text-sm ${cert.asignada ? 'font-medium' : 'text-muted-foreground'}`}>
+          {cert.nombre}
+        </span>
       </div>
       
       {cert.asignada && (
-        <div className="ml-10 flex items-center gap-6 text-sm">
-          <label className="flex items-center gap-2">
+        <div className="ml-10 mt-2 flex items-center gap-6 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
             <Switch
               checked={cert.obligatoria}
               onCheckedChange={onToggleObligatoria}
@@ -411,7 +434,7 @@ function CertificacionRow({ cert, onToggleAsignada, onToggleObligatoria, onToggl
             />
             <span className="text-muted-foreground">Obligatoria</span>
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 cursor-pointer">
             <Switch
               checked={cert.vigilar}
               onCheckedChange={onToggleVigilar}

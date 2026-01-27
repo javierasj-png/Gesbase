@@ -38,6 +38,62 @@ export type Database = {
         }
         Relationships: []
       }
+      base_certificaciones: {
+        Row: {
+          aviso_dias: number
+          base_id: string
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at: string
+          created_by: string | null
+          id: string
+          obligatoria: boolean
+          periodo_inactividad_meses: number
+          updated_at: string
+          updated_by: string | null
+          vigilar_vencimiento: boolean
+        }
+        Insert: {
+          aviso_dias?: number
+          base_id: string
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obligatoria?: boolean
+          periodo_inactividad_meses?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigilar_vencimiento?: boolean
+        }
+        Update: {
+          aviso_dias?: number
+          base_id?: string
+          certificacion_id?: string
+          certificacion_nombre?: string
+          certificacion_tipo?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          obligatoria?: boolean
+          periodo_inactividad_meses?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigilar_vencimiento?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_certificaciones_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases_conduccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bases_conduccion: {
         Row: {
           activa: boolean
