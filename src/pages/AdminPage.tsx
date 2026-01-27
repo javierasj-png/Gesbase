@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,13 +24,22 @@ import {
   certificacionesMock, 
   baseCertificacionesMock,
   plantilla1603Mock,
-  catalogoHitos1201Mock
+  catalogoHitos1201Mock,
+  actualizarBaseCertificaciones
 } from '@/data/mockData';
-import { Base } from '@/types';
+import { Base, BaseCertificacion } from '@/types';
+import { EditBaseCertificacionesModal } from '@/components/admin/EditBaseCertificacionesModal';
 
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
 
 export default function AdminPage() {
+  const [editingBase, setEditingBase] = useState<Base | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSaveBaseCertificaciones = (baseId: Base, certificaciones: BaseCertificacion[]) => {
+    actualizarBaseCertificaciones(baseId, certificaciones);
+    setRefreshKey(prev => prev + 1); // Force re-render
+  };
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -199,7 +209,7 @@ export default function AdminPage() {
                               {asignadas.length} certificación(es) asignada(s)
                             </CardDescription>
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => setEditingBase(base)}>
                             <Pencil className="w-3 h-3 mr-2" />
                             Editar
                           </Button>
@@ -324,6 +334,14 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modal de edición de certificaciones por base */}
+        <EditBaseCertificacionesModal
+          base={editingBase}
+          open={!!editingBase}
+          onOpenChange={(open) => !open && setEditingBase(null)}
+          onSave={handleSaveBaseCertificaciones}
+        />
       </div>
     </AppLayout>
   );

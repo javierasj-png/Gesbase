@@ -15,6 +15,7 @@ import {
   Usuario,
   EstadoCertificacionMaquinista,
   EstadoBloque1603,
+  Base,
 } from '@/types';
 import { addDays, addMonths, differenceInDays, isAfter, isBefore, isWithinInterval } from 'date-fns';
 
@@ -76,7 +77,7 @@ export const certificacionesMock: Certificacion[] = [
 ];
 
 // ===== CERTIFICACIONES POR BASE (BaseCertificacion) =====
-export const baseCertificacionesMock: BaseCertificacion[] = [
+export let baseCertificacionesMock: BaseCertificacion[] = [
   // Madrid-Chamartín
   { id: 'bc1', baseId: 'Madrid-Chamartín', certificacionId: 'c1', vigilarVencimiento: true, periodoInactividadMeses: 12, avisoDias: 60, obligatoria: true },
   { id: 'bc2', baseId: 'Madrid-Chamartín', certificacionId: 'c2', vigilarVencimiento: true, periodoInactividadMeses: 12, avisoDias: 60, obligatoria: false },
@@ -92,6 +93,14 @@ export const baseCertificacionesMock: BaseCertificacion[] = [
   { id: 'bc10', baseId: 'Sevilla-Santa Justa', certificacionId: 'c3', vigilarVencimiento: true, periodoInactividadMeses: 12, avisoDias: 60, obligatoria: true },
   { id: 'bc11', baseId: 'Sevilla-Santa Justa', certificacionId: 'c4', vigilarVencimiento: true, periodoInactividadMeses: 12, avisoDias: 60, obligatoria: false },
 ];
+
+// ===== FUNCIÓN PARA ACTUALIZAR CERTIFICACIONES POR BASE =====
+export function actualizarBaseCertificaciones(baseId: Base, nuevasCertificaciones: BaseCertificacion[]): void {
+  // Eliminar las certificaciones existentes de esta base
+  baseCertificacionesMock = baseCertificacionesMock.filter(bc => bc.baseId !== baseId);
+  // Añadir las nuevas
+  baseCertificacionesMock.push(...nuevasCertificaciones);
+}
 
 // ===== CERTIFICACIONES DE MAQUINISTAS =====
 const hoy = new Date();
