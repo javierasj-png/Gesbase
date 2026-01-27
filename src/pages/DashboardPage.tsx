@@ -22,23 +22,40 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { calcularKPIs, obtenerTodasCertificaciones, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
-import { Base } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+import { useBaseFilter } from '@/hooks/useBaseFilter';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [baseFilter, setBaseFilter] = useState<string>('all');
   
-  const kpis = calcularKPIs(baseFilter === 'all' ? undefined : baseFilter);
+  const { getAccessibleBases, filterMaquinistas, filterByBase, isAdmin } = useBaseFilter();
+  
+  // Si el usuario tiene una sola base asignada, usarla como filtro por defecto
+  const effectiveBaseFilter = baseFilter === 'all' && !isAdmin && getAccessibleBases.length === 1 
+    ? getAccessibleBases[0] 
+    : baseFilter;
+  
+  const kpis = calcularKPIs(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter);
   const todasCertificaciones = obtenerTodasCertificaciones();
 
-  // Filtrar elementos críticos para mostrar (solo vigiladas)
-  const elementosCriticos = todasCertificaciones
+  // Filtrar certificaciones por bases accesibles
+  const certificacionesFiltradas = todasCertificaciones.filter(c => 
+    isAdmin || getAccessibleBases.includes(c.baseId)
+  );
+
+  // Filtrar elementos críticos para mostrar (solo vigiladas y bases accesibles)
+  const elementosCriticos = certificacionesFiltradas
     .filter(c => c.vigilarVencimiento && (c.estado === 'Vencida' || c.estado === 'Próxima a vencer'))
     .slice(0, 5);
+  
+  // Filtrar expedientes por bases accesibles
+  const maquinistasAccesibles = filterMaquinistas(maquinistasMock);
+  const maquinistaIds = new Set(maquinistasAccesibles.map(m => m.id));
+  
+  const expedientes1603Filtrados = expedientes1603Mock.filter(e => maquinistaIds.has(e.maquinistaId));
+  const expedientes1201Filtrados = expedientes1201Mock.filter(e => maquinistaIds.has(e.maquinistaId));
 
   return (
     <AppLayout>
@@ -51,13 +68,13 @@ export default function DashboardPage() {
               Visión general del estado de vigilancia • {format(new Date(), "d 'de' MMMM yyyy", { locale: es })}
             </p>
           </div>
-          <Select value={baseFilter} onValueChange={setBaseFilter}>
+          <Select value={effectiveBaseFilter} onValueChange={setBaseFilter}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Todas las bases" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas las bases</SelectItem>
-              {bases.map(base => (
+              {isAdmin && <SelectItem value="all">Todas las bases</SelectItem>}
+              {getAccessibleBases.map(base => (
                 <SelectItem key={base} value={base}>{base}</SelectItem>
               ))}
             </SelectContent>
@@ -196,7 +213,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {/* PE 16.03 */}
-                {expedientes1603Mock.filter(e => e.estado === 'Activo').map(exp => {
+                {expedientes1603Filtrados.filter(e => e.estado === 'Activo').map(exp => {
                   const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
                   return (
                     <div 
@@ -221,7 +238,7 @@ export default function DashboardPage() {
                 })}
 
                 {/* PE 12.01 */}
-                {expedientes1201Mock.filter(e => e.estado === 'Abierta').map(exp => {
+                {expedientes1201Filtrados.filter(e => e.estado === 'Abierta').map(exp => {
                   const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
                   return (
                     <div 
@@ -245,8 +262,8 @@ export default function DashboardPage() {
                   );
                 })}
 
-                {expedientes1603Mock.filter(e => e.estado === 'Activo').length === 0 &&
-                 expedientes1201Mock.filter(e => e.estado === 'Abierta').length === 0 && (
+                {expedientes1603Filtrados.filter(e => e.estado === 'Activo').length === 0 &&
+                 expedientes1201Filtrados.filter(e => e.estado === 'Abierta').length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     No hay expedientes activos
                   </p>

@@ -19,18 +19,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Search, Plus, ChevronRight } from 'lucide-react';
 import { maquinistasMock, obtenerCertificacionesMaquinista, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
-import { Base } from '@/types';
-
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+import { useBaseFilter } from '@/hooks/useBaseFilter';
 
 export default function MaquinistasPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const { filterMaquinistas, getAccessibleBases, isAdmin } = useBaseFilter();
 
   // Calcular resumen de estado por maquinista (solo certificaciones vigiladas)
   const getMaquinistaStatus = (maquinistaId: string) => {
@@ -47,8 +47,10 @@ export default function MaquinistasPage() {
     return { label: 'OK', variant: 'default' as const };
   };
 
-  // Filtrar maquinistas
-  const filteredMaquinistas = maquinistasMock.filter(m => {
+  // Primero filtramos por bases asignadas, luego aplicamos filtros del usuario
+  const baseMaquinistas = filterMaquinistas(maquinistasMock);
+  
+  const filteredMaquinistas = baseMaquinistas.filter(m => {
     const matchesSearch = 
       m.nombreApellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.matricula.toLowerCase().includes(searchTerm.toLowerCase());
@@ -95,7 +97,7 @@ export default function MaquinistasPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las bases</SelectItem>
-                  {bases.map(base => (
+                  {getAccessibleBases.map(base => (
                     <SelectItem key={base} value={base}>{base}</SelectItem>
                   ))}
                 </SelectContent>

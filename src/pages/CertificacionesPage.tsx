@@ -14,11 +14,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Train, Settings, Eye, EyeOff, AlertTriangle } from 'lucide-react';
-import { obtenerTodasCertificaciones, maquinistasMock, certificacionesMock, baseCertificacionesMock } from '@/data/mockData';
-import { Base, TipoCertificacion } from '@/types';
+import { obtenerTodasCertificaciones, certificacionesMock, baseCertificacionesMock } from '@/data/mockData';
 import { format } from 'date-fns';
-
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+import { useBaseFilter } from '@/hooks/useBaseFilter';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CertificacionesPage() {
   const navigate = useNavigate();
@@ -27,11 +26,18 @@ export default function CertificacionesPage() {
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
   const [soloVigiladas, setSoloVigiladas] = useState(true);
+  
+  const { getAccessibleBases, isAdmin } = useBaseFilter();
 
   const todasCertificaciones = obtenerTodasCertificaciones();
+  
+  // Filtrar primero por bases accesibles
+  const certificacionesAccesibles = todasCertificaciones.filter(c =>
+    isAdmin || getAccessibleBases.includes(c.baseId)
+  );
 
   // Filtrar
-  const filteredCerts = todasCertificaciones.filter(item => {
+  const filteredCerts = certificacionesAccesibles.filter(item => {
     const matchesSearch = 
       item.maquinista?.nombreApellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.maquinista?.matricula.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,15 +59,17 @@ export default function CertificacionesPage() {
 
   // Agrupar por certificación
   const certificacionesConEstados = certificacionesMock.filter(c => c.activo).map(certificacion => {
-    const items = todasCertificaciones.filter(c => c.certificacionId === certificacion.id && (!soloVigiladas || c.vigilarVencimiento));
+    const items = certificacionesAccesibles.filter(c => c.certificacionId === certificacion.id && (!soloVigiladas || c.vigilarVencimiento));
     const vencidos = items.filter(c => c.estado === 'Vencida').length;
     const proximos = items.filter(c => c.estado === 'Próxima a vencer').length;
     const vigentes = items.filter(c => c.estado === 'Vigente').length;
     const noAplica = items.filter(c => c.estado === 'No aplica').length;
     
-    // Contar en cuántas bases está vigilada
+    // Contar en cuántas bases accesibles está vigilada
     const basesVigiladas = baseCertificacionesMock.filter(
-      bc => bc.certificacionId === certificacion.id && bc.vigilarVencimiento
+      bc => bc.certificacionId === certificacion.id && 
+            bc.vigilarVencimiento && 
+            (isAdmin || getAccessibleBases.includes(bc.baseId))
     ).length;
     
     return { certificacion, vencidos, proximos, vigentes, noAplica, total: items.length, basesVigiladas };
@@ -157,7 +165,7 @@ export default function CertificacionesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las bases</SelectItem>
-                  {bases.map(base => (
+                  {getAccessibleBases.map(base => (
                     <SelectItem key={base} value={base}>{base}</SelectItem>
                   ))}
                 </SelectContent>

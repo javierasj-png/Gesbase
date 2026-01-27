@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      base_assignments: {
+        Row: {
+          base: string
+          created_at: string
+          created_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          base: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       partes: {
         Row: {
           acciones_tomadas: string | null
@@ -110,14 +134,74 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          apellidos: string | null
+          created_at: string
+          email: string
+          id: string
+          nombre: string | null
+          updated_at: string
+        }
+        Insert: {
+          apellidos?: string | null
+          created_at?: string
+          email: string
+          id: string
+          nombre?: string | null
+          updated_at?: string
+        }
+        Update: {
+          apellidos?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nombre?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_base: {
+        Args: { _base: string; _user_id: string }
+        Returns: boolean
+      }
+      get_user_bases: { Args: { _user_id: string }; Returns: string[] }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "mando"
       estado_parte: "Nuevo" | "En revisión" | "Cerrado"
       tipo_parte: "Incidencia" | "Retraso" | "Avería" | "Seguridad" | "Otro"
     }
@@ -247,6 +331,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "mando"],
       estado_parte: ["Nuevo", "En revisión", "Cerrado"],
       tipo_parte: ["Incidencia", "Retraso", "Avería", "Seguridad", "Otro"],
     },
