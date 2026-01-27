@@ -227,6 +227,28 @@ export function MaquinistaPE1603Tab({
     }
   };
 
+  // Color map for action types
+  const tipoColors: Record<TipoActuacion1603, { primary: [number, number, number]; light: [number, number, number] }> = {
+    'Acompañamiento': { primary: [59, 130, 246], light: [219, 234, 254] },   // Blue
+    'Registro': { primary: [34, 197, 94], light: [220, 252, 231] },          // Green
+    'Alcohol': { primary: [249, 115, 22], light: [255, 237, 213] },          // Orange
+    'Drogas': { primary: [168, 85, 247], light: [243, 232, 255] },           // Purple
+  };
+
+  const estadoColors: Record<string, [number, number, number]> = {
+    'Cumplida': [34, 197, 94],    // Green
+    'En ventana': [249, 115, 22], // Orange  
+    'Vencida': [239, 68, 68],     // Red
+    'Pendiente': [156, 163, 175], // Gray
+  };
+
+  // Extract PREVER index from observaciones
+  const extractPreverIndex = (observaciones: string | null): string => {
+    if (!observaciones) return '-';
+    const match = observaciones.match(/Índice PREVER:\s*([^\n]+)/);
+    return match ? match[1].trim() : '-';
+  };
+
   const handleExportPDF = async () => {
     if (!expediente1603) return;
 
@@ -250,41 +272,73 @@ export function MaquinistaPE1603Tab({
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header
-    doc.setFontSize(16);
+    // Header with colored banner
+    doc.setFillColor(30, 58, 138); // Dark blue
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('SEGUIMIENTO PE 16.03 - NUEVO ACCESO', pageWidth / 2, 20, { align: 'center' });
+    doc.text('SEGUIMIENTO PE 16.03', pageWidth / 2, 16, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('VIGILANCIA NUEVO ACCESO', pageWidth / 2, 24, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.text(`Emitido: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, pageWidth / 2, 31, { align: 'center' });
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+
+    // Maquinista info card
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 42, pageWidth - 28, 28, 3, 3, 'F');
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha de emisión: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })}`, pageWidth / 2, 28, { align: 'center' });
-
-    // Maquinista info
-    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('DATOS DEL MAQUINISTA', 14, 42);
+    doc.setTextColor(30, 58, 138);
+    doc.text('MAQUINISTA', 20, 52);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Nombre: ${maquinista.nombre_apellidos}`, 14, 50);
-    doc.text(`Matrícula: ${maquinista.matricula}`, 14, 56);
-    doc.text(`Base: ${maquinista.base}`, 14, 62);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${maquinista.nombre_apellidos}`, 20, 60);
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Matrícula: ${maquinista.matricula}  •  Base: ${maquinista.base}`, 20, 66);
 
-    // Expediente info
-    doc.setFontSize(11);
+    // Expediente info card
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 76, pageWidth - 28, 28, 3, 3, 'F');
+    
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('DATOS DEL EXPEDIENTE', 14, 76);
+    doc.setTextColor(30, 58, 138);
+    doc.text('EXPEDIENTE', 20, 86);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Fecha primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 14, 84);
-    doc.text(`Fecha inicio vigilancia: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')}`, 14, 90);
-    doc.text(`Fecha fin prevista: ${format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}`, 14, 96);
-    doc.text(`Estado: ${expediente1603.estado}`, 14, 102);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Período: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')} - ${format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}`, 20, 94);
+    
+    // Estado badge
+    const estadoColor = expediente1603.estado === 'Activo' ? [34, 197, 94] : [156, 163, 175];
+    doc.setFillColor(estadoColor[0], estadoColor[1], estadoColor[2]);
+    doc.roundedRect(pageWidth - 50, 84, 36, 8, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(expediente1603.estado, pageWidth - 32, 89.5, { align: 'center' });
+    
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(9);
+    doc.text(`Primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 20, 100);
 
-    // Plan summary table
+    // Reset
+    doc.setTextColor(0, 0, 0);
+
+    // Plan summary with colored rows
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 58, 138);
     doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 116);
 
     const planData = tiposActuacion.map(tipo => {
@@ -298,11 +352,33 @@ export function MaquinistaPE1603Tab({
 
     autoTable(doc, {
       startY: 120,
-      head: [['Tipo', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
+      head: [['Tipo de Acción', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
       body: planData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] },
-      styles: { fontSize: 9 },
+      headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 },
+      bodyStyles: { textColor: [30, 41, 59] },
+      willDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const tipo = data.cell.raw as TipoActuacion1603;
+          const colors = tipoColors[tipo];
+          if (colors) {
+            doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+          }
+        }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const tipo = data.cell.raw as TipoActuacion1603;
+          const colors = tipoColors[tipo];
+          if (colors) {
+            // Draw colored left border
+            doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.setLineWidth(2);
+            doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
+          }
+        }
+      },
     });
 
     // Detailed blocks table
@@ -310,31 +386,66 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 58, 138);
     doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
 
     const bloquesData = plan1603
       .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.orden - b.orden)
       .map(b => {
         const actuacion = actuaciones?.find(a => a.tipo === b.tipo && b.actuacion_id === a.id);
+        const preverIndex = actuacion ? extractPreverIndex(actuacion.observaciones) : '-';
         return [
           b.tipo,
           b.etiqueta,
           `${format(parseISO(b.inicio_ventana), 'dd/MM/yy')} - ${format(parseISO(b.fin_ventana), 'dd/MM/yy')}`,
           b.estadoCalculado,
           actuacion ? format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy') : '-',
-          actuacion?.resultado || '-'
+          preverIndex
         ];
       });
 
     autoTable(doc, {
       startY: finalY + 18,
-      head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Resultado']],
+      head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Índice PREVER']],
       body: bloquesData,
       theme: 'grid',
-      headStyles: { fillColor: [59, 130, 246] },
-      styles: { fontSize: 8 },
+      headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 3 },
+      bodyStyles: { textColor: [30, 41, 59] },
       columnStyles: {
-        2: { cellWidth: 35 },
+        2: { cellWidth: 32 },
+        5: { halign: 'center' },
+      },
+      willDrawCell: (data) => {
+        if (data.section === 'body') {
+          // Color the tipo column
+          if (data.column.index === 0) {
+            const tipo = data.cell.raw as TipoActuacion1603;
+            const colors = tipoColors[tipo];
+            if (colors) {
+              doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+            }
+          }
+          // Color the estado column
+          if (data.column.index === 3) {
+            const estado = data.cell.raw as string;
+            const color = estadoColors[estado];
+            if (color) {
+              doc.setFillColor(color[0] + 40 > 255 ? 255 : color[0] + 180, color[1] + 40 > 255 ? 255 : color[1] + 180, color[2] + 40 > 255 ? 255 : color[2] + 180);
+            }
+          }
+        }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const tipo = data.cell.raw as TipoActuacion1603;
+          const colors = tipoColors[tipo];
+          if (colors) {
+            doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.setLineWidth(1.5);
+            doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
+          }
+        }
       },
     });
 
@@ -342,32 +453,78 @@ export function MaquinistaPE1603Tab({
     if (actuaciones && actuaciones.length > 0) {
       const finalY2 = (doc as any).lastAutoTable.finalY || 200;
       
+      let tableStartY = finalY2 + 18;
       if (finalY2 > 240) {
         doc.addPage();
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('ACTUACIONES REGISTRADAS', 14, 20);
-      } else {
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('ACTUACIONES REGISTRADAS', 14, finalY2 + 14);
+        // Header on new page
+        doc.setFillColor(30, 58, 138);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text('PE 16.03 - Continuación', pageWidth / 2, 8, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        tableStartY = 24;
       }
+      
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 58, 138);
+      doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
-      const actuacionesData = actuaciones.map(a => [
-        a.tipo,
-        format(parseISO(a.fecha_real), 'dd/MM/yyyy'),
-        a.resultado || '-',
-        a.observaciones || '-'
-      ]);
+      const actuacionesData = actuaciones.map(a => {
+        const preverIndex = extractPreverIndex(a.observaciones);
+        // Clean observaciones removing PREVER index line
+        const cleanObs = a.observaciones?.replace(/Índice PREVER:[^\n]*\n?/, '').trim() || '-';
+        return [
+          a.tipo,
+          format(parseISO(a.fecha_real), 'dd/MM/yyyy'),
+          preverIndex,
+          cleanObs
+        ];
+      });
 
       autoTable(doc, {
-        startY: finalY2 > 240 ? 24 : finalY2 + 18,
-        head: [['Tipo', 'Fecha', 'Resultado', 'Observaciones']],
+        startY: tableStartY,
+        head: [['Tipo', 'Fecha', 'Índice PREVER', 'Observaciones']],
         body: actuacionesData,
         theme: 'grid',
-        headStyles: { fillColor: [59, 130, 246] },
-        styles: { fontSize: 8 },
+        headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3 },
+        bodyStyles: { textColor: [30, 41, 59] },
+        columnStyles: {
+          2: { halign: 'center', cellWidth: 28 },
+          3: { cellWidth: 70 },
+        },
+        willDrawCell: (data) => {
+          if (data.section === 'body' && data.column.index === 0) {
+            const tipo = data.cell.raw as TipoActuacion1603;
+            const colors = tipoColors[tipo];
+            if (colors) {
+              doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+            }
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === 'body' && data.column.index === 0) {
+            const tipo = data.cell.raw as TipoActuacion1603;
+            const colors = tipoColors[tipo];
+            if (colors) {
+              doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+              doc.setLineWidth(1.5);
+              doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
+            }
+          }
+        },
       });
+    }
+
+    // Footer
+    const pageCount = doc.internal.pages.length - 1;
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
     // Save
