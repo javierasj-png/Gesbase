@@ -5,19 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
 import { 
   Users, 
   Train, 
-  Settings, 
   Building2,
-  FileCheck,
-  AlertTriangle,
   Plus,
   Pencil,
   Trash2,
-  Eye,
-  EyeOff,
   Shield
 } from 'lucide-react';
 import { 
@@ -25,16 +19,22 @@ import {
   certificacionesMock, 
   actualizarCertificacion
 } from '@/data/mockData';
-import { Certificacion } from '@/types';
+import { Certificacion, Maquinista } from '@/types';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
 import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacionCertificaciones';
+import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
 
 export default function AdminPage() {
   const [editingCertificacion, setEditingCertificacion] = useState<Certificacion | null>(null);
   const [isNewCertificacion, setIsNewCertificacion] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Estado para maquinistas
+  const [maquinistas, setMaquinistas] = useState<Maquinista[]>(maquinistasMock);
+  const [editingMaquinista, setEditingMaquinista] = useState<Maquinista | null>(null);
+  const [isNewMaquinista, setIsNewMaquinista] = useState(false);
 
   const handleSaveCertificacion = (cert: Certificacion) => {
     actualizarCertificacion(cert);
@@ -49,6 +49,40 @@ export default function AdminPage() {
   const handleNewCertificacion = () => {
     setEditingCertificacion(null);
     setIsNewCertificacion(true);
+  };
+
+  const handleNewMaquinista = () => {
+    setEditingMaquinista(null);
+    setIsNewMaquinista(true);
+  };
+
+  const handleEditMaquinista = (maquinista: Maquinista) => {
+    setEditingMaquinista(maquinista);
+    setIsNewMaquinista(false);
+  };
+
+  const handleSaveMaquinista = (maquinista: Maquinista) => {
+    setMaquinistas(prev => {
+      const index = prev.findIndex(m => m.id === maquinista.id);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = maquinista;
+        return updated;
+      }
+      return [...prev, maquinista];
+    });
+  };
+
+  const handleToggleMaquinistaActivo = (maquinista: Maquinista) => {
+    setMaquinistas(prev => 
+      prev.map(m => m.id === maquinista.id ? { ...m, activo: !m.activo } : m)
+    );
+  };
+
+  const handleDeleteMaquinista = (maquinista: Maquinista) => {
+    if (confirm(`¿Eliminar a ${maquinista.nombreApellidos}?`)) {
+      setMaquinistas(prev => prev.filter(m => m.id !== maquinista.id));
+    }
   };
   return (
     <AppLayout>
@@ -99,7 +133,7 @@ export default function AdminPage() {
                   <CardTitle>Censo de Maquinistas</CardTitle>
                   <CardDescription>Gestión de altas y bajas del censo</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={handleNewMaquinista}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nuevo Maquinista
                 </Button>
@@ -116,20 +150,33 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {maquinistasMock.map((maquinista) => (
+                    {maquinistas.map((maquinista) => (
                       <tr key={maquinista.id} className="border-b last:border-b-0">
                         <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
                         <td className="p-3 text-sm">{maquinista.nombreApellidos}</td>
                         <td className="p-3 text-sm text-muted-foreground">{maquinista.base}</td>
                         <td className="p-3">
-                          <Switch checked={maquinista.activo} />
+                          <Switch 
+                            checked={maquinista.activo} 
+                            onCheckedChange={() => handleToggleMaquinistaActivo(maquinista)}
+                          />
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleEditMaquinista(maquinista)}
+                            >
                               <Pencil className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeleteMaquinista(maquinista)}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -222,6 +269,19 @@ export default function AdminPage() {
             }
           }}
           onSave={handleSaveCertificacion}
+        />
+
+        {/* Modal de maquinista */}
+        <MaquinistaFormModal
+          open={!!editingMaquinista || isNewMaquinista}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingMaquinista(null);
+              setIsNewMaquinista(false);
+            }
+          }}
+          maquinista={editingMaquinista}
+          onSave={handleSaveMaquinista}
         />
       </div>
     </AppLayout>
