@@ -394,9 +394,11 @@ export const catalogoHitos1201Mock: CatalogoHito1201[] = [
   { id: 'h1', bloque: 'Acompañamientos', etiqueta: 'Día 1', orden: 1, offsetDias: 0 },
   { id: 'h2', bloque: 'Acompañamientos', etiqueta: 'A los 7 días', orden: 2, offsetDias: 7 },
   { id: 'h3', bloque: 'Acompañamientos', etiqueta: 'A los 23 días', orden: 3, offsetDias: 23 },
+  { id: 'h7', bloque: 'Acompañamientos', etiqueta: 'A los 30 días', orden: 4, offsetDias: 30 },
   { id: 'h4', bloque: 'Registros', etiqueta: 'Día 1', orden: 1, offsetDias: 0 },
   { id: 'h5', bloque: 'Registros', etiqueta: 'A los 7 días', orden: 2, offsetDias: 7 },
   { id: 'h6', bloque: 'Registros', etiqueta: 'A los 23 días', orden: 3, offsetDias: 23 },
+  { id: 'h8', bloque: 'Registros', etiqueta: 'A los 30 días', orden: 4, offsetDias: 30 },
 ];
 
 // ===== EXPEDIENTES 12.01 MOCK =====

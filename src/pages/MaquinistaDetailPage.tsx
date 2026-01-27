@@ -345,7 +345,7 @@ export default function MaquinistaDetailPage() {
               const fechaCierreRecomendada = addDays(origen, 30);
               
               const bloques: Bloque1201[] = ['Acompañamientos', 'Registros'];
-              const etiquetas: Etiqueta1201[] = ['Día 1', 'A los 7 días', 'A los 23 días'];
+              const etiquetas: Etiqueta1201[] = ['Día 1', 'A los 7 días', 'A los 23 días', 'A los 30 días'];
 
               // Construir matriz de celdas
               const getCeldaEstado = (bloque: Bloque1201, etiqueta: Etiqueta1201) => {
