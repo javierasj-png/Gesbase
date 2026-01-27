@@ -19,15 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Train, Save } from 'lucide-react';
-import { Certificacion, TipoCertificacion } from '@/types';
-import { useToast } from '@/hooks/use-toast';
+import { Train, Save, Loader2 } from 'lucide-react';
+import { CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 
 interface EditCertificacionModalProps {
-  certificacion: Certificacion | null;
+  certificacion: CertificacionDB | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (certificacion: Certificacion) => void;
+  onSave: (input: CertificacionInput, id?: string) => Promise<boolean>;
+  isNew?: boolean;
 }
 
 export function EditCertificacionModal({
@@ -35,12 +35,13 @@ export function EditCertificacionModal({
   open,
   onOpenChange,
   onSave,
+  isNew = false,
 }: EditCertificacionModalProps) {
-  const { toast } = useToast();
   const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState<TipoCertificacion>('vehiculo');
+  const [tipo, setTipo] = useState<'vehiculo' | 'linea'>('vehiculo');
   const [descripcion, setDescripcion] = useState('');
   const [activo, setActivo] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (certificacion && open) {
@@ -57,30 +58,23 @@ export function EditCertificacionModal({
     }
   }, [certificacion, open]);
 
-  const handleSave = () => {
-    if (!nombre.trim()) {
-      toast({
-        title: 'Error',
-        description: 'El nombre es obligatorio',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleSave = async () => {
+    if (!nombre.trim()) return;
 
-    const updated: Certificacion = {
-      id: certificacion?.id || `c-${Date.now()}`,
+    setSaving(true);
+    const input: CertificacionInput = {
       nombre: nombre.trim(),
       tipo,
-      descripcion: descripcion.trim() || undefined,
+      descripcion: descripcion.trim() || null,
       activo,
     };
 
-    onSave(updated);
-    toast({
-      title: certificacion ? 'Certificación actualizada' : 'Certificación creada',
-      description: `"${updated.nombre}" guardada correctamente`,
-    });
-    onOpenChange(false);
+    const success = await onSave(input, certificacion?.id);
+    setSaving(false);
+
+    if (success) {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -89,12 +83,12 @@ export function EditCertificacionModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Train className="w-5 h-5 text-primary" />
-            {certificacion ? 'Editar Certificación' : 'Nueva Certificación'}
+            {isNew ? 'Nueva Certificación' : 'Editar Certificación'}
           </DialogTitle>
           <DialogDescription>
-            {certificacion
-              ? 'Modifica los datos de la certificación'
-              : 'Añade una nueva certificación al catálogo'}
+            {isNew
+              ? 'Añade una nueva certificación al catálogo'
+              : 'Modifica los datos de la certificación'}
           </DialogDescription>
         </DialogHeader>
 
@@ -112,7 +106,7 @@ export function EditCertificacionModal({
 
           <div className="space-y-2">
             <Label htmlFor="tipo">Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as TipoCertificacion)}>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as 'vehiculo' | 'linea')}>
               <SelectTrigger id="tipo">
                 <SelectValue />
               </SelectTrigger>
@@ -146,10 +140,11 @@ export function EditCertificacionModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={saving || !nombre.trim()}>
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Save className="w-4 h-4 mr-2" />
             Guardar
           </Button>
