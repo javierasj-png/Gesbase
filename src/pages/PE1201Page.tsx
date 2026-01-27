@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -11,7 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
@@ -23,52 +23,84 @@ import {
   CheckCircle2,
   FileWarning
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { format, addDays, differenceInDays } from 'date-fns';
+
+// TODO: Cuando se implemente PE 12.01 con base de datos, reemplazar estos mock data
 import { 
   expedientes1201Mock, 
   maquinistasMock, 
-  catalogoHitos1201Mock,
   programacion1201Mock,
   actuaciones1201Mock
 } from '@/data/mockData';
-import { Base, Bloque1201, Etiqueta1201 } from '@/types';
-import { format, addDays, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
-
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
 
 export default function PE1201Page() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
-
-  // Calcular resumen
-  const expedientesConResumen = expedientes1201Mock.map(exp => {
-    const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
-    const origen = exp.fechaPrimerServicioTrasSuceso;
-    const fechaCierreRecomendada = addDays(origen, 30);
-    
-    const programadas = programacion1201Mock.filter(p => p.expediente1201Id === exp.id);
-    const realizadas = actuaciones1201Mock.filter(a => a.expediente1201Id === exp.id);
-    
-    const pendientes = programadas.filter(prog => 
-      !realizadas.some(act => act.bloque === prog.bloque && act.etiqueta === prog.etiqueta)
-    ).length;
-
-    const diasHastaCierre = differenceInDays(fechaCierreRecomendada, new Date());
-
-    return { 
-      expediente: exp, 
-      maquinista, 
-      resumen: { 
-        programadas: programadas.length, 
-        realizadas: realizadas.length,
-        pendientes,
-        fechaCierreRecomendada,
-        diasHastaCierre
+  const [bases, setBases] = useState<{id: string; nombre: string}[]>([]);
+  
+  const { isAdmin, assignedBases } = useAuth();
+  
+  // Cargar bases de la BD y filtrar según permisos del usuario
+  useEffect(() => {
+    const fetchBases = async () => {
+      const { data } = await supabase
+        .from('bases_conduccion')
+        .select('id, nombre')
+        .eq('activa', true)
+        .order('nombre');
+      
+      if (data) {
+        // Si es admin, mostrar todas las bases; si no, solo las asignadas
+        const filteredBases = isAdmin 
+          ? data 
+          : data.filter(b => assignedBases.includes(b.nombre as typeof assignedBases[number]));
+        setBases(filteredBases);
       }
     };
-  });
+    fetchBases();
+  }, [isAdmin, assignedBases]);
+
+  // Calcular resumen (usando mock data por ahora)
+  const expedientesConResumen = expedientes1201Mock
+    .filter(exp => {
+      // Filtrar por bases asignadas
+      const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
+      if (!maquinista) return false;
+      if (!isAdmin && !assignedBases.includes(maquinista.base as typeof assignedBases[number])) {
+        return false;
+      }
+      return true;
+    })
+    .map(exp => {
+      const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
+      const origen = exp.fechaPrimerServicioTrasSuceso;
+      const fechaCierreRecomendada = addDays(origen, 30);
+      
+      const programadas = programacion1201Mock.filter(p => p.expediente1201Id === exp.id);
+      const realizadas = actuaciones1201Mock.filter(a => a.expediente1201Id === exp.id);
+      
+      const pendientes = programadas.filter(prog => 
+        !realizadas.some(act => act.bloque === prog.bloque && act.etiqueta === prog.etiqueta)
+      ).length;
+
+      const diasHastaCierre = differenceInDays(fechaCierreRecomendada, new Date());
+
+      return { 
+        expediente: exp, 
+        maquinista, 
+        resumen: { 
+          programadas: programadas.length, 
+          realizadas: realizadas.length,
+          pendientes,
+          fechaCierreRecomendada,
+          diasHastaCierre
+        }
+      };
+    });
 
   // Filtrar
   const filtered = expedientesConResumen.filter(item => {
@@ -162,7 +194,7 @@ export default function PE1201Page() {
                 <SelectContent>
                   <SelectItem value="all">Todas las bases</SelectItem>
                   {bases.map(base => (
-                    <SelectItem key={base} value={base}>{base}</SelectItem>
+                    <SelectItem key={base.id} value={base.nombre}>{base.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
