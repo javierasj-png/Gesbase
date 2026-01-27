@@ -10,7 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import MaquinistasPage from "./pages/MaquinistasPage";
 import MaquinistaDetailPage from "./pages/MaquinistaDetailPage";
-import CompetenciasPage from "./pages/CompetenciasPage";
+import CertificacionesPage from "./pages/CompetenciasPage";
 import PE1603Page from "./pages/PE1603Page";
 import PE1201Page from "./pages/PE1201Page";
 import AdminPage from "./pages/AdminPage";
@@ -31,7 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/maquinistas" element={<MaquinistasPage />} />
             <Route path="/maquinistas/:id" element={<MaquinistaDetailPage />} />
-            <Route path="/competencias" element={<CompetenciasPage />} />
+            <Route path="/certificaciones" element={<CertificacionesPage />} />
             <Route path="/pe-1603" element={<PE1603Page />} />
             <Route path="/pe-1201" element={<PE1201Page />} />
             <Route path="/partes" element={<PartesPage />} />

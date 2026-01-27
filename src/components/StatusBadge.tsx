@@ -1,8 +1,8 @@
-import { EstadoPlanUso, EstadoBloque1603, EstadoCelda1201 } from '@/types';
+import { EstadoPlanCertificacion, EstadoBloque1603, EstadoCelda1201 } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
-  estado: EstadoPlanUso | EstadoBloque1603 | EstadoCelda1201 | string;
+  estado: EstadoPlanCertificacion | EstadoBloque1603 | EstadoCelda1201 | string;
   size?: 'sm' | 'md';
   showDot?: boolean;
 }

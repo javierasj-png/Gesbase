@@ -16,11 +16,13 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { 
   maquinistasMock, 
-  calcularPlanUso, 
+  calcularPlanCertificacion, 
   expedientes1603Mock, 
   generarPlan1603,
   actuaciones1603Mock,
@@ -37,7 +39,7 @@ export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'uso';
+  const defaultTab = searchParams.get('tab') || 'certificaciones';
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   const maquinista = maquinistasMock.find(m => m.id === id);
@@ -52,7 +54,7 @@ export default function MaquinistaDetailPage() {
     );
   }
 
-  const planUso = calcularPlanUso().filter(p => p.maquinistaId === id);
+  const planCertificacion = calcularPlanCertificacion().filter(p => p.maquinistaId === id);
   const exp1603 = expedientes1603Mock.filter(e => e.maquinistaId === id);
   const exp1201 = expedientes1201Mock.filter(e => e.maquinistaId === id);
 
@@ -88,9 +90,9 @@ export default function MaquinistaDetailPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
-            <TabsTrigger value="uso" className="flex items-center gap-2">
+            <TabsTrigger value="certificaciones" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
-              Uso Infra/Serie
+              Certificaciones
             </TabsTrigger>
             <TabsTrigger value="pe1603" className="flex items-center gap-2">
               <FileCheck className="w-4 h-4" />
@@ -102,12 +104,12 @@ export default function MaquinistaDetailPage() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Uso Infra/Serie */}
-          <TabsContent value="uso" className="space-y-4">
+          {/* Tab: Certificaciones */}
+          <TabsContent value="certificaciones" className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Competencias de Uso (Especiales)</h2>
-                <p className="text-sm text-muted-foreground">Control de competencias Infra/Serie con caducidad 12 meses</p>
+                <h2 className="text-lg font-semibold">Certificaciones</h2>
+                <p className="text-sm text-muted-foreground">Certificaciones de vehículos y líneas heredadas de la base (caducidad 12 meses)</p>
               </div>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -121,7 +123,8 @@ export default function MaquinistaDetailPage() {
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="text-left p-4 font-medium text-sm">Tipo</th>
-                      <th className="text-left p-4 font-medium text-sm">Competencia</th>
+                      <th className="text-left p-4 font-medium text-sm">Certificación</th>
+                      <th className="text-center p-4 font-medium text-sm">Vigilar</th>
                       <th className="text-left p-4 font-medium text-sm">Última Acción</th>
                       <th className="text-left p-4 font-medium text-sm">Vencimiento</th>
                       <th className="text-left p-4 font-medium text-sm">Días</th>
@@ -129,16 +132,23 @@ export default function MaquinistaDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {planUso.map((item) => (
+                    {planCertificacion.map((item) => (
                       <tr key={item.id} className="border-b last:border-b-0 hover:bg-muted/30">
                         <td className="p-4">
-                          <Badge variant="outline">{item.competencia?.tipo}</Badge>
+                          <Badge variant="outline">{item.certificacion?.tipo}</Badge>
                         </td>
                         <td className="p-4">
                           <div>
-                            <p className="font-medium text-sm">{item.competencia?.nombre}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{item.competencia?.codigo}</p>
+                            <p className="font-medium text-sm">{item.certificacion?.nombre}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{item.certificacion?.codigo}</p>
                           </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          {item.vigilar ? (
+                            <Eye className="w-4 h-4 text-primary mx-auto" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-muted-foreground mx-auto" />
+                          )}
                         </td>
                         <td className="p-4 text-sm">
                           {item.fechaUltima 
@@ -160,10 +170,10 @@ export default function MaquinistaDetailPage() {
                         </td>
                       </tr>
                     ))}
-                    {planUso.length === 0 && (
+                    {planCertificacion.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                          No hay competencias especiales asignadas a esta base
+                        <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                          No hay certificaciones asignadas a esta base
                         </td>
                       </tr>
                     )}

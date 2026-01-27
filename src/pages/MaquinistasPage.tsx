@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Plus, ChevronRight } from 'lucide-react';
-import { maquinistasMock, calcularPlanUso, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { maquinistasMock, calcularPlanCertificacion, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
 import { Base } from '@/types';
 
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
@@ -32,11 +32,11 @@ export default function MaquinistasPage() {
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const planUso = calcularPlanUso();
+  const planCertificacion = calcularPlanCertificacion();
 
-  // Calcular resumen de estado por maquinista
+  // Calcular resumen de estado por maquinista (solo certificaciones vigiladas)
   const getMaquinistaStatus = (maquinistaId: string) => {
-    const planItems = planUso.filter(p => p.maquinistaId === maquinistaId);
+    const planItems = planCertificacion.filter(p => p.maquinistaId === maquinistaId && p.vigilar);
     const vencidos = planItems.filter(p => p.estado === 'Vencido').length;
     const proximos = planItems.filter(p => p.estado === 'Próximo').length;
     
@@ -125,7 +125,7 @@ export default function MaquinistasPage() {
                   <TableHead className="w-[120px]">Matrícula</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Base</TableHead>
-                  <TableHead className="text-center">Uso</TableHead>
+                  <TableHead className="text-center">Certificaciones</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead>Estado General</TableHead>
@@ -134,7 +134,7 @@ export default function MaquinistasPage() {
               </TableHeader>
               <TableBody>
                 {filteredMaquinistas.map((maquinista) => {
-                  const planItems = planUso.filter(p => p.maquinistaId === maquinista.id);
+                  const planItems = planCertificacion.filter(p => p.maquinistaId === maquinista.id && p.vigilar);
                   const vencidos = planItems.filter(p => p.estado === 'Vencido').length;
                   const proximos = planItems.filter(p => p.estado === 'Próximo').length;
                   

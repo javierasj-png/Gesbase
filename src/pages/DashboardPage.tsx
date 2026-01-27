@@ -21,7 +21,7 @@ import {
   Train,
   TrendingUp
 } from 'lucide-react';
-import { calcularKPIs, calcularPlanUso, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { calcularKPIs, calcularPlanCertificacion, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
 import { Base } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,11 +33,11 @@ export default function DashboardPage() {
   const [baseFilter, setBaseFilter] = useState<string>('all');
   
   const kpis = calcularKPIs(baseFilter === 'all' ? undefined : baseFilter);
-  const planUso = calcularPlanUso();
+  const planCertificacion = calcularPlanCertificacion();
 
-  // Filtrar elementos críticos para mostrar
-  const elementosCriticos = planUso
-    .filter(p => p.estado === 'Vencido' || p.estado === 'Próximo')
+  // Filtrar elementos críticos para mostrar (solo vigiladas)
+  const elementosCriticos = planCertificacion
+    .filter(p => p.vigilar && (p.estado === 'Vencido' || p.estado === 'Próximo'))
     .slice(0, 5);
 
   return (
@@ -75,24 +75,24 @@ export default function DashboardPage() {
             onClick={() => navigate('/maquinistas')}
           />
           <KPICard
-            title="Uso Vencido"
-            value={kpis.usoVencido}
-            subtitle="competencias > 12 meses"
+            title="Cert. Vencidas"
+            value={kpis.certVencido}
+            subtitle="certificaciones > 12 meses"
             icon={AlertTriangle}
             variant="danger"
-            onClick={() => navigate('/competencias')}
+            onClick={() => navigate('/certificaciones')}
           />
           <KPICard
-            title="Uso Próximo"
-            value={kpis.usoProximo}
+            title="Cert. Próximas"
+            value={kpis.certProximo}
             subtitle="vencen en < 30 días"
             icon={Clock}
             variant="warning"
-            onClick={() => navigate('/competencias')}
+            onClick={() => navigate('/certificaciones')}
           />
           <KPICard
             title="Sin Evidencia"
-            value={kpis.usoSinEvidencia}
+            value={kpis.certSinEvidencia}
             subtitle="sin registro de paso/conducción"
             icon={HelpCircle}
             variant="default"
@@ -137,12 +137,12 @@ export default function DashboardPage() {
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Competencias Críticas */}
+          {/* Certificaciones Críticas */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Train className="w-4 h-4 text-primary" />
-                Competencias de Uso Críticas
+                Certificaciones Críticas
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
                             {maquinista?.nombreApellidos}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {item.competencia?.nombre} • {item.competencia?.tipo}
+                            {item.certificacion?.nombre} • {item.certificacion?.tipo}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  No hay competencias en estado crítico
+                  No hay certificaciones en estado crítico
                 </p>
               )}
             </CardContent>

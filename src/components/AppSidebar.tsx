@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/maquinistas', label: 'Maquinistas', icon: Users },
-  { path: '/competencias', label: 'Competencias Uso', icon: Train },
+  { path: '/certificaciones', label: 'Certificaciones', icon: Train },
   { path: '/pe-1603', label: 'PE 16.03', icon: FileCheck },
   { path: '/pe-1201', label: 'PE 12.01', icon: AlertTriangle },
   { path: '/partes', label: 'Control de Partes', icon: ClipboardList },

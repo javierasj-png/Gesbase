@@ -1,9 +1,9 @@
 // ===== TIPOS Y MODELOS DE DATOS =====
 
 // Enums
-export type TipoCompetencia = 'Infra' | 'Serie';
+export type TipoCertificacion = 'Infra' | 'Serie';
 export type TipoAccion = 'Paso' | 'Conducción';
-export type EstadoPlanUso = 'OK' | 'Próximo' | 'Vencido' | 'Sin evidencia';
+export type EstadoPlanCertificacion = 'OK' | 'Próximo' | 'Vencido' | 'Sin evidencia';
 export type EstadoExpediente = 'Activo' | 'Cerrado';
 export type EstadoFicha1201 = 'Abierta' | 'Cerrada';
 export type TipoActuacion1603 = 'Acompañamiento' | 'Registro' | 'Alcohol' | 'Drogas';
@@ -32,46 +32,47 @@ export interface Maquinista extends Auditable {
   observaciones?: string;
 }
 
-// 2) Catálogo de Competencias por Uso
-export interface CompetenciaUso {
+// 2) Catálogo de Certificaciones (antes Competencias de Uso)
+export interface Certificacion {
   id: string;
-  tipo: TipoCompetencia;
+  tipo: TipoCertificacion;
   codigo: string;
   nombre: string;
-  controlar: boolean;
   activo: boolean;
   observaciones?: string;
 }
 
-// 3) Competencias por Base
-export interface CompetenciaPorBase {
+// 3) Certificaciones por Base (con control de vigilancia)
+export interface CertificacionPorBase {
   id: string;
   base: Base;
-  competenciaId: string;
+  certificacionId: string;
   activa: boolean;
+  vigilar: boolean; // El admin decide si esta certificación se vigila en esta base
 }
 
-// 4) Acciones de Uso (evidencia real)
-export interface AccionUso extends Auditable {
+// 4) Acciones de Certificación (evidencia real)
+export interface AccionCertificacion extends Auditable {
   id: string;
   maquinistaId: string;
-  competenciaId: string;
+  certificacionId: string;
   tipoAccion: TipoAccion;
   fechaAccion: Date;
   observaciones?: string;
   adjuntos?: string[];
 }
 
-// 5) Plan de Uso (vista materializada)
-export interface PlanUso {
+// 5) Plan de Certificación (vista materializada)
+export interface PlanCertificacion {
   id: string;
   maquinistaId: string;
-  competenciaId: string;
-  competencia?: CompetenciaUso;
+  certificacionId: string;
+  certificacion?: Certificacion;
   fechaUltima: Date | null;
   fechaVencimiento: Date | null;
-  estado: EstadoPlanUso;
+  estado: EstadoPlanCertificacion;
   diasRestantes: number | null;
+  vigilar: boolean; // Heredado de la base
   updatedAt: Date;
   updatedBy: string;
 }
@@ -187,9 +188,9 @@ export interface CeldaVista1201 {
 export interface KPIs {
   totalMaquinistas: number;
   maquinistasActivos: number;
-  usoVencido: number;
-  usoProximo: number;
-  usoSinEvidencia: number;
+  certVencido: number;
+  certProximo: number;
+  certSinEvidencia: number;
   exp1603Activos: number;
   exp1603Vencidas: number;
   exp1603EnVentana: number;
