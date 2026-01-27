@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { 
   maquinistasMock, 
-  calcularPlanCertificacion, 
+  obtenerCertificacionesMaquinista, 
   expedientes1603Mock, 
   generarPlan1603,
   actuaciones1603Mock,
@@ -54,7 +54,7 @@ export default function MaquinistaDetailPage() {
     );
   }
 
-  const planCertificacion = calcularPlanCertificacion().filter(p => p.maquinistaId === id);
+  const certificaciones = obtenerCertificacionesMaquinista(id || '');
   const exp1603 = expedientes1603Mock.filter(e => e.maquinistaId === id);
   const exp1201 = expedientes1201Mock.filter(e => e.maquinistaId === id);
 
@@ -109,11 +109,11 @@ export default function MaquinistaDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Certificaciones</h2>
-                <p className="text-sm text-muted-foreground">Certificaciones de vehículos y líneas heredadas de la base (caducidad 12 meses)</p>
+                <p className="text-sm text-muted-foreground">Certificaciones de vehículos y líneas (vencimiento por inactividad)</p>
               </div>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
-                Registrar Paso/Conducción
+                Registrar Servicio
               </Button>
             </div>
 
@@ -125,39 +125,46 @@ export default function MaquinistaDetailPage() {
                       <th className="text-left p-4 font-medium text-sm">Tipo</th>
                       <th className="text-left p-4 font-medium text-sm">Certificación</th>
                       <th className="text-center p-4 font-medium text-sm">Vigilar</th>
-                      <th className="text-left p-4 font-medium text-sm">Última Acción</th>
-                      <th className="text-left p-4 font-medium text-sm">Vencimiento</th>
+                      <th className="text-left p-4 font-medium text-sm">Último Servicio</th>
+                      <th className="text-left p-4 font-medium text-sm">Vencimiento Est.</th>
                       <th className="text-left p-4 font-medium text-sm">Días</th>
                       <th className="text-left p-4 font-medium text-sm">Estado</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {planCertificacion.map((item) => (
+                    {certificaciones.map((item) => (
                       <tr key={item.id} className="border-b last:border-b-0 hover:bg-muted/30">
                         <td className="p-4">
-                          <Badge variant="outline">{item.certificacion?.tipo}</Badge>
+                          <Badge variant="outline" className="capitalize">{item.certificacion?.tipo}</Badge>
                         </td>
                         <td className="p-4">
-                          <div>
-                            <p className="font-medium text-sm">{item.certificacion?.nombre}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{item.certificacion?.codigo}</p>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium text-sm">{item.certificacion?.nombre}</p>
+                              {item.obligatoria && (
+                                <span className="text-[10px] text-primary">Obligatoria</span>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="p-4 text-center">
-                          {item.vigilar ? (
-                            <Eye className="w-4 h-4 text-primary mx-auto" />
+                          {item.vigilarVencimiento ? (
+                            <div className="flex flex-col items-center text-xs">
+                              <Eye className="w-4 h-4 text-primary" />
+                              <span className="text-muted-foreground">{item.periodoInactividadMeses}m</span>
+                            </div>
                           ) : (
                             <EyeOff className="w-4 h-4 text-muted-foreground mx-auto" />
                           )}
                         </td>
                         <td className="p-4 text-sm">
-                          {item.fechaUltima 
-                            ? format(item.fechaUltima, 'dd/MM/yyyy') 
+                          {item.fechaUltimoServicio 
+                            ? format(item.fechaUltimoServicio, 'dd/MM/yyyy') 
                             : <span className="text-muted-foreground">Sin registro</span>}
                         </td>
                         <td className="p-4 text-sm">
-                          {item.fechaVencimiento 
-                            ? format(item.fechaVencimiento, 'dd/MM/yyyy') 
+                          {item.fechaEstimadaVencimiento 
+                            ? format(item.fechaEstimadaVencimiento, 'dd/MM/yyyy') 
                             : <span className="text-muted-foreground">-</span>}
                         </td>
                         <td className="p-4 text-sm font-medium">
@@ -170,10 +177,10 @@ export default function MaquinistaDetailPage() {
                         </td>
                       </tr>
                     ))}
-                    {planCertificacion.length === 0 && (
+                    {certificaciones.length === 0 && (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                          No hay certificaciones asignadas a esta base
+                          No hay certificaciones asignadas a este maquinista
                         </td>
                       </tr>
                     )}

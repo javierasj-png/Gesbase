@@ -1,9 +1,9 @@
 // ===== TIPOS Y MODELOS DE DATOS =====
 
 // Enums
-export type TipoCertificacion = 'Infra' | 'Serie';
+export type TipoCertificacion = 'vehiculo' | 'linea';
 export type TipoAccion = 'Paso' | 'Conducción';
-export type EstadoPlanCertificacion = 'OK' | 'Próximo' | 'Vencido' | 'Sin evidencia';
+export type EstadoCertificacionMaquinista = 'Vigente' | 'Próxima a vencer' | 'Vencida' | 'No aplica';
 export type EstadoExpediente = 'Activo' | 'Cerrado';
 export type EstadoFicha1201 = 'Abierta' | 'Cerrada';
 export type TipoActuacion1603 = 'Acompañamiento' | 'Registro' | 'Alcohol' | 'Drogas';
@@ -32,49 +32,46 @@ export interface Maquinista extends Auditable {
   observaciones?: string;
 }
 
-// 2) Catálogo de Certificaciones (antes Competencias de Uso)
+// 2) Catálogo de Certificaciones
 export interface Certificacion {
   id: string;
-  tipo: TipoCertificacion;
-  codigo: string;
   nombre: string;
+  tipo: TipoCertificacion;
+  descripcion?: string;
   activo: boolean;
-  observaciones?: string;
 }
 
-// 3) Certificaciones por Base (con control de vigilancia)
-export interface CertificacionPorBase {
+// 3) Certificaciones por Base (BaseCertificacion)
+export interface BaseCertificacion {
   id: string;
-  base: Base;
+  baseId: Base;
   certificacionId: string;
-  activa: boolean;
-  vigilar: boolean; // El admin decide si esta certificación se vigila en esta base
+  vigilarVencimiento: boolean;
+  periodoInactividadMeses: number; // default 12
+  avisoDias: number; // default 60
+  obligatoria: boolean; // default false
 }
 
-// 4) Acciones de Certificación (evidencia real)
-export interface AccionCertificacion extends Auditable {
-  id: string;
-  maquinistaId: string;
-  certificacionId: string;
-  tipoAccion: TipoAccion;
-  fechaAccion: Date;
-  observaciones?: string;
-  adjuntos?: string[];
-}
-
-// 5) Plan de Certificación (vista materializada)
-export interface PlanCertificacion {
+// 4) Certificaciones del Maquinista (MaquinistaCertificacion)
+export interface MaquinistaCertificacion {
   id: string;
   maquinistaId: string;
+  baseId: Base;
   certificacionId: string;
-  certificacion?: Certificacion;
-  fechaUltima: Date | null;
-  fechaVencimiento: Date | null;
-  estado: EstadoPlanCertificacion;
+  fechaUltimoServicio: Date | null;
+  vigilarVencimiento: boolean; // copiado de BaseCertificacion al asignar
+  periodoInactividadMeses: number; // copiado al asignar
+  avisoDias: number; // copiado al asignar
+  estado: EstadoCertificacionMaquinista;
+}
+
+// 5) Vista de Certificación con datos extendidos (para UI)
+export interface CertificacionMaquinistaVista extends MaquinistaCertificacion {
+  certificacion: Certificacion;
+  maquinista?: Maquinista;
+  fechaEstimadaVencimiento: Date | null;
   diasRestantes: number | null;
-  vigilar: boolean; // Heredado de la base
-  updatedAt: Date;
-  updatedBy: string;
+  obligatoria: boolean;
 }
 
 // ===== PE 16.03 (Nuevo Acceso) =====

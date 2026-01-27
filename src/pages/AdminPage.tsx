@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { 
   Users, 
   Train, 
@@ -20,7 +21,7 @@ import {
 import { 
   maquinistasMock, 
   certificacionesMock, 
-  certificacionesPorBaseMock,
+  baseCertificacionesMock,
   plantilla1603Mock,
   catalogoHitos1201Mock
 } from '@/data/mockData';
@@ -118,7 +119,7 @@ export default function AdminPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Catálogo de Certificaciones</CardTitle>
-                  <CardDescription>Certificaciones de vehículos (Serie) y líneas (Infra)</CardDescription>
+                  <CardDescription>Certificaciones de vehículos y líneas</CardDescription>
                 </div>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
@@ -129,9 +130,9 @@ export default function AdminPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="text-left p-3 font-medium text-sm">Código</th>
                       <th className="text-left p-3 font-medium text-sm">Nombre</th>
                       <th className="text-left p-3 font-medium text-sm">Tipo</th>
+                      <th className="text-left p-3 font-medium text-sm">Descripción</th>
                       <th className="text-left p-3 font-medium text-sm">Activa</th>
                       <th className="text-left p-3 font-medium text-sm">Acciones</th>
                     </tr>
@@ -139,10 +140,12 @@ export default function AdminPage() {
                   <tbody>
                     {certificacionesMock.map((cert) => (
                       <tr key={cert.id} className="border-b last:border-b-0">
-                        <td className="p-3 font-mono text-sm">{cert.codigo}</td>
-                        <td className="p-3 text-sm">{cert.nombre}</td>
+                        <td className="p-3 text-sm font-medium">{cert.nombre}</td>
                         <td className="p-3">
-                          <Badge variant="outline">{cert.tipo}</Badge>
+                          <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
+                        </td>
+                        <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
+                          {cert.descripcion || '-'}
                         </td>
                         <td className="p-3">
                           <Switch checked={cert.activo} />
@@ -170,19 +173,19 @@ export default function AdminPage() {
                   <p className="text-sm text-muted-foreground">
                     <strong>Instrucciones:</strong> Asigna las certificaciones disponibles a cada base. 
                     El icono <Eye className="w-4 h-4 inline mx-1" /> indica que la certificación se vigila 
-                    (control de vencimiento a 12 meses). Los maquinistas de cada base heredan automáticamente 
-                    las certificaciones y su configuración de vigilancia.
+                    (control de vencimiento por inactividad). Los maquinistas de cada base heredan automáticamente 
+                    la configuración de vigilancia al asignárseles la certificación.
                   </p>
                 </CardContent>
               </Card>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bases.map(base => {
-                  const asignadas = certificacionesPorBaseMock
-                    .filter(cb => cb.base === base && cb.activa)
-                    .map(cb => {
-                      const cert = certificacionesMock.find(c => c.id === cb.certificacionId);
-                      return cert ? { ...cert, vigilar: cb.vigilar } : null;
+                  const asignadas = baseCertificacionesMock
+                    .filter(bc => bc.baseId === base)
+                    .map(bc => {
+                      const cert = certificacionesMock.find(c => c.id === bc.certificacionId);
+                      return cert ? { ...cert, ...bc } : null;
                     })
                     .filter(Boolean);
                   
@@ -211,16 +214,19 @@ export default function AdminPage() {
                                 className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
                               >
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-xs capitalize">
                                     {cert.tipo}
                                   </Badge>
                                   <span className="text-sm">{cert.nombre}</span>
+                                  {cert.obligatoria && (
+                                    <Badge variant="secondary" className="text-[10px]">Obligatoria</Badge>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  {cert.vigilar ? (
+                                <div className="flex items-center gap-3">
+                                  {cert.vigilarVencimiento ? (
                                     <span className="flex items-center gap-1 text-xs text-primary">
                                       <Eye className="w-3 h-3" />
-                                      Vigilar
+                                      {cert.periodoInactividadMeses}m / {cert.avisoDias}d
                                     </span>
                                   ) : (
                                     <span className="flex items-center gap-1 text-xs text-muted-foreground">

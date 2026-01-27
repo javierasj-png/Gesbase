@@ -21,7 +21,7 @@ import {
   Train,
   TrendingUp
 } from 'lucide-react';
-import { calcularKPIs, calcularPlanCertificacion, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { calcularKPIs, obtenerTodasCertificaciones, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
 import { Base } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,11 +33,11 @@ export default function DashboardPage() {
   const [baseFilter, setBaseFilter] = useState<string>('all');
   
   const kpis = calcularKPIs(baseFilter === 'all' ? undefined : baseFilter);
-  const planCertificacion = calcularPlanCertificacion();
+  const todasCertificaciones = obtenerTodasCertificaciones();
 
   // Filtrar elementos críticos para mostrar (solo vigiladas)
-  const elementosCriticos = planCertificacion
-    .filter(p => p.vigilar && (p.estado === 'Vencido' || p.estado === 'Próximo'))
+  const elementosCriticos = todasCertificaciones
+    .filter(c => c.vigilarVencimiento && (c.estado === 'Vencida' || c.estado === 'Próxima a vencer'))
     .slice(0, 5);
 
   return (
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           <KPICard
             title="Cert. Vencidas"
             value={kpis.certVencido}
-            subtitle="certificaciones > 12 meses"
+            subtitle="por inactividad"
             icon={AlertTriangle}
             variant="danger"
             onClick={() => navigate('/certificaciones')}
@@ -85,7 +85,7 @@ export default function DashboardPage() {
           <KPICard
             title="Cert. Próximas"
             value={kpis.certProximo}
-            subtitle="vencen en < 30 días"
+            subtitle="próximas a vencer"
             icon={Clock}
             variant="warning"
             onClick={() => navigate('/certificaciones')}
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <KPICard
             title="Sin Evidencia"
             value={kpis.certSinEvidencia}
-            subtitle="sin registro de paso/conducción"
+            subtitle="sin registro de servicio"
             icon={HelpCircle}
             variant="default"
           />
@@ -148,37 +148,34 @@ export default function DashboardPage() {
             <CardContent>
               {elementosCriticos.length > 0 ? (
                 <div className="space-y-3">
-                  {elementosCriticos.map((item) => {
-                    const maquinista = maquinistasMock.find(m => m.id === item.maquinistaId);
-                    return (
-                      <div 
-                        key={item.id} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                        onClick={() => navigate(`/maquinistas/${item.maquinistaId}`)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {maquinista?.nombreApellidos}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.certificacion?.nombre} • {item.certificacion?.tipo}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              {item.diasRestantes !== null && item.diasRestantes >= 0
-                                ? `${item.diasRestantes} días`
-                                : item.diasRestantes !== null 
-                                  ? `${Math.abs(item.diasRestantes)} días vencido`
-                                  : '-'}
-                            </p>
-                          </div>
-                          <StatusBadge estado={item.estado} size="sm" />
-                        </div>
+                  {elementosCriticos.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      onClick={() => navigate(`/maquinistas/${item.maquinistaId}`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {item.maquinista?.nombreApellidos}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.certificacion?.nombre} • {item.certificacion?.tipo}
+                        </p>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {item.diasRestantes !== null && item.diasRestantes >= 0
+                              ? `${item.diasRestantes} días`
+                              : item.diasRestantes !== null 
+                                ? `${Math.abs(item.diasRestantes)} días vencido`
+                                : '-'}
+                          </p>
+                        </div>
+                        <StatusBadge estado={item.estado} size="sm" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
