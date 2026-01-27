@@ -17,9 +17,10 @@ export interface MaquinistaCertificacionDB {
 export interface CertificacionConEstado extends MaquinistaCertificacionDB {
   certificacion_nombre: string;
   certificacion_tipo: 'vehiculo' | 'linea';
-  estado: 'Vigente' | 'Próxima a vencer' | 'Vencida' | 'No aplica';
+  estado: 'Vigente' | 'Próxima a vencer' | 'Vencida' | 'No aplica' | 'Pendiente';
   dias_restantes: number | null;
   fecha_vencimiento: Date | null;
+  obtenida: boolean; // true si el maquinista tiene esta certificación obtenida
 }
 
 export interface CertificacionDisponible {
@@ -35,15 +36,23 @@ export interface CertificacionDisponible {
 }
 
 function calcularEstado(
+  obtenida: boolean,
   fechaUltimoServicio: string | null,
   vigilarVencimiento: boolean,
   periodoInactividadMeses: number,
   avisoDias: number
 ): { estado: CertificacionConEstado['estado']; diasRestantes: number | null; fechaVencimiento: Date | null } {
+  // Si no está obtenida, no se vigila
+  if (!obtenida) {
+    return { estado: 'Pendiente', diasRestantes: null, fechaVencimiento: null };
+  }
+
+  // Si está obtenida pero no requiere vigilancia
   if (!vigilarVencimiento) {
     return { estado: 'No aplica', diasRestantes: null, fechaVencimiento: null };
   }
 
+  // Obtenida con vigilancia pero sin fecha de servicio
   if (!fechaUltimoServicio) {
     return { estado: 'Vencida', diasRestantes: null, fechaVencimiento: null };
   }
@@ -114,8 +123,9 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
       // 4. Construir lista de certificaciones con estado
       // Usar las certificaciones de la base como fuente principal
       const certificacionesConEstado: CertificacionConEstado[] = baseCertificaciones.map(bc => {
-        // Buscar si ya está asignada al maquinista
+        // Buscar si ya está asignada al maquinista (significa que la tiene obtenida)
         const asignada = asignadas?.find(a => a.certificacion_id === bc.certificacion_id);
+        const obtenida = !!asignada;
         
         const fechaServicio = asignada?.fecha_ultimo_servicio || null;
         const vigilar = asignada?.vigilar_vencimiento ?? bc.vigilar_vencimiento;
@@ -123,6 +133,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
         const aviso = asignada?.aviso_dias ?? bc.aviso_dias;
 
         const { estado, diasRestantes, fechaVencimiento } = calcularEstado(
+          obtenida,
           fechaServicio,
           vigilar,
           periodo,
@@ -143,6 +154,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           estado,
           dias_restantes: diasRestantes,
           fecha_vencimiento: fechaVencimiento,
+          obtenida,
         };
       });
 
@@ -357,13 +369,63 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     }
   };
 
+  // Toggle de certificación obtenida
+  const toggleObtenida = async (certificacionId: string, obtenida: boolean): Promise<boolean> => {
+    if (!maquinistaId) return false;
+
+    try {
+      if (obtenida) {
+        // Marcar como obtenida: insertar registro
+        const baseCert = disponibles.find(d => d.id === certificacionId);
+        if (!baseCert) throw new Error('Certificación no encontrada');
+
+        const { error } = await supabase
+          .from('maquinista_certificaciones')
+          .insert({
+            maquinista_id: maquinistaId,
+            certificacion_id: certificacionId,
+            obligatoria: baseCert.obligatoria,
+            vigilar_vencimiento: baseCert.vigilar_vencimiento,
+            periodo_inactividad_meses: baseCert.periodo_inactividad_meses,
+            aviso_dias: baseCert.aviso_dias,
+            fecha_ultimo_servicio: null,
+          });
+
+        if (error) throw error;
+        toast({ title: 'Certificación marcada como obtenida' });
+      } else {
+        // Quitar: eliminar registro
+        const { error } = await supabase
+          .from('maquinista_certificaciones')
+          .delete()
+          .eq('maquinista_id', maquinistaId)
+          .eq('certificacion_id', certificacionId);
+
+        if (error) throw error;
+        toast({ title: 'Certificación desmarcada' });
+      }
+
+      await fetchData();
+      return true;
+    } catch (error) {
+      console.error('Error toggling obtenida:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo actualizar la certificación',
+      });
+      return false;
+    }
+  };
+
   // KPIs
   const kpis = {
     total: certificaciones.length,
+    obtenidas: certificaciones.filter(c => c.obtenida).length,
     vigentes: certificaciones.filter(c => c.estado === 'Vigente').length,
     proximasVencer: certificaciones.filter(c => c.estado === 'Próxima a vencer').length,
     vencidas: certificaciones.filter(c => c.estado === 'Vencida').length,
-    obligatoriasFaltantes: disponibles.filter(d => d.obligatoria && !d.asignada).length,
+    obligatoriasFaltantes: certificaciones.filter(c => c.obligatoria && !c.obtenida).length,
   };
 
   return {
@@ -376,5 +438,6 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     actualizarFechaServicio,
     quitarCertificacion,
     guardarCertificaciones,
+    toggleObtenida,
   };
 }
