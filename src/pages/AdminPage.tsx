@@ -13,12 +13,14 @@ import {
   AlertTriangle,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { 
   maquinistasMock, 
-  competenciasUsoMock, 
-  competenciasPorBaseMock,
+  certificacionesMock, 
+  certificacionesPorBaseMock,
   plantilla1603Mock,
   catalogoHitos1201Mock
 } from '@/data/mockData';
@@ -45,9 +47,9 @@ export default function AdminPage() {
               <Users className="w-4 h-4" />
               Maquinistas
             </TabsTrigger>
-            <TabsTrigger value="competencias" className="flex items-center gap-2">
+            <TabsTrigger value="certificaciones" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
-              Competencias
+              Certificaciones
             </TabsTrigger>
             <TabsTrigger value="asignacion" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
@@ -110,17 +112,17 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          {/* Competencias */}
-          <TabsContent value="competencias">
+          {/* Certificaciones */}
+          <TabsContent value="certificaciones">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Catálogo de Competencias de Uso</CardTitle>
-                  <CardDescription>Solo las marcadas como "Controlar" se vigilan</CardDescription>
+                  <CardTitle>Catálogo de Certificaciones</CardTitle>
+                  <CardDescription>Certificaciones de vehículos (Serie) y líneas (Infra)</CardDescription>
                 </div>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  Nueva Competencia
+                  Nueva Certificación
                 </Button>
               </CardHeader>
               <CardContent>
@@ -130,24 +132,20 @@ export default function AdminPage() {
                       <th className="text-left p-3 font-medium text-sm">Código</th>
                       <th className="text-left p-3 font-medium text-sm">Nombre</th>
                       <th className="text-left p-3 font-medium text-sm">Tipo</th>
-                      <th className="text-left p-3 font-medium text-sm">Controlar</th>
                       <th className="text-left p-3 font-medium text-sm">Activa</th>
                       <th className="text-left p-3 font-medium text-sm">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {competenciasUsoMock.map((comp) => (
-                      <tr key={comp.id} className="border-b last:border-b-0">
-                        <td className="p-3 font-mono text-sm">{comp.codigo}</td>
-                        <td className="p-3 text-sm">{comp.nombre}</td>
+                    {certificacionesMock.map((cert) => (
+                      <tr key={cert.id} className="border-b last:border-b-0">
+                        <td className="p-3 font-mono text-sm">{cert.codigo}</td>
+                        <td className="p-3 text-sm">{cert.nombre}</td>
                         <td className="p-3">
-                          <Badge variant="outline">{comp.tipo}</Badge>
+                          <Badge variant="outline">{cert.tipo}</Badge>
                         </td>
                         <td className="p-3">
-                          <Switch checked={comp.controlar} />
-                        </td>
-                        <td className="p-3">
-                          <Switch checked={comp.activo} />
+                          <Switch checked={cert.activo} />
                         </td>
                         <td className="p-3">
                           <div className="flex items-center gap-2">
@@ -166,40 +164,82 @@ export default function AdminPage() {
 
           {/* Asignación por Base */}
           <TabsContent value="asignacion">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {bases.map(base => {
-                const asignadas = competenciasPorBaseMock
-                  .filter(cb => cb.base === base && cb.activa)
-                  .map(cb => competenciasUsoMock.find(c => c.id === cb.competenciaId))
-                  .filter(Boolean);
-                
-                return (
-                  <Card key={base}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{base}</CardTitle>
-                        <Button variant="outline" size="sm">
-                          <Pencil className="w-3 h-3 mr-2" />
-                          Editar
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {asignadas.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {asignadas.map(comp => comp && (
-                            <Badge key={comp.id} variant="secondary">
-                              {comp.tipo}: {comp.nombre}
-                            </Badge>
-                          ))}
+            <div className="space-y-4">
+              <Card className="bg-muted/30">
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Instrucciones:</strong> Asigna las certificaciones disponibles a cada base. 
+                    El icono <Eye className="w-4 h-4 inline mx-1" /> indica que la certificación se vigila 
+                    (control de vencimiento a 12 meses). Los maquinistas de cada base heredan automáticamente 
+                    las certificaciones y su configuración de vigilancia.
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bases.map(base => {
+                  const asignadas = certificacionesPorBaseMock
+                    .filter(cb => cb.base === base && cb.activa)
+                    .map(cb => {
+                      const cert = certificacionesMock.find(c => c.id === cb.certificacionId);
+                      return cert ? { ...cert, vigilar: cb.vigilar } : null;
+                    })
+                    .filter(Boolean);
+                  
+                  return (
+                    <Card key={base}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-base">{base}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {asignadas.length} certificación(es) asignada(s)
+                            </CardDescription>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="w-3 h-3 mr-2" />
+                            Editar
+                          </Button>
                         </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Sin competencias asignadas</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardHeader>
+                      <CardContent>
+                        {asignadas.length > 0 ? (
+                          <div className="space-y-2">
+                            {asignadas.map(cert => cert && (
+                              <div 
+                                key={cert.id} 
+                                className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {cert.tipo}
+                                  </Badge>
+                                  <span className="text-sm">{cert.nombre}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {cert.vigilar ? (
+                                    <span className="flex items-center gap-1 text-xs text-primary">
+                                      <Eye className="w-3 h-3" />
+                                      Vigilar
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <EyeOff className="w-3 h-3" />
+                                      No vigilar
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Sin certificaciones asignadas</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
           </TabsContent>
 

@@ -1,9 +1,9 @@
 import {
   Maquinista,
-  CompetenciaUso,
-  CompetenciaPorBase,
-  AccionUso,
-  PlanUso,
+  Certificacion,
+  CertificacionPorBase,
+  AccionCertificacion,
+  PlanCertificacion,
   Expediente1603,
   Plantilla1603,
   Plan1603,
@@ -13,7 +13,7 @@ import {
   Programacion1201,
   Actuacion1201,
   Usuario,
-  EstadoPlanUso,
+  EstadoPlanCertificacion,
   EstadoBloque1603,
 } from '@/types';
 import { addDays, addMonths, differenceInDays, isAfter, isBefore, isWithinInterval } from 'date-fns';
@@ -64,33 +64,42 @@ export const maquinistasMock: Maquinista[] = [
   },
 ];
 
-// ===== COMPETENCIAS DE USO (ESPECIALES) =====
-export const competenciasUsoMock: CompetenciaUso[] = [
-  { id: 'c1', tipo: 'Infra', codigo: 'INF-001', nombre: 'Túnel de Guadarrama', controlar: true, activo: true },
-  { id: 'c2', tipo: 'Infra', codigo: 'INF-002', nombre: 'Variante de Pajares', controlar: true, activo: true },
-  { id: 'c3', tipo: 'Infra', codigo: 'INF-003', nombre: 'LAV Madrid-Sevilla Km 100-150', controlar: true, activo: true },
-  { id: 'c4', tipo: 'Serie', codigo: 'SER-100', nombre: 'Serie 100 (AVE)', controlar: true, activo: true },
-  { id: 'c5', tipo: 'Serie', codigo: 'SER-112', nombre: 'Serie 112 (AVE S-112)', controlar: true, activo: true },
+// ===== CATÁLOGO DE CERTIFICACIONES =====
+export const certificacionesMock: Certificacion[] = [
+  { id: 'c1', tipo: 'Infra', codigo: 'INF-001', nombre: 'Túnel de Guadarrama', activo: true },
+  { id: 'c2', tipo: 'Infra', codigo: 'INF-002', nombre: 'Variante de Pajares', activo: true },
+  { id: 'c3', tipo: 'Infra', codigo: 'INF-003', nombre: 'LAV Madrid-Sevilla Km 100-150', activo: true },
+  { id: 'c4', tipo: 'Serie', codigo: 'SER-100', nombre: 'Serie 100 (AVE)', activo: true },
+  { id: 'c5', tipo: 'Serie', codigo: 'SER-112', nombre: 'Serie 112 (AVE S-112)', activo: true },
+  { id: 'c6', tipo: 'Serie', codigo: 'SER-103', nombre: 'Serie 103 (AVE S-103)', activo: true },
+  { id: 'c7', tipo: 'Infra', codigo: 'INF-004', nombre: 'Túnel del Pertús', activo: true },
 ];
 
-// ===== COMPETENCIAS POR BASE =====
-export const competenciasPorBaseMock: CompetenciaPorBase[] = [
-  { id: 'cb1', base: 'Madrid-Chamartín', competenciaId: 'c1', activa: true },
-  { id: 'cb2', base: 'Madrid-Chamartín', competenciaId: 'c2', activa: true },
-  { id: 'cb3', base: 'Madrid-Chamartín', competenciaId: 'c4', activa: true },
-  { id: 'cb4', base: 'Madrid-Chamartín', competenciaId: 'c5', activa: true },
-  { id: 'cb5', base: 'Barcelona-Sants', competenciaId: 'c1', activa: true },
-  { id: 'cb6', base: 'Barcelona-Sants', competenciaId: 'c3', activa: true },
-  { id: 'cb7', base: 'Barcelona-Sants', competenciaId: 'c4', activa: true },
+// ===== CERTIFICACIONES POR BASE (con vigilar) =====
+export const certificacionesPorBaseMock: CertificacionPorBase[] = [
+  // Madrid-Chamartín
+  { id: 'cb1', base: 'Madrid-Chamartín', certificacionId: 'c1', activa: true, vigilar: true },
+  { id: 'cb2', base: 'Madrid-Chamartín', certificacionId: 'c2', activa: true, vigilar: true },
+  { id: 'cb3', base: 'Madrid-Chamartín', certificacionId: 'c4', activa: true, vigilar: true },
+  { id: 'cb4', base: 'Madrid-Chamartín', certificacionId: 'c5', activa: true, vigilar: false }, // No vigilar
+  { id: 'cb5', base: 'Madrid-Chamartín', certificacionId: 'c6', activa: true, vigilar: false }, // No vigilar
+  // Barcelona-Sants
+  { id: 'cb6', base: 'Barcelona-Sants', certificacionId: 'c1', activa: true, vigilar: true },
+  { id: 'cb7', base: 'Barcelona-Sants', certificacionId: 'c3', activa: true, vigilar: false },
+  { id: 'cb8', base: 'Barcelona-Sants', certificacionId: 'c4', activa: true, vigilar: true },
+  { id: 'cb9', base: 'Barcelona-Sants', certificacionId: 'c7', activa: true, vigilar: true },
+  // Sevilla-Santa Justa
+  { id: 'cb10', base: 'Sevilla-Santa Justa', certificacionId: 'c3', activa: true, vigilar: true },
+  { id: 'cb11', base: 'Sevilla-Santa Justa', certificacionId: 'c4', activa: true, vigilar: true },
 ];
 
-// ===== ACCIONES DE USO (EVIDENCIAS) =====
+// ===== ACCIONES DE CERTIFICACIÓN (EVIDENCIAS) =====
 const hoy = new Date();
-export const accionesUsoMock: AccionUso[] = [
+export const accionesCertificacionMock: AccionCertificacion[] = [
   {
     id: 'au1',
     maquinistaId: 'm1',
-    competenciaId: 'c1',
+    certificacionId: 'c1',
     tipoAccion: 'Conducción',
     fechaAccion: addDays(hoy, -30),
     observaciones: 'Servicio AVE 3456 Madrid-Segovia',
@@ -102,7 +111,7 @@ export const accionesUsoMock: AccionUso[] = [
   {
     id: 'au2',
     maquinistaId: 'm1',
-    competenciaId: 'c2',
+    certificacionId: 'c2',
     tipoAccion: 'Paso',
     fechaAccion: addDays(hoy, -350),
     observaciones: 'Paso por variante en servicio León',
@@ -114,7 +123,7 @@ export const accionesUsoMock: AccionUso[] = [
   {
     id: 'au3',
     maquinistaId: 'm1',
-    competenciaId: 'c4',
+    certificacionId: 'c4',
     tipoAccion: 'Conducción',
     fechaAccion: addDays(hoy, -380),
     observaciones: 'Servicio regular S100',
@@ -126,7 +135,7 @@ export const accionesUsoMock: AccionUso[] = [
   {
     id: 'au4',
     maquinistaId: 'm3',
-    competenciaId: 'c1',
+    certificacionId: 'c1',
     tipoAccion: 'Conducción',
     fechaAccion: addDays(hoy, -60),
     createdAt: addDays(hoy, -60),
@@ -136,19 +145,23 @@ export const accionesUsoMock: AccionUso[] = [
   },
 ];
 
-// ===== FUNCIÓN PARA CALCULAR PLAN USO =====
-export function calcularPlanUso(): PlanUso[] {
-  const planUso: PlanUso[] = [];
+// ===== FUNCIÓN PARA CALCULAR PLAN CERTIFICACIÓN =====
+export function calcularPlanCertificacion(): PlanCertificacion[] {
+  const plan: PlanCertificacion[] = [];
   
   maquinistasMock.filter(m => m.activo).forEach(maquinista => {
-    const competenciasBase = competenciasPorBaseMock
+    // Obtener certificaciones de la base del maquinista
+    const certificacionesBase = certificacionesPorBaseMock
       .filter(cb => cb.base === maquinista.base && cb.activa)
-      .map(cb => competenciasUsoMock.find(c => c.id === cb.competenciaId))
-      .filter((c): c is CompetenciaUso => c !== undefined && c.controlar && c.activo);
+      .map(cb => {
+        const cert = certificacionesMock.find(c => c.id === cb.certificacionId);
+        return cert ? { ...cert, vigilar: cb.vigilar } : null;
+      })
+      .filter((c): c is Certificacion & { vigilar: boolean } => c !== null && c.activo);
     
-    competenciasBase.forEach(competencia => {
-      const acciones = accionesUsoMock.filter(
-        a => a.maquinistaId === maquinista.id && a.competenciaId === competencia.id
+    certificacionesBase.forEach(certConVigilar => {
+      const acciones = accionesCertificacionMock.filter(
+        a => a.maquinistaId === maquinista.id && a.certificacionId === certConVigilar.id
       );
       
       const fechaUltima = acciones.length > 0 
@@ -157,7 +170,7 @@ export function calcularPlanUso(): PlanUso[] {
       
       const fechaVencimiento = fechaUltima ? addMonths(fechaUltima, 12) : null;
       
-      let estado: EstadoPlanUso = 'Sin evidencia';
+      let estado: EstadoPlanCertificacion = 'Sin evidencia';
       let diasRestantes: number | null = null;
       
       if (fechaUltima && fechaVencimiento) {
@@ -172,22 +185,23 @@ export function calcularPlanUso(): PlanUso[] {
         }
       }
       
-      planUso.push({
-        id: `pu-${maquinista.id}-${competencia.id}`,
+      plan.push({
+        id: `pc-${maquinista.id}-${certConVigilar.id}`,
         maquinistaId: maquinista.id,
-        competenciaId: competencia.id,
-        competencia,
+        certificacionId: certConVigilar.id,
+        certificacion: certConVigilar,
         fechaUltima,
         fechaVencimiento,
         estado,
         diasRestantes,
+        vigilar: certConVigilar.vigilar, // Heredado de la base
         updatedAt: hoy,
         updatedBy: 'system',
       });
     });
   });
   
-  return planUso;
+  return plan;
 }
 
 // ===== PLANTILLA 16.03 =====
@@ -410,14 +424,16 @@ export const actuaciones1201Mock: Actuacion1201[] = [
 
 // ===== CALCULAR KPIs =====
 export function calcularKPIs(baseFilter?: string): import('@/types').KPIs {
-  const planUso = calcularPlanUso();
+  const planCert = calcularPlanCertificacion();
   const maquinistasFiltrados = baseFilter 
     ? maquinistasMock.filter(m => m.base === baseFilter)
     : maquinistasMock;
   
-  const planUsoFiltrado = baseFilter
-    ? planUso.filter(p => maquinistasFiltrados.some(m => m.id === p.maquinistaId))
-    : planUso;
+  // Solo considerar las certificaciones con vigilar=true para KPIs
+  const planCertFiltrado = (baseFilter
+    ? planCert.filter(p => maquinistasFiltrados.some(m => m.id === p.maquinistaId))
+    : planCert
+  ).filter(p => p.vigilar);
   
   const exp1603Filtrados = baseFilter
     ? expedientes1603Mock.filter(e => maquinistasFiltrados.some(m => m.id === e.maquinistaId))
@@ -442,9 +458,9 @@ export function calcularKPIs(baseFilter?: string): import('@/types').KPIs {
   return {
     totalMaquinistas: maquinistasFiltrados.length,
     maquinistasActivos: maquinistasFiltrados.filter(m => m.activo).length,
-    usoVencido: planUsoFiltrado.filter(p => p.estado === 'Vencido').length,
-    usoProximo: planUsoFiltrado.filter(p => p.estado === 'Próximo').length,
-    usoSinEvidencia: planUsoFiltrado.filter(p => p.estado === 'Sin evidencia').length,
+    certVencido: planCertFiltrado.filter(p => p.estado === 'Vencido').length,
+    certProximo: planCertFiltrado.filter(p => p.estado === 'Próximo').length,
+    certSinEvidencia: planCertFiltrado.filter(p => p.estado === 'Sin evidencia').length,
     exp1603Activos: exp1603Filtrados.filter(e => e.estado === 'Activo').length,
     exp1603Vencidas: bloques1603Vencidas,
     exp1603EnVentana: bloques1603EnVentana,
