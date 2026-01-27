@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Plus, ChevronRight } from 'lucide-react';
-import { maquinistasMock, calcularPlanCertificacion, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { maquinistasMock, obtenerCertificacionesMaquinista, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
 import { Base } from '@/types';
 
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
@@ -32,13 +32,11 @@ export default function MaquinistasPage() {
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const planCertificacion = calcularPlanCertificacion();
-
   // Calcular resumen de estado por maquinista (solo certificaciones vigiladas)
   const getMaquinistaStatus = (maquinistaId: string) => {
-    const planItems = planCertificacion.filter(p => p.maquinistaId === maquinistaId && p.vigilar);
-    const vencidos = planItems.filter(p => p.estado === 'Vencido').length;
-    const proximos = planItems.filter(p => p.estado === 'Próximo').length;
+    const certs = obtenerCertificacionesMaquinista(maquinistaId).filter(c => c.vigilarVencimiento);
+    const vencidos = certs.filter(c => c.estado === 'Vencida').length;
+    const proximos = certs.filter(c => c.estado === 'Próxima a vencer').length;
     
     const has1603 = expedientes1603Mock.some(e => e.maquinistaId === maquinistaId && e.estado === 'Activo');
     const has1201 = expedientes1201Mock.some(e => e.maquinistaId === maquinistaId && e.estado === 'Abierta');
@@ -134,9 +132,9 @@ export default function MaquinistasPage() {
               </TableHeader>
               <TableBody>
                 {filteredMaquinistas.map((maquinista) => {
-                  const planItems = planCertificacion.filter(p => p.maquinistaId === maquinista.id && p.vigilar);
-                  const vencidos = planItems.filter(p => p.estado === 'Vencido').length;
-                  const proximos = planItems.filter(p => p.estado === 'Próximo').length;
+                  const certs = obtenerCertificacionesMaquinista(maquinista.id).filter(c => c.vigilarVencimiento);
+                  const vencidos = certs.filter(c => c.estado === 'Vencida').length;
+                  const proximos = certs.filter(c => c.estado === 'Próxima a vencer').length;
                   
                   const exp1603 = expedientes1603Mock.filter(e => e.maquinistaId === maquinista.id && e.estado === 'Activo').length;
                   const exp1201 = expedientes1201Mock.filter(e => e.maquinistaId === maquinista.id && e.estado === 'Abierta').length;

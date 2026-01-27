@@ -10,7 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import MaquinistasPage from "./pages/MaquinistasPage";
 import MaquinistaDetailPage from "./pages/MaquinistaDetailPage";
-import CertificacionesPage from "./pages/CompetenciasPage";
+import CertificacionesPage from "./pages/CertificacionesPage";
 import PE1603Page from "./pages/PE1603Page";
 import PE1201Page from "./pages/PE1201Page";
 import AdminPage from "./pages/AdminPage";
