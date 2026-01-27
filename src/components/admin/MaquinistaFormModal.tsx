@@ -12,11 +12,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Maquinista, Base } from '@/types';
 import { format } from 'date-fns';
 
+import { MaquinistaInput } from '@/hooks/useMaquinistas';
+
 interface MaquinistaFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  maquinista?: Maquinista | null;
-  onSave: (maquinista: Maquinista & { bajoPE1603?: boolean; fechaPrimerServicio?: Date }) => void;
+  maquinista?: { id: string; matricula: string; nombre_apellidos: string; base: string; activo: boolean; observaciones: string | null; bajo_pe_1603: boolean; fecha_primer_servicio: string | null } | null;
+  onSave: (input: MaquinistaInput) => void;
 }
 
 interface BaseConduccion {
@@ -51,12 +53,12 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
       if (maquinista) {
         setFormData({
           matricula: maquinista.matricula,
-          nombreApellidos: maquinista.nombreApellidos,
-          base: maquinista.base,
+          nombreApellidos: maquinista.nombre_apellidos,
+          base: maquinista.base as Base,
           activo: maquinista.activo,
           observaciones: maquinista.observaciones || '',
-          bajoPE1603: false,
-          fechaPrimerServicio: '',
+          bajoPE1603: maquinista.bajo_pe_1603,
+          fechaPrimerServicio: maquinista.fecha_primer_servicio || '',
         });
       } else {
         // Si el mando solo tiene una base asignada, preseleccionarla
@@ -109,28 +111,14 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
 
     setLoading(true);
     try {
-      const now = new Date();
-      const result = {
-        id: maquinista?.id || `m-${Date.now()}`,
+      onSave({
         matricula: formData.matricula.trim(),
         nombreApellidos: formData.nombreApellidos.trim(),
         base: formData.base as Base,
         activo: formData.activo,
         observaciones: formData.observaciones.trim() || undefined,
-        createdAt: maquinista?.createdAt || now,
-        createdBy: maquinista?.createdBy || 'current-user',
-        updatedAt: now,
-        updatedBy: 'current-user',
         bajoPE1603: formData.bajoPE1603,
         fechaPrimerServicio: formData.fechaPrimerServicio ? new Date(formData.fechaPrimerServicio) : undefined,
-      };
-
-      onSave(result);
-      toast({
-        title: maquinista ? 'Maquinista actualizado' : 'Maquinista creado',
-        description: formData.bajoPE1603 
-          ? `${result.nombreApellidos} guardado y asignado a vigilancia PE 16.03`
-          : `${result.nombreApellidos} guardado correctamente`,
       });
       onOpenChange(false);
     } catch (error) {
