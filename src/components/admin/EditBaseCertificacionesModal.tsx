@@ -160,7 +160,7 @@ export function EditBaseCertificacionesModal({
           </span>
         </div>
 
-        <ScrollArea className="flex-1 pr-4 -mr-4">
+        <ScrollArea className="flex-1 max-h-[50vh] pr-4 -mr-4">
           <div className="space-y-3 py-2">
             {configs.map(config => (
               <div
