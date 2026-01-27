@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -24,34 +24,22 @@ import {
   Loader2
 } from 'lucide-react';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-
-interface BaseData {
-  id: string;
-  nombre: string;
-}
 
 export default function PE1603Page() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
-  const [bases, setBases] = useState<BaseData[]>([]);
   
   const { expedientes, loading, kpis } = useExpedientes1603();
+  const { isAdmin, assignedBases } = useAuth();
   
-  useEffect(() => {
-    const fetchBases = async () => {
-      const { data } = await supabase
-        .from('bases_conduccion')
-        .select('id, nombre')
-        .eq('activa', true)
-        .order('nombre');
-      if (data) setBases(data);
-    };
-    fetchBases();
-  }, []);
+  // Obtener bases disponibles para el filtro (solo las asignadas o todas si es admin)
+  const availableBases = isAdmin 
+    ? [...new Set(expedientes.map(e => e.maquinista?.base).filter(Boolean))] as string[]
+    : assignedBases;
 
   // Filtrar
   const filtered = expedientes.filter(item => {
@@ -136,8 +124,8 @@ export default function PE1603Page() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las bases</SelectItem>
-                  {bases.map(base => (
-                    <SelectItem key={base.id} value={base.nombre}>{base.nombre}</SelectItem>
+                  {availableBases.map(base => (
+                    <SelectItem key={base} value={base}>{base}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
