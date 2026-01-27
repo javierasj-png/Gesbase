@@ -297,16 +297,16 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Certificaciones de {base.nombre}</DialogTitle>
           <DialogDescription>
             Selecciona las certificaciones disponibles para esta base y configura su vigilancia
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4 py-4">
+        <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
+          <div className="space-y-4 py-4 pr-4">
             {/* Vehículos */}
             <div>
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
