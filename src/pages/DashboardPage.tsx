@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { KPICard } from '@/components/KPICard';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AlertasPanel } from '@/components/dashboard/AlertasPanel';
 import { 
   Select, 
   SelectContent, 
@@ -18,10 +19,9 @@ import {
   HelpCircle, 
   FileCheck, 
   AlertCircle,
-  Train,
   TrendingUp
 } from 'lucide-react';
-import { calcularKPIs, obtenerTodasCertificaciones, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
+import { calcularKPIs, maquinistasMock, expedientes1603Mock, expedientes1201Mock } from '@/data/mockData';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
@@ -38,18 +38,7 @@ export default function DashboardPage() {
     : baseFilter;
   
   const kpis = calcularKPIs(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter);
-  const todasCertificaciones = obtenerTodasCertificaciones();
 
-  // Filtrar certificaciones por bases accesibles
-  const certificacionesFiltradas = todasCertificaciones.filter(c => 
-    isAdmin || getAccessibleBases.includes(c.baseId)
-  );
-
-  // Filtrar elementos críticos para mostrar (solo vigiladas y bases accesibles)
-  const elementosCriticos = certificacionesFiltradas
-    .filter(c => c.vigilarVencimiento && (c.estado === 'Vencida' || c.estado === 'Próxima a vencer'))
-    .slice(0, 5);
-  
   // Filtrar expedientes por bases accesibles
   const maquinistasAccesibles = filterMaquinistas(maquinistasMock);
   const maquinistaIds = new Set(maquinistasAccesibles.map(m => m.id));
@@ -152,58 +141,13 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Certificaciones Críticas */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Train className="w-4 h-4 text-primary" />
-                Certificaciones Críticas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {elementosCriticos.length > 0 ? (
-                <div className="space-y-3">
-                  {elementosCriticos.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                      onClick={() => navigate(`/maquinistas/${item.maquinistaId}`)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {item.maquinista?.nombreApellidos}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.certificacion?.nombre} • {item.certificacion?.tipo}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">
-                            {item.diasRestantes !== null && item.diasRestantes >= 0
-                              ? `${item.diasRestantes} días`
-                              : item.diasRestantes !== null 
-                                ? `${Math.abs(item.diasRestantes)} días vencido`
-                                : '-'}
-                          </p>
-                        </div>
-                        <StatusBadge estado={item.estado} size="sm" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No hay certificaciones en estado crítico
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Three Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Panel de Alertas */}
+          <AlertasPanel baseFilter={effectiveBaseFilter} maxItems={8} />
 
           {/* Expedientes Activos */}
-          <Card>
+          <Card className="lg:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
