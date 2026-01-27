@@ -308,13 +308,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "maquinista_certificaciones_certificacion_id_fkey"
-            columns: ["certificacion_id"]
-            isOneToOne: false
-            referencedRelation: "certificaciones"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "maquinista_certificaciones_maquinista_id_fkey"
             columns: ["maquinista_id"]
             isOneToOne: false

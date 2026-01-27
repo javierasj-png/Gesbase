@@ -227,13 +227,43 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     if (!maquinistaId) return false;
 
     try {
-      const { error } = await supabase
+      // Buscar la certificación en base_certificaciones para obtener la info
+      const baseCert = disponibles.find(d => d.id === certificacionId);
+      
+      // Buscar si ya existe un registro para este maquinista con esta certificación
+      const { data: existente } = await supabase
         .from('maquinista_certificaciones')
-        .update({ fecha_ultimo_servicio: fechaServicio })
+        .select('id')
         .eq('maquinista_id', maquinistaId)
-        .eq('certificacion_id', certificacionId);
+        .eq('certificacion_id', certificacionId)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existente) {
+        // Si ya existe, actualizar
+        const { error } = await supabase
+          .from('maquinista_certificaciones')
+          .update({ fecha_ultimo_servicio: fechaServicio })
+          .eq('id', existente.id);
+
+        if (error) throw error;
+      } else if (baseCert) {
+        // Si no existe, insertar nuevo registro
+        const { error } = await supabase
+          .from('maquinista_certificaciones')
+          .insert({
+            maquinista_id: maquinistaId,
+            certificacion_id: certificacionId,
+            obligatoria: baseCert.obligatoria,
+            vigilar_vencimiento: baseCert.vigilar_vencimiento,
+            periodo_inactividad_meses: baseCert.periodo_inactividad_meses,
+            aviso_dias: baseCert.aviso_dias,
+            fecha_ultimo_servicio: fechaServicio,
+          });
+
+        if (error) throw error;
+      } else {
+        throw new Error('Certificación no encontrada');
+      }
 
       toast({ title: 'Fecha de servicio actualizada' });
       await fetchData();
