@@ -13,7 +13,8 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react';
 import { 
   certificacionesMock, 
@@ -25,6 +26,7 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
 import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacionCertificaciones';
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
+import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { useMaquinistas, MaquinistaDB, MaquinistaInput } from '@/hooks/useMaquinistas';
 
 export default function AdminPage() {
@@ -112,6 +114,10 @@ export default function AdminPage() {
             <TabsTrigger value="asignacion" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
               Asignación por Base
+            </TabsTrigger>
+            <TabsTrigger value="plantillas" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Plantillas SGS
             </TabsTrigger>
           </TabsList>
 
@@ -268,6 +274,11 @@ export default function AdminPage() {
           {/* Asignación por Base */}
           <TabsContent value="asignacion">
             <BaseAsignacionCertificaciones />
+          </TabsContent>
+
+          {/* Plantillas SGS */}
+          <TabsContent value="plantillas">
+            <PlantillasSGS />
           </TabsContent>
 
         </Tabs>
