@@ -9,12 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Maquinista, Base } from '@/types';
+import { format } from 'date-fns';
 
 interface MaquinistaFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   maquinista?: Maquinista | null;
-  onSave: (maquinista: Maquinista) => void;
+  onSave: (maquinista: Maquinista & { bajoPE1603?: boolean; fechaPrimerServicio?: Date }) => void;
 }
 
 interface BaseConduccion {
@@ -33,6 +34,8 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
     base: '' as Base | '',
     activo: true,
     observaciones: '',
+    bajoPE1603: false,
+    fechaPrimerServicio: '',
   });
 
   useEffect(() => {
@@ -45,6 +48,8 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
           base: maquinista.base,
           activo: maquinista.activo,
           observaciones: maquinista.observaciones || '',
+          bajoPE1603: false,
+          fechaPrimerServicio: '',
         });
       } else {
         setFormData({
@@ -53,6 +58,8 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
           base: '',
           activo: true,
           observaciones: '',
+          bajoPE1603: false,
+          fechaPrimerServicio: '',
         });
       }
     }
@@ -82,10 +89,19 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
       return;
     }
 
+    if (formData.bajoPE1603 && !formData.fechaPrimerServicio) {
+      toast({
+        title: 'Fecha requerida',
+        description: 'Debe indicar la fecha del primer servicio para PE 16.03',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const now = new Date();
-      const newMaquinista: Maquinista = {
+      const result = {
         id: maquinista?.id || `m-${Date.now()}`,
         matricula: formData.matricula.trim(),
         nombreApellidos: formData.nombreApellidos.trim(),
@@ -96,12 +112,16 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
         createdBy: maquinista?.createdBy || 'current-user',
         updatedAt: now,
         updatedBy: 'current-user',
+        bajoPE1603: formData.bajoPE1603,
+        fechaPrimerServicio: formData.fechaPrimerServicio ? new Date(formData.fechaPrimerServicio) : undefined,
       };
 
-      onSave(newMaquinista);
+      onSave(result);
       toast({
         title: maquinista ? 'Maquinista actualizado' : 'Maquinista creado',
-        description: `${newMaquinista.nombreApellidos} guardado correctamente`,
+        description: formData.bajoPE1603 
+          ? `${result.nombreApellidos} guardado y asignado a vigilancia PE 16.03`
+          : `${result.nombreApellidos} guardado correctamente`,
       });
       onOpenChange(false);
     } catch (error) {
@@ -183,6 +203,37 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
               checked={formData.activo}
               onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
             />
+          </div>
+
+          {/* PE 16.03 */}
+          <div className="border-t pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="bajoPE1603" className="font-medium">Bajo PE 16.03</Label>
+                <p className="text-xs text-muted-foreground">Nuevo acceso (&lt;3 años en producción)</p>
+              </div>
+              <Switch
+                id="bajoPE1603"
+                checked={formData.bajoPE1603}
+                onCheckedChange={(checked) => setFormData({ ...formData, bajoPE1603: checked, fechaPrimerServicio: checked ? formData.fechaPrimerServicio : '' })}
+              />
+            </div>
+
+            {formData.bajoPE1603 && (
+              <div className="space-y-2">
+                <Label htmlFor="fechaPrimerServicio">Fecha primer servicio en producción *</Label>
+                <Input
+                  id="fechaPrimerServicio"
+                  type="date"
+                  value={formData.fechaPrimerServicio}
+                  onChange={(e) => setFormData({ ...formData, fechaPrimerServicio: e.target.value })}
+                  max={format(new Date(), 'yyyy-MM-dd')}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se generará el plan de vigilancia de 3 años desde esta fecha
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
