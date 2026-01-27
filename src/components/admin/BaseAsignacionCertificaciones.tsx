@@ -305,7 +305,10 @@ function EditBaseAsignacionModal({ base, open, onOpenChange, onSave }: EditBaseA
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
+        <ScrollArea
+          type="always"
+          className="flex-1 min-h-0 h-[55vh] overscroll-contain -mr-4 pr-4"
+        >
           <div className="space-y-4 py-4 pr-4">
             {/* Vehículos */}
             <div>
