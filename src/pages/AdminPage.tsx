@@ -73,7 +73,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="maquinistas" className="space-y-6">
+        <Tabs defaultValue="usuarios" className="space-y-6">
           <TabsList>
             <TabsTrigger value="usuarios" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
