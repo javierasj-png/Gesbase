@@ -12,7 +12,7 @@ export type Bloque1201 = 'Acompañamientos' | 'Registros';
 export type Etiqueta1201 = 'Día 1' | 'A los 7 días' | 'A los 23 días' | 'A los 30 días';
 export type EstadoCelda1201 = 'No procede' | 'Pendiente' | 'Cumplida';
 export type Base = 'Madrid-Chamartín' | 'Barcelona-Sants' | 'Sevilla-Santa Justa' | 'Valencia-Joaquín Sorolla';
-export type Rol = 'Mando' | 'Admin';
+export type AppRole = 'admin' | 'mando';
 
 // Auditoría
 export interface Auditable {
@@ -195,11 +195,17 @@ export interface KPIs {
   exp1201Pendientes: number;
 }
 
-// Usuario actual (mock)
-export interface Usuario {
+// Usuario con perfil y roles
+export interface UserProfile {
   id: string;
-  nombre: string;
   email: string;
-  rol: Rol;
-  base?: Base;
+  nombre?: string;
+  apellidos?: string;
+}
+
+export interface UserWithAccess {
+  profile: UserProfile;
+  roles: AppRole[];
+  assignedBases: Base[];
+  isAdmin: boolean;
 }

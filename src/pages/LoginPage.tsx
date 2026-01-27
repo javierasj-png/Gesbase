@@ -1,21 +1,83 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Rol } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Train, Shield, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Train, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [selectedRol, setSelectedRol] = useState<Rol | null>(null);
+  const { signIn, signUp, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Login form
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  
+  // Signup form
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupNombre, setSignupNombre] = useState('');
+  const [signupApellidos, setSignupApellidos] = useState('');
 
-  const handleLogin = () => {
-    if (selectedRol) {
-      login(selectedRol);
+  // Redirect if already authenticated
+  if (isAuthenticated) {
+    navigate('/dashboard');
+    return null;
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const { error } = await signIn(loginEmail, loginPassword);
+    
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de acceso',
+        description: error.message === 'Invalid login credentials' 
+          ? 'Email o contraseña incorrectos' 
+          : error.message,
+      });
+    } else {
+      toast({
+        title: 'Bienvenido',
+        description: 'Acceso correcto al sistema',
+      });
       navigate('/dashboard');
     }
+    
+    setIsLoading(false);
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const { error } = await signUp(signupEmail, signupPassword, signupNombre, signupApellidos);
+    
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de registro',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Cuenta creada',
+        description: 'Tu cuenta ha sido creada. Contacta con un administrador para asignar tu rol y bases.',
+      });
+      navigate('/dashboard');
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -31,64 +93,119 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground/70 mt-1">Renfe Viajeros</p>
         </div>
 
-        {/* Login Card */}
+        {/* Login/Signup Card */}
         <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-lg">Acceso al Sistema</CardTitle>
-            <CardDescription>Seleccione su perfil para continuar</CardDescription>
+            <CardDescription>Introduce tus credenciales</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Role Selection */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setSelectedRol('Mando')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedRol === 'Mando'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                }`}
-              >
-                <Users className={`w-8 h-8 mx-auto mb-2 ${selectedRol === 'Mando' ? 'text-primary' : 'text-muted-foreground'}`} />
-                <p className={`text-sm font-medium ${selectedRol === 'Mando' ? 'text-primary' : 'text-foreground'}`}>
-                  Mando
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Gestión de evidencias
-                </p>
-              </button>
-
-              <button
-                onClick={() => setSelectedRol('Admin')}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedRol === 'Admin'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                }`}
-              >
-                <Shield className={`w-8 h-8 mx-auto mb-2 ${selectedRol === 'Admin' ? 'text-primary' : 'text-muted-foreground'}`} />
-                <p className={`text-sm font-medium ${selectedRol === 'Admin' ? 'text-primary' : 'text-foreground'}`}>
-                  Administrador
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Configuración del sistema
-                </p>
-              </button>
-            </div>
-
-            {/* Login Button */}
-            <Button 
-              className="w-full mt-4" 
-              size="lg"
-              disabled={!selectedRol}
-              onClick={handleLogin}
-            >
-              Acceder
-            </Button>
-
-            {/* Info */}
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              Prototipo de demostración • Datos simulados
-            </p>
+          <CardContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
+                <TabsTrigger value="signup">Registrarse</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password">Contraseña</Label>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Accediendo...
+                      </>
+                    ) : (
+                      'Acceder'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-nombre">Nombre</Label>
+                      <Input
+                        id="signup-nombre"
+                        type="text"
+                        placeholder="Juan"
+                        value={signupNombre}
+                        onChange={(e) => setSignupNombre(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-apellidos">Apellidos</Label>
+                      <Input
+                        id="signup-apellidos"
+                        type="text"
+                        placeholder="García"
+                        value={signupApellidos}
+                        onChange={(e) => setSignupApellidos(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Contraseña</Label>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={signupPassword}
+                      onChange={(e) => setSignupPassword(e.target.value)}
+                      minLength={6}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registrando...
+                      </>
+                    ) : (
+                      'Crear cuenta'
+                    )}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    Después del registro, un administrador asignará tu rol y bases
+                  </p>
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

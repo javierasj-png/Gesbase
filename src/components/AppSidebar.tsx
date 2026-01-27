@@ -29,7 +29,13 @@ const adminItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { usuario, logout } = useAuth();
+  const { userAccess, signOut, isAdmin } = useAuth();
+
+  const displayName = userAccess?.profile 
+    ? `${userAccess.profile.nombre || ''} ${userAccess.profile.apellidos || ''}`.trim() || userAccess.profile.email
+    : 'Usuario';
+
+  const displayRole = isAdmin ? 'Administrador' : 'Mando';
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
@@ -71,7 +77,7 @@ export function AppSidebar() {
           );
         })}
 
-        {usuario?.rol === 'Admin' && (
+        {isAdmin && (
           <>
             <p className="text-xs uppercase tracking-wider text-sidebar-foreground/50 px-3 py-2 mt-4">
               Administración
@@ -105,14 +111,14 @@ export function AppSidebar() {
             <Shield className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{usuario?.nombre}</p>
-            <p className="text-xs text-sidebar-foreground/60">{usuario?.rol}</p>
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <p className="text-xs text-sidebar-foreground/60">{displayRole}</p>
           </div>
           <Button 
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-            onClick={logout}
+            onClick={signOut}
           >
             <LogOut className="w-4 h-4" />
           </Button>

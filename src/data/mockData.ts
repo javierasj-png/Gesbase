@@ -12,18 +12,11 @@ import {
   CatalogoHito1201,
   Programacion1201,
   Actuacion1201,
-  Usuario,
   EstadoCertificacionMaquinista,
   EstadoBloque1603,
   Base,
 } from '@/types';
 import { addDays, addMonths, differenceInDays, isAfter, isBefore, isWithinInterval } from 'date-fns';
-
-// ===== USUARIOS MOCK =====
-export const usuariosMock: Usuario[] = [
-  { id: 'u1', nombre: 'Carlos Martínez', email: 'carlos.martinez@renfe.es', rol: 'Mando', base: 'Madrid-Chamartín' },
-  { id: 'u2', nombre: 'Ana García', email: 'ana.garcia@renfe.es', rol: 'Admin' },
-];
 
 // ===== MAQUINISTAS MOCK =====
 export const maquinistasMock: Maquinista[] = [

@@ -17,7 +17,8 @@ import {
   Pencil,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  Shield
 } from 'lucide-react';
 import { 
   maquinistasMock, 
@@ -31,6 +32,7 @@ import {
 import { Base, BaseCertificacion, Certificacion } from '@/types';
 import { EditBaseCertificacionesModal } from '@/components/admin/EditBaseCertificacionesModal';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
+import { UserManagement } from '@/components/admin/UserManagement';
 
 const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
 
@@ -73,6 +75,10 @@ export default function AdminPage() {
         {/* Tabs */}
         <Tabs defaultValue="maquinistas" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="usuarios" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Usuarios
+            </TabsTrigger>
             <TabsTrigger value="maquinistas" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Maquinistas
@@ -86,6 +92,11 @@ export default function AdminPage() {
               Asignación por Base
             </TabsTrigger>
           </TabsList>
+
+          {/* Usuarios */}
+          <TabsContent value="usuarios">
+            <UserManagement />
+          </TabsContent>
 
           {/* Maquinistas */}
           <TabsContent value="maquinistas">
