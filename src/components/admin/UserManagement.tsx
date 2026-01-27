@@ -219,10 +219,10 @@ export function UserManagement() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />
-          <CardTitle>Gestión de Usuarios</CardTitle>
+          <CardTitle>Gestión de Mandos</CardTitle>
         </div>
         <CardDescription>
-          Asigna roles y bases a los usuarios del sistema
+          Asigna roles y bases a los mandos del sistema
         </CardDescription>
       </CardHeader>
       <CardContent>
