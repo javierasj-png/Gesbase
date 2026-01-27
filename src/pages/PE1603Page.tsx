@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -11,8 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
   Search, 
   Plus, 
@@ -22,73 +21,47 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  Loader2
 } from 'lucide-react';
-import { 
-  expedientes1603Mock, 
-  maquinistasMock, 
-  generarPlan1603,
-  actuaciones1603Mock
-} from '@/data/mockData';
-import { Base, TipoActuacion1603, EstadoBloque1603 } from '@/types';
-import { format, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
-const bases: Base[] = ['Madrid-Chamartín', 'Barcelona-Sants', 'Sevilla-Santa Justa', 'Valencia-Joaquín Sorolla'];
+interface BaseData {
+  id: string;
+  nombre: string;
+}
 
 export default function PE1603Page() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
-
-  // Calcular resumen
-  const expedientesConPlan = expedientes1603Mock.map(exp => {
-    const maquinista = maquinistasMock.find(m => m.id === exp.maquinistaId);
-    const plan = generarPlan1603(exp);
-    const actuaciones = actuaciones1603Mock.filter(a => a.expediente1603Id === exp.id);
-    
-    // Vincular actuaciones
-    const planConActuaciones = plan.map(bloque => {
-      const actuacion = actuaciones.find(a => 
-        a.tipo === bloque.tipo && 
-        a.fechaReal >= bloque.inicioVentana && 
-        a.fechaReal <= bloque.finVentana
-      );
-      return {
-        ...bloque,
-        estado: actuacion ? 'Cumplida' as EstadoBloque1603 : bloque.estado,
-      };
-    });
-
-    const vencidas = planConActuaciones.filter(b => b.estado === 'Vencida').length;
-    const enVentana = planConActuaciones.filter(b => b.estado === 'En ventana').length;
-    const cumplidas = planConActuaciones.filter(b => b.estado === 'Cumplida').length;
-    const pendientes = planConActuaciones.filter(b => b.estado === 'Pendiente').length;
-    const diasRestantes = differenceInDays(exp.fechaFinPrevista, new Date());
-
-    return { 
-      expediente: exp, 
-      maquinista, 
-      plan: planConActuaciones,
-      resumen: { vencidas, enVentana, cumplidas, pendientes, diasRestantes }
+  const [bases, setBases] = useState<BaseData[]>([]);
+  
+  const { expedientes, loading, kpis } = useExpedientes1603();
+  
+  useEffect(() => {
+    const fetchBases = async () => {
+      const { data } = await supabase
+        .from('bases_conduccion')
+        .select('id, nombre')
+        .eq('activa', true)
+        .order('nombre');
+      if (data) setBases(data);
     };
-  });
+    fetchBases();
+  }, []);
 
   // Filtrar
-  const filtered = expedientesConPlan.filter(item => {
+  const filtered = expedientes.filter(item => {
     const matchesSearch = 
-      item.maquinista?.nombreApellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.maquinista?.nombre_apellidos.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.maquinista?.matricula.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesBase = baseFilter === 'all' || item.maquinista?.base === baseFilter;
     const matchesEstado = estadoFilter === 'all' || item.expediente.estado === estadoFilter;
     return matchesSearch && matchesBase && matchesEstado;
   });
-
-  // KPIs rápidos
-  const totalActivos = expedientesConPlan.filter(e => e.expediente.estado === 'Activo').length;
-  const conVencidas = expedientesConPlan.filter(e => e.resumen.vencidas > 0).length;
-  const conEnVentana = expedientesConPlan.filter(e => e.resumen.enVentana > 0).length;
 
   return (
     <AppLayout>
@@ -101,7 +74,7 @@ export default function PE1603Page() {
               Vigilancia durante 3 años desde primer servicio en la dependencia
             </p>
           </div>
-          <Button>
+          <Button disabled>
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Expediente
           </Button>
@@ -113,7 +86,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">{totalActivos}</p>
+                  <p className="text-2xl font-bold">{kpis.totalActivos}</p>
                   <p className="text-sm text-muted-foreground">Expedientes activos</p>
                 </div>
                 <FileCheck className="w-8 h-8 text-status-ok" />
@@ -124,7 +97,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-status-vencido">{conVencidas}</p>
+                  <p className="text-2xl font-bold text-status-vencido">{kpis.conVencidas}</p>
                   <p className="text-sm text-muted-foreground">Con actuaciones vencidas</p>
                 </div>
                 <XCircle className="w-8 h-8 text-status-vencido" />
@@ -135,7 +108,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-status-proximo">{conEnVentana}</p>
+                  <p className="text-2xl font-bold text-status-proximo">{kpis.conEnVentana}</p>
                   <p className="text-sm text-muted-foreground">Con actuaciones en ventana</p>
                 </div>
                 <Clock className="w-8 h-8 text-status-proximo" />
@@ -164,7 +137,7 @@ export default function PE1603Page() {
                 <SelectContent>
                   <SelectItem value="all">Todas las bases</SelectItem>
                   {bases.map(base => (
-                    <SelectItem key={base} value={base}>{base}</SelectItem>
+                    <SelectItem key={base.id} value={base.nombre}>{base.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -182,79 +155,92 @@ export default function PE1603Page() {
           </CardContent>
         </Card>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
+
         {/* Expedientes List */}
-        <div className="space-y-4">
-          {filtered.map(({ expediente, maquinista, resumen }) => (
-            <Card 
-              key={expediente.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/maquinistas/${expediente.maquinistaId}?tab=pe1603`)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <FileCheck className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{maquinista?.nombreApellidos}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          Inicio: {format(expediente.fechaInicio, 'dd/MM/yyyy')}
-                        </span>
-                        <span>→</span>
-                        <span>Fin: {format(expediente.fechaFinPrevista, 'dd/MM/yyyy')}</span>
-                        <span className={resumen.diasRestantes < 90 ? 'text-status-proximo font-medium' : ''}>
-                          ({resumen.diasRestantes} días restantes)
-                        </span>
+        {!loading && (
+          <div className="space-y-4">
+            {filtered.map(({ expediente, maquinista, resumen }) => (
+              <Card 
+                key={expediente.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/maquinistas/${expediente.maquinista_id}?tab=pe1603`)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <FileCheck className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{maquinista?.nombre_apellidos || 'Maquinista desconocido'}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Inicio: {format(new Date(expediente.fecha_inicio), 'dd/MM/yyyy')}
+                          </span>
+                          <span>→</span>
+                          <span>Fin: {format(new Date(expediente.fecha_fin_prevista), 'dd/MM/yyyy')}</span>
+                          <span className={resumen.diasRestantes < 90 ? 'text-status-proximo font-medium' : ''}>
+                            ({resumen.diasRestantes} días restantes)
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    {/* Resumen de bloques */}
-                    <div className="flex items-center gap-2">
-                      {resumen.vencidas > 0 && (
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-vencido-bg">
-                          <XCircle className="w-3 h-3 text-status-vencido" />
-                          <span className="text-xs font-medium text-status-vencido">{resumen.vencidas}</span>
-                        </div>
-                      )}
-                      {resumen.enVentana > 0 && (
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-proximo-bg">
-                          <Clock className="w-3 h-3 text-status-proximo" />
-                          <span className="text-xs font-medium text-status-proximo">{resumen.enVentana}</span>
-                        </div>
-                      )}
-                      {resumen.cumplidas > 0 && (
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-cumplida-bg">
-                          <CheckCircle2 className="w-3 h-3 text-status-cumplida" />
-                          <span className="text-xs font-medium text-status-cumplida">{resumen.cumplidas}</span>
-                        </div>
-                      )}
-                    </div>
                     
-                    <StatusBadge estado={expediente.estado} />
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <div className="flex items-center gap-4">
+                      {/* Resumen de bloques */}
+                      <div className="flex items-center gap-2">
+                        {resumen.vencidas > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-vencido-bg">
+                            <XCircle className="w-3 h-3 text-status-vencido" />
+                            <span className="text-xs font-medium text-status-vencido">{resumen.vencidas}</span>
+                          </div>
+                        )}
+                        {resumen.enVentana > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-proximo-bg">
+                            <Clock className="w-3 h-3 text-status-proximo" />
+                            <span className="text-xs font-medium text-status-proximo">{resumen.enVentana}</span>
+                          </div>
+                        )}
+                        {resumen.cumplidas > 0 && (
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-cumplida-bg">
+                            <CheckCircle2 className="w-3 h-3 text-status-cumplida" />
+                            <span className="text-xs font-medium text-status-cumplida">{resumen.cumplidas}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <StatusBadge estado={expediente.estado} />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
 
-          {filtered.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <FileCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No se encontraron expedientes</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            {filtered.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <FileCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    {expedientes.length === 0 
+                      ? 'No hay expedientes PE 16.03. Se crearán automáticamente al añadir maquinistas de nuevo acceso.'
+                      : 'No se encontraron expedientes con los filtros seleccionados'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

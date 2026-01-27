@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      actuaciones_1603: {
+        Row: {
+          adjuntos: string[] | null
+          created_at: string
+          created_by: string | null
+          expediente_id: string
+          fecha_real: string
+          id: string
+          observaciones: string | null
+          resultado: string | null
+          tipo: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          adjuntos?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          expediente_id: string
+          fecha_real: string
+          id?: string
+          observaciones?: string | null
+          resultado?: string | null
+          tipo: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          adjuntos?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          expediente_id?: string
+          fecha_real?: string
+          id?: string
+          observaciones?: string | null
+          resultado?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuaciones_1603_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       base_assignments: {
         Row: {
           base: string
@@ -126,6 +176,56 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      expedientes_1603: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["estado_expediente"]
+          fecha_fin_prevista: string
+          fecha_inicio: string
+          fecha_primer_servicio: string
+          id: string
+          maquinista_id: string
+          observaciones: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["estado_expediente"]
+          fecha_fin_prevista: string
+          fecha_inicio?: string
+          fecha_primer_servicio: string
+          id?: string
+          maquinista_id: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["estado_expediente"]
+          fecha_fin_prevista?: string
+          fecha_inicio?: string
+          fecha_primer_servicio?: string
+          id?: string
+          maquinista_id?: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expedientes_1603_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: true
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maquinistas: {
         Row: {
@@ -268,6 +368,59 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_1603: {
+        Row: {
+          actuacion_id: string | null
+          created_at: string
+          estado: Database["public"]["Enums"]["estado_bloque_1603"]
+          etiqueta: string
+          expediente_id: string
+          fin_ventana: string
+          id: string
+          inicio_ventana: string
+          orden: number
+          tipo: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          actuacion_id?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_bloque_1603"]
+          etiqueta: string
+          expediente_id: string
+          fin_ventana: string
+          id?: string
+          inicio_ventana: string
+          orden: number
+          tipo: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          actuacion_id?: string | null
+          created_at?: string
+          estado?: Database["public"]["Enums"]["estado_bloque_1603"]
+          etiqueta?: string
+          expediente_id?: string
+          fin_ventana?: string
+          id?: string
+          inicio_ventana?: string
+          orden?: number
+          tipo?: Database["public"]["Enums"]["tipo_actuacion_1603"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_1603_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           apellidos: string | null
@@ -336,7 +489,10 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "mando"
+      estado_bloque_1603: "Pendiente" | "En ventana" | "Vencida" | "Cumplida"
+      estado_expediente: "Activo" | "Cerrado"
       estado_parte: "Nuevo" | "En revisión" | "Cerrado"
+      tipo_actuacion_1603: "Acompañamiento" | "Registro" | "Alcohol" | "Drogas"
       tipo_parte: "Incidencia" | "Retraso" | "Avería" | "Seguridad" | "Otro"
     }
     CompositeTypes: {
@@ -466,7 +622,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "mando"],
+      estado_bloque_1603: ["Pendiente", "En ventana", "Vencida", "Cumplida"],
+      estado_expediente: ["Activo", "Cerrado"],
       estado_parte: ["Nuevo", "En revisión", "Cerrado"],
+      tipo_actuacion_1603: ["Acompañamiento", "Registro", "Alcohol", "Drogas"],
       tipo_parte: ["Incidencia", "Retraso", "Avería", "Seguridad", "Otro"],
     },
   },
