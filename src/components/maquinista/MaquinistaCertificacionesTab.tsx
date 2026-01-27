@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Eye, EyeOff, Loader2, Train, Calendar } from 'lucide-react';
+import { Plus, Eye, EyeOff, Loader2, Train, Calendar, CheckCircle2 } from 'lucide-react';
 import { useMaquinistaCertificaciones, CertificacionConEstado } from '@/hooks/useMaquinistaCertificaciones';
 import { format } from 'date-fns';
 
@@ -30,7 +31,7 @@ interface MaquinistaCertificacionesTabProps {
 }
 
 export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: MaquinistaCertificacionesTabProps) {
-  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion } = useMaquinistaCertificaciones(maquinistaId, baseName);
+  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida } = useMaquinistaCertificaciones(maquinistaId, baseName);
   const [registrarServicioOpen, setRegistrarServicioOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
@@ -92,11 +93,11 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
 
       {/* KPIs */}
       {certificaciones.length > 0 && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
           <Card className="bg-muted/30">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold">{kpis.total}</p>
-              <p className="text-xs text-muted-foreground">Asignadas</p>
+              <p className="text-2xl font-bold">{kpis.obtenidas}/{kpis.total}</p>
+              <p className="text-xs text-muted-foreground">Obtenidas</p>
             </CardContent>
           </Card>
           <Card className="bg-status-cumplida-bg border-status-ok">
@@ -117,6 +118,14 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
               <p className="text-xs text-muted-foreground">Vencidas</p>
             </CardContent>
           </Card>
+          {kpis.obligatoriasFaltantes > 0 && (
+            <Card className="bg-destructive/10 border-destructive/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold text-destructive">{kpis.obligatoriasFaltantes}</p>
+                <p className="text-xs text-muted-foreground">Obligat. sin obtener</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -125,6 +134,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="text-center p-4 font-medium text-sm w-20">Obtenida</th>
                 <th className="text-left p-4 font-medium text-sm">Tipo</th>
                 <th className="text-left p-4 font-medium text-sm">Certificación</th>
                 <th className="text-center p-4 font-medium text-sm">Vigilar</th>
@@ -136,7 +146,14 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
             </thead>
             <tbody>
               {certificaciones.map((item) => (
-                <tr key={item.id} className="border-b last:border-b-0 hover:bg-muted/30">
+                <tr key={item.certificacion_id} className={`border-b last:border-b-0 hover:bg-muted/30 ${!item.obtenida ? 'opacity-60' : ''}`}>
+                  <td className="p-4 text-center">
+                    <Checkbox
+                      checked={item.obtenida}
+                      onCheckedChange={(checked) => toggleObtenida(item.certificacion_id, !!checked)}
+                      className="mx-auto"
+                    />
+                  </td>
                   <td className="p-4">
                     <Badge variant="outline" className="capitalize">{item.certificacion_tipo}</Badge>
                   </td>
@@ -151,7 +168,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                     </div>
                   </td>
                   <td className="p-4 text-center">
-                    {item.vigilar_vencimiento ? (
+                    {item.obtenida && item.vigilar_vencimiento ? (
                       <div className="flex flex-col items-center text-xs">
                         <Eye className="w-4 h-4 text-primary" />
                         <span className="text-muted-foreground">{item.periodo_inactividad_meses}m</span>
@@ -161,17 +178,17 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                     )}
                   </td>
                   <td className="p-4 text-sm">
-                    {item.fecha_ultimo_servicio 
+                    {item.obtenida && item.fecha_ultimo_servicio 
                       ? format(new Date(item.fecha_ultimo_servicio), 'dd/MM/yyyy') 
-                      : <span className="text-muted-foreground">Sin registro</span>}
+                      : <span className="text-muted-foreground">{item.obtenida ? 'Sin registro' : '-'}</span>}
                   </td>
                   <td className="p-4 text-sm">
-                    {item.fecha_vencimiento 
+                    {item.obtenida && item.fecha_vencimiento 
                       ? format(item.fecha_vencimiento, 'dd/MM/yyyy') 
                       : <span className="text-muted-foreground">-</span>}
                   </td>
                   <td className="p-4 text-sm font-medium text-center">
-                    {item.dias_restantes !== null 
+                    {item.obtenida && item.dias_restantes !== null 
                       ? (
                         <span className={
                           item.dias_restantes < 0 ? 'text-status-vencido' :
@@ -190,9 +207,9 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
               ))}
               {certificaciones.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     <Train className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    No hay certificaciones asignadas a este maquinista
+                    No hay certificaciones configuradas para esta base
                   </td>
                 </tr>
               )}
