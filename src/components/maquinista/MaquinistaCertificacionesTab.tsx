@@ -233,28 +233,28 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Certificación obtenida</Label>
+              <Label>Certificación con vigilancia</Label>
               <Select value={selectedCert} onValueChange={setSelectedCert}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona una certificación" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Solo mostrar certificaciones obtenidas */}
-                  {certificaciones.filter(c => c.obtenida).length > 0 ? (
-                    certificaciones.filter(c => c.obtenida).map(cert => (
+                  {/* Solo certificaciones obtenidas Y con vigilancia activa */}
+                  {certificaciones.filter(c => c.obtenida && c.vigilar_vencimiento).length > 0 ? (
+                    certificaciones.filter(c => c.obtenida && c.vigilar_vencimiento).map(cert => (
                       <SelectItem key={cert.certificacion_id} value={cert.certificacion_id}>
                         <span className="capitalize">[{cert.certificacion_tipo}]</span> {cert.certificacion_nombre}
                       </SelectItem>
                     ))
                   ) : (
                     <SelectItem value="__empty__" disabled>
-                      No hay certificaciones obtenidas
+                      No hay certificaciones con vigilancia
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Solo puedes registrar servicios en certificaciones ya obtenidas
+                Solo certificaciones obtenidas con vigilancia de vencimiento activa
               </p>
             </div>
 
