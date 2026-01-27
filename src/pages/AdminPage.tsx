@@ -14,13 +14,15 @@ import {
   Pencil,
   Trash2,
   Shield,
-  FileText
+  FileText,
+  Award
 } from 'lucide-react';
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
 import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacionCertificaciones';
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
+import { MaquinistaCertificacionesModal } from '@/components/admin/MaquinistaCertificacionesModal';
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { useMaquinistas, MaquinistaDB, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
@@ -35,6 +37,9 @@ export default function AdminPage() {
   const { certificaciones, loading: loadingCertificaciones, createCertificacion, updateCertificacion, toggleActivo: toggleCertificacionActivo } = useCertificaciones();
   const [editingCertificacion, setEditingCertificacion] = useState<CertificacionDB | null>(null);
   const [isNewCertificacion, setIsNewCertificacion] = useState(false);
+
+  // Estado para modal de certificaciones de maquinista
+  const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaDB | null>(null);
 
   const handleSaveCertificacion = async (input: CertificacionInput, id?: string): Promise<boolean> => {
     if (id) {
@@ -181,12 +186,22 @@ export default function AdminPage() {
                             />
                           </td>
                           <td className="p-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => setMaquinistaCertsModal(maquinista)}
+                                title="Gestionar certificaciones"
+                              >
+                                <Award className="w-4 h-4" />
+                              </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8"
                                 onClick={() => handleEditMaquinista(maquinista)}
+                                title="Editar datos"
                               >
                                 <Pencil className="w-4 h-4" />
                               </Button>
@@ -195,6 +210,7 @@ export default function AdminPage() {
                                 size="icon" 
                                 className="h-8 w-8 text-destructive"
                                 onClick={() => handleDeleteMaquinista(maquinista)}
+                                title="Eliminar"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -322,6 +338,17 @@ export default function AdminPage() {
           }}
           maquinista={editingMaquinista}
           onSave={handleSaveMaquinista}
+        />
+
+        {/* Modal de certificaciones de maquinista */}
+        <MaquinistaCertificacionesModal
+          maquinistaId={maquinistaCertsModal?.id || null}
+          maquinistaNombre={maquinistaCertsModal?.nombre_apellidos || ''}
+          baseName={maquinistaCertsModal?.base || null}
+          open={!!maquinistaCertsModal}
+          onOpenChange={(open) => {
+            if (!open) setMaquinistaCertsModal(null);
+          }}
         />
       </div>
     </AppLayout>
