@@ -263,6 +263,66 @@ export type Database = {
           },
         ]
       }
+      maquinista_certificaciones: {
+        Row: {
+          aviso_dias: number
+          certificacion_id: string
+          created_at: string
+          created_by: string | null
+          fecha_ultimo_servicio: string | null
+          id: string
+          maquinista_id: string
+          obligatoria: boolean
+          periodo_inactividad_meses: number
+          updated_at: string
+          updated_by: string | null
+          vigilar_vencimiento: boolean
+        }
+        Insert: {
+          aviso_dias?: number
+          certificacion_id: string
+          created_at?: string
+          created_by?: string | null
+          fecha_ultimo_servicio?: string | null
+          id?: string
+          maquinista_id: string
+          obligatoria?: boolean
+          periodo_inactividad_meses?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigilar_vencimiento?: boolean
+        }
+        Update: {
+          aviso_dias?: number
+          certificacion_id?: string
+          created_at?: string
+          created_by?: string | null
+          fecha_ultimo_servicio?: string | null
+          id?: string
+          maquinista_id?: string
+          obligatoria?: boolean
+          periodo_inactividad_meses?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigilar_vencimiento?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinista_certificaciones_certificacion_id_fkey"
+            columns: ["certificacion_id"]
+            isOneToOne: false
+            referencedRelation: "certificaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinista_certificaciones_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maquinistas: {
         Row: {
           activo: boolean
