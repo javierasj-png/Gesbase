@@ -62,17 +62,11 @@ export default function CertificacionesPage() {
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Certificaciones por Base</h1>
-            <p className="text-muted-foreground">
-              Configuración de certificaciones, obligatoriedad y vigilancia de vencimiento
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => navigate('/admin?tab=asignacion')}>
-            <Settings className="w-4 h-4 mr-2" />
-            Gestionar Asignaciones
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Certificaciones por Base</h1>
+          <p className="text-muted-foreground">
+            Configuración de certificaciones, obligatoriedad y vigilancia de vencimiento
+          </p>
         </div>
 
         {/* KPIs */}
@@ -176,16 +170,8 @@ export default function CertificacionesPage() {
             <CardContent className="py-12 text-center">
               <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                No hay bases con certificaciones asignadas. 
-                Configura las certificaciones en Administración → Asignación por Base.
+                No hay bases con certificaciones asignadas.
               </p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => navigate('/admin?tab=asignacion')}
-              >
-                Ir a Asignación por Base
-              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -203,35 +189,25 @@ export default function CertificacionesPage() {
               return (
                 <Card key={base.id}>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            {base.nombre}
-                            {base.codigo && (
-                              <Badge variant="outline" className="font-mono text-xs">
-                                {base.codigo}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <CardDescription>
-                            {certificaciones.length} certificación(es) • 
-                            {totalObligatorias} obligatoria(s) • 
-                            {totalVigiladas} vigilada(s)
-                          </CardDescription>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Building2 className="w-5 h-5 text-primary" />
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => navigate('/admin?tab=asignacion')}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Editar
-                      </Button>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {base.nombre}
+                          {base.codigo && (
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {base.codigo}
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription>
+                          {certificaciones.length} certificación(es) • 
+                          {totalObligatorias} obligatoria(s) • 
+                          {totalVigiladas} vigilada(s)
+                        </CardDescription>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
