@@ -21,9 +21,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Eye, EyeOff, Loader2, Train, Calendar } from 'lucide-react';
+import { Plus, Eye, EyeOff, Loader2, Train, Calendar, CheckCircle2 } from 'lucide-react';
 import { useMaquinistaCertificaciones } from '@/hooks/useMaquinistaCertificaciones';
-import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 interface MaquinistaCertificacionesTabProps {
@@ -32,9 +31,7 @@ interface MaquinistaCertificacionesTabProps {
 }
 
 export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: MaquinistaCertificacionesTabProps) {
-  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida, toggleObligatoria } = useMaquinistaCertificaciones(maquinistaId, baseName);
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida } = useMaquinistaCertificaciones(maquinistaId, baseName);
   const [registrarServicioOpen, setRegistrarServicioOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
@@ -162,18 +159,24 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                     <Badge variant="outline" className="capitalize">{item.certificacion_tipo}</Badge>
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <p className="font-medium text-sm">{item.certificacion_nombre}</p>
-                      </div>
-                    </div>
+                    <p className="font-medium text-sm">{item.certificacion_nombre}</p>
                   </td>
                   <td className="p-4 text-center">
-                    <Checkbox
-                      checked={item.obligatoria}
-                      onCheckedChange={() => item.obtenida && toggleObligatoria(item.certificacion_id, !item.obligatoria)}
-                      disabled={!isAdmin || !item.obtenida}
-                    />
+                    {item.obligatoria ? (
+                      <CheckCircle2 className="w-4 h-4 text-primary mx-auto" />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="p-4 text-center">
+                    {item.obtenida && item.vigilar_vencimiento ? (
+                      <div className="flex flex-col items-center text-xs">
+                        <Eye className="w-4 h-4 text-primary" />
+                        <span className="text-muted-foreground">{item.periodo_inactividad_meses}m</span>
+                      </div>
+                    ) : (
+                      <EyeOff className="w-4 h-4 text-muted-foreground mx-auto" />
+                    )}
                   </td>
                   <td className="p-4 text-center">
                     {item.obtenida && item.vigilar_vencimiento ? (
