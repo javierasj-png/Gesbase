@@ -21,8 +21,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Eye, EyeOff, Loader2, Train, Calendar, CheckCircle2 } from 'lucide-react';
-import { useMaquinistaCertificaciones, CertificacionConEstado } from '@/hooks/useMaquinistaCertificaciones';
+import { Plus, Eye, EyeOff, Loader2, Train, Calendar } from 'lucide-react';
+import { useMaquinistaCertificaciones } from '@/hooks/useMaquinistaCertificaciones';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 interface MaquinistaCertificacionesTabProps {
@@ -31,7 +32,9 @@ interface MaquinistaCertificacionesTabProps {
 }
 
 export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: MaquinistaCertificacionesTabProps) {
-  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida } = useMaquinistaCertificaciones(maquinistaId, baseName);
+  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida, toggleObligatoria } = useMaquinistaCertificaciones(maquinistaId, baseName);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [registrarServicioOpen, setRegistrarServicioOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
@@ -137,6 +140,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                 <th className="text-center p-4 font-medium text-sm w-20">Obtenida</th>
                 <th className="text-left p-4 font-medium text-sm">Tipo</th>
                 <th className="text-left p-4 font-medium text-sm">Certificación</th>
+                <th className="text-center p-4 font-medium text-sm w-24">Obligatoria</th>
                 <th className="text-center p-4 font-medium text-sm">Vigilar</th>
                 <th className="text-left p-4 font-medium text-sm">Último Servicio</th>
                 <th className="text-left p-4 font-medium text-sm">Vencimiento Est.</th>
@@ -161,11 +165,15 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                     <div className="flex items-center gap-2">
                       <div>
                         <p className="font-medium text-sm">{item.certificacion_nombre}</p>
-                        {item.obligatoria && (
-                          <span className="text-[10px] text-primary">Obligatoria</span>
-                        )}
                       </div>
                     </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <Checkbox
+                      checked={item.obligatoria}
+                      onCheckedChange={() => item.obtenida && toggleObligatoria(item.certificacion_id, !item.obligatoria)}
+                      disabled={!isAdmin || !item.obtenida}
+                    />
                   </td>
                   <td className="p-4 text-center">
                     {item.obtenida && item.vigilar_vencimiento ? (
@@ -207,7 +215,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
               ))}
               {certificaciones.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     <Train className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     No hay certificaciones configuradas para esta base
                   </td>
