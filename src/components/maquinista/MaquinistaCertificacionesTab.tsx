@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Plus, Eye, EyeOff, Loader2, Train, Calendar, CheckCircle2 } from 'lucide-react';
 import { useMaquinistaCertificaciones } from '@/hooks/useMaquinistaCertificaciones';
@@ -131,74 +139,64 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
 
       <Card>
         <CardContent className="p-0">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-center p-4 font-medium text-sm w-20">Obtenida</th>
-                <th className="text-left p-4 font-medium text-sm">Tipo</th>
-                <th className="text-left p-4 font-medium text-sm">Certificación</th>
-                <th className="text-center p-4 font-medium text-sm w-24">Obligatoria</th>
-                <th className="text-center p-4 font-medium text-sm">Vigilar</th>
-                <th className="text-left p-4 font-medium text-sm">Último Servicio</th>
-                <th className="text-left p-4 font-medium text-sm">Vencimiento Est.</th>
-                <th className="text-center p-4 font-medium text-sm">Días</th>
-                <th className="text-left p-4 font-medium text-sm">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="text-center w-20">Obtenida</TableHead>
+                <TableHead className="w-24">Tipo</TableHead>
+                <TableHead>Certificación</TableHead>
+                <TableHead className="text-center w-20">Obligat.</TableHead>
+                <TableHead className="text-center w-20">Vigilar</TableHead>
+                <TableHead className="text-center w-28">Últ. Servicio</TableHead>
+                <TableHead className="text-center w-28">Venc. Est.</TableHead>
+                <TableHead className="text-center w-16">Días</TableHead>
+                <TableHead className="text-center w-24">Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {certificaciones.map((item) => (
-                <tr key={item.certificacion_id} className={`border-b last:border-b-0 hover:bg-muted/30 ${!item.obtenida ? 'opacity-60' : ''}`}>
-                  <td className="p-4 text-center">
+                <TableRow 
+                  key={item.certificacion_id} 
+                  className={!item.obtenida ? 'opacity-50' : ''}
+                >
+                  <TableCell className="text-center">
                     <Checkbox
                       checked={item.obtenida}
                       onCheckedChange={(checked) => toggleObtenida(item.certificacion_id, !!checked)}
-                      className="mx-auto"
                     />
-                  </td>
-                  <td className="p-4">
-                    <Badge variant="outline" className="capitalize">{item.certificacion_tipo}</Badge>
-                  </td>
-                  <td className="p-4">
-                    <p className="font-medium text-sm">{item.certificacion_nombre}</p>
-                  </td>
-                  <td className="p-4 text-center">
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize text-xs">{item.certificacion_tipo}</Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">{item.certificacion_nombre}</TableCell>
+                  <TableCell className="text-center">
                     {item.obligatoria ? (
                       <CheckCircle2 className="w-4 h-4 text-primary mx-auto" />
                     ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
-                  </td>
-                  <td className="p-4 text-center">
-                    {item.obtenida && item.vigilar_vencimiento ? (
-                      <div className="flex flex-col items-center text-xs">
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {item.vigilar_vencimiento ? (
+                      <div className="flex flex-col items-center gap-0.5">
                         <Eye className="w-4 h-4 text-primary" />
-                        <span className="text-muted-foreground">{item.periodo_inactividad_meses}m</span>
+                        <span className="text-[10px] text-muted-foreground">{item.periodo_inactividad_meses}m</span>
                       </div>
                     ) : (
                       <EyeOff className="w-4 h-4 text-muted-foreground mx-auto" />
                     )}
-                  </td>
-                  <td className="p-4 text-center">
-                    {item.obtenida && item.vigilar_vencimiento ? (
-                      <div className="flex flex-col items-center text-xs">
-                        <Eye className="w-4 h-4 text-primary" />
-                        <span className="text-muted-foreground">{item.periodo_inactividad_meses}m</span>
-                      </div>
-                    ) : (
-                      <EyeOff className="w-4 h-4 text-muted-foreground mx-auto" />
-                    )}
-                  </td>
-                  <td className="p-4 text-sm">
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
                     {item.obtenida && item.fecha_ultimo_servicio 
                       ? format(new Date(item.fecha_ultimo_servicio), 'dd/MM/yyyy') 
-                      : <span className="text-muted-foreground">{item.obtenida ? 'Sin registro' : '-'}</span>}
-                  </td>
-                  <td className="p-4 text-sm">
+                      : <span className="text-muted-foreground">{item.obtenida ? 'Sin reg.' : '—'}</span>}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
                     {item.obtenida && item.fecha_vencimiento 
                       ? format(item.fecha_vencimiento, 'dd/MM/yyyy') 
-                      : <span className="text-muted-foreground">-</span>}
-                  </td>
-                  <td className="p-4 text-sm font-medium text-center">
+                      : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
                     {item.obtenida && item.dias_restantes !== null 
                       ? (
                         <span className={
@@ -206,26 +204,26 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                           item.dias_restantes <= item.aviso_dias ? 'text-status-proximo' :
                           'text-status-ok'
                         }>
-                          {item.dias_restantes >= 0 ? item.dias_restantes : `${Math.abs(item.dias_restantes)}`}
+                          {item.dias_restantes >= 0 ? item.dias_restantes : Math.abs(item.dias_restantes)}
                         </span>
                       )
-                      : '-'}
-                  </td>
-                  <td className="p-4">
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-center">
                     <StatusBadge estado={item.estado} size="sm" />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {certificaciones.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     <Train className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     No hay certificaciones configuradas para esta base
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
