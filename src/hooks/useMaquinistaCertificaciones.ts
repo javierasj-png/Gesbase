@@ -418,6 +418,51 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     }
   };
 
+  // Toggle obligatoria - solo admin puede cambiar esto
+  const toggleObligatoria = async (certificacionId: string, obligatoria: boolean): Promise<boolean> => {
+    if (!maquinistaId) return false;
+
+    try {
+      // Solo se puede cambiar si la certificación está asignada (obtenida)
+      const cert = certificaciones.find(c => c.certificacion_id === certificacionId);
+      if (!cert || !cert.obtenida) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Solo se puede cambiar la obligatoriedad de certificaciones ya asignadas',
+        });
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('maquinista_certificaciones')
+        .update({ 
+          obligatoria,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('maquinista_id', maquinistaId)
+        .eq('certificacion_id', certificacionId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Actualizado',
+        description: `Certificación marcada como ${obligatoria ? 'obligatoria' : 'no obligatoria'}`,
+      });
+
+      await fetchData();
+      return true;
+    } catch (error) {
+      console.error('Error toggling obligatoria:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo actualizar la obligatoriedad',
+      });
+      return false;
+    }
+  };
+
   // KPIs
   const kpis = {
     total: certificaciones.length,
@@ -439,5 +484,6 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     quitarCertificacion,
     guardarCertificaciones,
     toggleObtenida,
+    toggleObligatoria,
   };
 }
