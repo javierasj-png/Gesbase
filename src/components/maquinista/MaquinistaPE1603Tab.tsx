@@ -11,6 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,7 +45,8 @@ import {
   Lock,
   User,
   CalendarClock,
-  Pencil
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { format, addMonths, parseISO, isAfter, isBefore, addYears } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -417,6 +429,66 @@ export function MaquinistaPE1603Tab({
       toast({
         title: 'Error',
         description: (err as any)?.message || 'No se pudo actualizar la actuación',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEliminarActuacion = async () => {
+    if (!editingActuacion) return;
+    
+    // Validar permisos si está cerrado
+    if (expedienteCerrado && !isAdmin) {
+      toast({
+        title: 'Sin permisos',
+        description: 'Solo un administrador puede modificar una ficha cerrada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Primero desvincular del plan_1603
+      const { error: unlinkError } = await supabase
+        .from('plan_1603')
+        .update({ actuacion_id: null })
+        .eq('actuacion_id', editingActuacion.id);
+
+      if (unlinkError) throw unlinkError;
+
+      // Luego eliminar la actuación
+      const { error: deleteError } = await supabase
+        .from('actuaciones_1603')
+        .delete()
+        .eq('id', editingActuacion.id);
+
+      if (deleteError) throw deleteError;
+
+      toast({
+        title: 'Actuación eliminada',
+        description: 'La actuación se ha eliminado correctamente',
+      });
+
+      // Reset form and close
+      setEditingActuacion(null);
+      setSelectedTipo('');
+      setSelectedMes(null);
+      setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
+      setIndicePrever('');
+      setResultado('');
+      setObservaciones('');
+      setEditarOpen(false);
+      
+      // Refresh data
+      onRefetch();
+    } catch (err) {
+      console.error('Error deleting actuacion:', err);
+      toast({
+        title: 'Error',
+        description: (err as any)?.message || 'No se pudo eliminar la actuación',
         variant: 'destructive',
       });
     } finally {
@@ -1276,17 +1348,42 @@ export function MaquinistaPE1603Tab({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditarOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleEditarActuacion} 
-              disabled={saving || !fechaActuacion}
-            >
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Guardar Cambios
-            </Button>
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={saving}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar actuación?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. La actuación será eliminada permanentemente
+                    y el bloque del plan volverá a estado pendiente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleEliminarActuacion} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setEditarOpen(false)} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleEditarActuacion} 
+                disabled={saving || !fechaActuacion}
+              >
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Guardar Cambios
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
