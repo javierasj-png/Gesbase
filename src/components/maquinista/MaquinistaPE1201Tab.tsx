@@ -132,7 +132,6 @@ export function MaquinistaPE1201Tab({
   // Form state for actuacion
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [selectedTipoBloque, setSelectedTipoBloque] = useState<TipoBloque1201>('acompanamiento');
-  const [selectedDia, setSelectedDia] = useState<number>(1);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [descripcion, setDescripcion] = useState('');
   const [resultado, setResultado] = useState('');
@@ -145,8 +144,6 @@ export function MaquinistaPE1201Tab({
   const [editFechaPrimerServicio, setEditFechaPrimerServicio] = useState('');
   const [editDescripcionSuceso, setEditDescripcionSuceso] = useState('');
   const [editObservaciones, setEditObservaciones] = useState('');
-
-  const diasDisponibles = [1, 7, 23, 30, 40];
 
   const fetchData = async () => {
     setLoading(true);
@@ -269,7 +266,6 @@ export function MaquinistaPE1201Tab({
   const resetForm = () => {
     setSelectedPlanId(null);
     setSelectedTipoBloque('acompanamiento');
-    setSelectedDia(1);
     setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
     setDescripcion('');
     setResultado('');
@@ -277,32 +273,78 @@ export function MaquinistaPE1201Tab({
     setEditingActuacion(null);
   };
 
-  // Find the plan block matching the selection
-  const findPlanBlock = () => {
-    return plan.find(b => 
-      b.tipo === selectedTipoBloque && 
-      b.dia_desde_origen === selectedDia && 
-      !b.actuacion_id &&
-      b.estado !== 'no_procede'
-    );
+  // Get window dates for a block (±2 days from objective)
+  const getBlockWindow = (bloque: PlanBloque1201): { inicio: Date; fin: Date } | null => {
+    if (!bloque.fecha_objetivo) return null;
+    const fechaObjetivo = parseISO(bloque.fecha_objetivo);
+    return {
+      inicio: addDays(fechaObjetivo, -2),
+      fin: addDays(fechaObjetivo, 2)
+    };
   };
 
+  // Auto-detect block based on fecha and tipo
+  const detectBlockForDate = (fecha: string, tipo: TipoBloque1201): PlanBloque1201 | null => {
+    if (!fecha || !tipo) return null;
+    
+    const fechaDate = parseISO(fecha);
+    const bloquesPendientes = plan.filter(b => b.tipo === tipo && !b.actuacion_id && b.estado !== 'no_procede');
+    
+    // Find block where fecha is within window
+    for (const bloque of bloquesPendientes) {
+      const window = getBlockWindow(bloque);
+      if (window) {
+        if ((isAfter(fechaDate, window.inicio) || fechaDate.getTime() === window.inicio.getTime()) && 
+            (isBefore(fechaDate, window.fin) || fechaDate.getTime() === window.fin.getTime())) {
+          return bloque;
+        }
+      }
+    }
+    
+    // If no exact match, find the closest pending block
+    const sortedBloques = bloquesPendientes.sort((a, b) => a.dia_desde_origen - b.dia_desde_origen);
+    for (const bloque of sortedBloques) {
+      const window = getBlockWindow(bloque);
+      if (window) {
+        if (isAfter(window.fin, fechaDate) || window.fin.getTime() === fechaDate.getTime()) {
+          return bloque;
+        }
+      }
+    }
+    
+    // Return first pending block as last resort
+    return sortedBloques[0] || null;
+  };
+
+  // Auto-detected block based on fecha and tipo
+  const bloqueCoincidente = useMemo(() => {
+    if (!selectedTipoBloque || !fechaActuacion) return null;
+    return detectBlockForDate(fechaActuacion, selectedTipoBloque);
+  }, [selectedTipoBloque, fechaActuacion, plan]);
+
   const handleRegistrar = async () => {
-    if (!expediente || !fechaActuacion) return;
+    if (!expediente || !fechaActuacion || !selectedTipoBloque) return;
+
+    // Check for matching block
+    if (!bloqueCoincidente) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró un bloque pendiente para la fecha y tipo seleccionados.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSaving(true);
     try {
-      const planBlock = findPlanBlock();
-      const planId = planBlock?.id || null;
-
-      // Create actuacion - use selectedTipoBloque as tipo_accion
+      // Create actuacion - use bloqueCoincidente.tipo as tipo_accion
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1201')
         .insert({
           expediente_id: expediente.id,
-          plan_id: planId,
+          plan_id: bloqueCoincidente.id,
           fecha_real: fechaActuacion,
-          tipo_accion: selectedTipoBloque,
+          tipo_accion: bloqueCoincidente.tipo,
           descripcion: descripcion.trim() || null,
           resultado: resultado.trim() || null,
           observaciones: observaciones.trim() || null,
@@ -313,22 +355,20 @@ export function MaquinistaPE1201Tab({
 
       if (actError) throw actError;
 
-      // Update plan block if matched
-      if (planId) {
-        const { error: planError } = await supabase
-          .from('plan_1201')
-          .update({
-            actuacion_id: actuacion.id,
-            estado: 'realizado',
-          })
-          .eq('id', planId);
+      // Update plan block
+      const { error: planError } = await supabase
+        .from('plan_1201')
+        .update({
+          actuacion_id: actuacion.id,
+          estado: 'realizado',
+        })
+        .eq('id', bloqueCoincidente.id);
 
-        if (planError) throw planError;
-      }
+      if (planError) throw planError;
 
       toast({
         title: 'Actuación registrada',
-        description: 'Se ha guardado correctamente.',
+        description: `${tipoLabels[bloqueCoincidente.tipo] || bloqueCoincidente.tipo} - ${bloqueCoincidente.etiqueta} marcado como cumplido`,
       });
 
       resetForm();
@@ -349,12 +389,39 @@ export function MaquinistaPE1201Tab({
   const handleEditar = async () => {
     if (!editingActuacion) return;
 
+    // Detect new block if date changed
+    const newBlock = detectBlockForDate(fechaActuacion, editingActuacion.tipo_accion as TipoBloque1201);
+    const oldPlanId = editingActuacion.plan_id;
+    const newPlanId = newBlock?.id || null;
+
+    // If date changed and block changed, validate
+    if (oldPlanId !== newPlanId && !newBlock) {
+      toast({
+        title: 'Error',
+        description: 'No se encontró un bloque pendiente para la nueva fecha.',
+        variant: 'destructive',
+      });
+      setSaving(false);
+      return;
+    }
+
     setSaving(true);
     try {
+      // If block changed, update both old and new
+      if (oldPlanId && oldPlanId !== newPlanId) {
+        // Reset old block
+        await supabase
+          .from('plan_1201')
+          .update({ actuacion_id: null, estado: 'pendiente' })
+          .eq('id', oldPlanId);
+      }
+
+      // Update actuacion
       const { error } = await supabase
         .from('actuaciones_1201')
         .update({
           fecha_real: fechaActuacion,
+          plan_id: newPlanId,
           descripcion: descripcion.trim() || null,
           resultado: resultado.trim() || null,
           observaciones: observaciones.trim() || null,
@@ -362,6 +429,14 @@ export function MaquinistaPE1201Tab({
         .eq('id', editingActuacion.id);
 
       if (error) throw error;
+
+      // Update new block if different
+      if (newPlanId && oldPlanId !== newPlanId) {
+        await supabase
+          .from('plan_1201')
+          .update({ actuacion_id: editingActuacion.id, estado: 'realizado' })
+          .eq('id', newPlanId);
+      }
 
       toast({
         title: 'Actuación actualizada',
@@ -876,7 +951,7 @@ export function MaquinistaPE1201Tab({
           <DialogHeader>
             <DialogTitle>Registrar Actuación</DialogTitle>
             <DialogDescription>
-              Selecciona el tipo de bloque y día para asociar la actuación.
+              Selecciona el tipo e introduce la fecha. El sistema detectará automáticamente el hito correspondiente.
             </DialogDescription>
           </DialogHeader>
 
@@ -895,36 +970,7 @@ export function MaquinistaPE1201Tab({
               </Select>
             </div>
 
-            {/* Día */}
-            <div className="space-y-2">
-              <Label>Día desde 1er servicio *</Label>
-              <Select value={selectedDia.toString()} onValueChange={(v) => setSelectedDia(parseInt(v))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {diasDisponibles.map(dia => {
-                    const bloque = plan.find(b => b.tipo === selectedTipoBloque && b.dia_desde_origen === dia);
-                    const estado = bloque ? getBlockState(bloque) : null;
-                    const disponible = bloque && !bloque.actuacion_id && bloque.estado !== 'no_procede';
-                    
-                    return (
-                      <SelectItem 
-                        key={dia} 
-                        value={dia.toString()}
-                        disabled={!disponible}
-                      >
-                        Día {dia}
-                        {bloque && estado === 'cumplida' && ' ✓'}
-                        {bloque && estado === 'no_procede' && ' (No procede)'}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Fecha */}
+            {/* Fecha de la actuación */}
             <div className="space-y-2">
               <Label>Fecha de la actuación *</Label>
               <Input
@@ -933,6 +979,30 @@ export function MaquinistaPE1201Tab({
                 onChange={(e) => setFechaActuacion(e.target.value)}
               />
             </div>
+
+            {/* Show detected block */}
+            {selectedTipoBloque && fechaActuacion && (
+              <div className={`p-3 rounded-lg border ${bloqueCoincidente ? 'bg-status-cumplida-bg border-status-ok' : 'bg-status-vencido-bg border-status-vencido'}`}>
+                {bloqueCoincidente ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-status-ok" />
+                    <div>
+                      <p className="text-sm font-medium">Bloque detectado: {bloqueCoincidente.etiqueta}</p>
+                      {bloqueCoincidente.fecha_objetivo && (
+                        <p className="text-xs text-muted-foreground">
+                          Ventana: {format(addDays(parseISO(bloqueCoincidente.fecha_objetivo), -2), 'dd/MM')} - {format(addDays(parseISO(bloqueCoincidente.fecha_objetivo), 2), 'dd/MM/yyyy')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-status-vencido" />
+                    <p className="text-sm">No hay hitos pendientes para esta combinación de tipo y fecha.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Descripción */}
             <div className="space-y-2">
@@ -945,7 +1015,6 @@ export function MaquinistaPE1201Tab({
               />
             </div>
 
-            {/* Resultado */}
             <div className="space-y-2">
               <Label>Resultado</Label>
               <Input
@@ -955,7 +1024,6 @@ export function MaquinistaPE1201Tab({
               />
             </div>
 
-            {/* Observaciones */}
             <div className="space-y-2">
               <Label>Observaciones</Label>
               <Textarea
@@ -971,9 +1039,9 @@ export function MaquinistaPE1201Tab({
             <Button variant="outline" onClick={() => setRegistrarOpen(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleRegistrar} disabled={saving || !fechaActuacion}>
+            <Button onClick={handleRegistrar} disabled={saving || !selectedTipoBloque || !fechaActuacion || !bloqueCoincidente}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Guardar
+              Registrar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -984,6 +1052,11 @@ export function MaquinistaPE1201Tab({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Actuación</DialogTitle>
+            <DialogDescription>
+              {editingActuacion && (
+                <span>Tipo: {tipoLabels[editingActuacion.tipo_accion] || editingActuacion.tipo_accion}</span>
+              )}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -995,6 +1068,41 @@ export function MaquinistaPE1201Tab({
                 onChange={(e) => setFechaActuacion(e.target.value)}
               />
             </div>
+
+            {/* Show detected block info when editing */}
+            {editingActuacion && fechaActuacion && (
+              (() => {
+                const newBlock = detectBlockForDate(fechaActuacion, editingActuacion.tipo_accion as TipoBloque1201);
+                const oldPlanId = editingActuacion.plan_id;
+                const hasChanged = newBlock?.id !== oldPlanId;
+                
+                return (
+                  <div className={`p-3 rounded-lg border ${newBlock ? 'bg-muted/50 border-border' : 'bg-status-vencido-bg border-status-vencido'}`}>
+                    {newBlock ? (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">
+                            Bloque: {newBlock.etiqueta}
+                            {hasChanged && <span className="text-status-proximo ml-2">(cambiará)</span>}
+                          </p>
+                          {newBlock.fecha_objetivo && (
+                            <p className="text-xs text-muted-foreground">
+                              Ventana: {format(addDays(parseISO(newBlock.fecha_objetivo), -2), 'dd/MM')} - {format(addDays(parseISO(newBlock.fecha_objetivo), 2), 'dd/MM/yyyy')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-status-vencido" />
+                        <p className="text-sm">No hay hitos pendientes para esta fecha.</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
 
             <div className="space-y-2">
               <Label>Descripción</Label>
