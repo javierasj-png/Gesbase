@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -128,6 +130,7 @@ export default function MaquinistasPage() {
                   <TableHead className="w-[120px]">Matrícula</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Base</TableHead>
+                  <TableHead>1er Servicio</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead>Estado General</TableHead>
@@ -137,7 +140,7 @@ export default function MaquinistasPage() {
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
@@ -165,6 +168,11 @@ export default function MaquinistasPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {maquinista.base}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {maquinista.fecha_primer_servicio 
+                            ? format(new Date(maquinista.fecha_primer_servicio), 'dd/MM/yyyy', { locale: es })
+                            : '-'}
                         </TableCell>
                         <TableCell className="text-center">
                           {exp1603 > 0 ? (

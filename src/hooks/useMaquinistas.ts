@@ -13,6 +13,7 @@ export interface MaquinistaDB {
   email: string | null;
   telefono: string | null;
   fecha_ingreso: string | null;
+  fecha_primer_servicio: string | null;
   activo: boolean;
   created_at: string;
   updated_at: string;
