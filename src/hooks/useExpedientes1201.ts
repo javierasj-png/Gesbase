@@ -159,6 +159,7 @@ export function useExpedientes1201() {
             realizados, 
             diasHastaCierre,
             fechaCierreRecomendada,
+            porcentajeCumplimiento,
           }
         };
       });
