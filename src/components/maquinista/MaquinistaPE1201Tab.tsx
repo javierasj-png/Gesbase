@@ -104,15 +104,6 @@ interface Actuacion1201 {
   observaciones: string | null;
 }
 
-const tiposAccion = [
-  { value: 'acompanamiento', label: 'Acompañamiento' },
-  { value: 'registro', label: 'Registro' },
-  { value: 'entrevista', label: 'Entrevista' },
-  { value: 'formacion', label: 'Formación' },
-  { value: 'evaluacion', label: 'Evaluación' },
-  { value: 'otro', label: 'Otro' },
-];
-
 const tipoLabels: Record<string, string> = {
   acompanamiento: 'Acompañamientos',
   registro: 'Registros',
@@ -143,7 +134,6 @@ export function MaquinistaPE1201Tab({
   const [selectedTipoBloque, setSelectedTipoBloque] = useState<TipoBloque1201>('acompanamiento');
   const [selectedDia, setSelectedDia] = useState<number>(1);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [tipoAccion, setTipoAccion] = useState('acompanamiento');
   const [descripcion, setDescripcion] = useState('');
   const [resultado, setResultado] = useState('');
   const [observaciones, setObservaciones] = useState('');
@@ -281,7 +271,6 @@ export function MaquinistaPE1201Tab({
     setSelectedTipoBloque('acompanamiento');
     setSelectedDia(1);
     setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
-    setTipoAccion('acompanamiento');
     setDescripcion('');
     setResultado('');
     setObservaciones('');
@@ -299,21 +288,21 @@ export function MaquinistaPE1201Tab({
   };
 
   const handleRegistrar = async () => {
-    if (!expediente || !fechaActuacion || !tipoAccion) return;
+    if (!expediente || !fechaActuacion) return;
 
     setSaving(true);
     try {
       const planBlock = findPlanBlock();
       const planId = planBlock?.id || null;
 
-      // Create actuacion
+      // Create actuacion - use selectedTipoBloque as tipo_accion
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1201')
         .insert({
           expediente_id: expediente.id,
           plan_id: planId,
           fecha_real: fechaActuacion,
-          tipo_accion: tipoAccion,
+          tipo_accion: selectedTipoBloque,
           descripcion: descripcion.trim() || null,
           resultado: resultado.trim() || null,
           observaciones: observaciones.trim() || null,
@@ -366,7 +355,6 @@ export function MaquinistaPE1201Tab({
         .from('actuaciones_1201')
         .update({
           fecha_real: fechaActuacion,
-          tipo_accion: tipoAccion,
           descripcion: descripcion.trim() || null,
           resultado: resultado.trim() || null,
           observaciones: observaciones.trim() || null,
@@ -499,10 +487,34 @@ export function MaquinistaPE1201Tab({
     }
   };
 
+  const handleRevertirNoProcede = async (bloqueId: string) => {
+    if (!puedeEditar) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('plan_1201')
+        .update({ estado: 'pendiente' })
+        .eq('id', bloqueId);
+
+      if (error) throw error;
+
+      toast({ title: 'Hito restaurado a pendiente' });
+      fetchData();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo restaurar el hito',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const openEditModal = (actuacion: Actuacion1201) => {
     setEditingActuacion(actuacion);
     setFechaActuacion(actuacion.fecha_real || format(new Date(), 'yyyy-MM-dd'));
-    setTipoAccion(actuacion.tipo_accion);
     setDescripcion(actuacion.descripcion || '');
     setResultado(actuacion.resultado || '');
     setObservaciones(actuacion.observaciones || '');
@@ -707,10 +719,15 @@ export function MaquinistaPE1201Tab({
                   const isEditable = puedeEditar && bloque.actuacion_id;
                   const actuacion = actuaciones.find(a => a.id === bloque.actuacion_id);
                   
+                  // Calculate window dates (±2 days from objective)
+                  const fechaObjetivo = bloque.fecha_objetivo ? parseISO(bloque.fecha_objetivo) : null;
+                  const inicioVentana = fechaObjetivo ? addDays(fechaObjetivo, -2) : null;
+                  const finVentana = fechaObjetivo ? addDays(fechaObjetivo, 2) : null;
+                  
                   return (
                     <div 
                       key={bloque.id} 
-                      className={`min-w-[100px] p-3 rounded-lg text-center ${
+                      className={`min-w-[130px] p-3 rounded-lg text-center ${
                         estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
                         estado === 'no_procede' ? 'bg-muted/50 border border-muted-foreground/30' :
                         estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo' :
@@ -720,9 +737,10 @@ export function MaquinistaPE1201Tab({
                       onClick={() => actuacion && isEditable && openEditModal(actuacion)}
                     >
                       <p className="font-medium text-sm">{bloque.etiqueta}</p>
-                      {bloque.fecha_objetivo && (
+                      {/* Show window like PE 16.03 */}
+                      {inicioVentana && finVentana && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(parseISO(bloque.fecha_objetivo), 'dd/MM/yy')}
+                          {format(inicioVentana, 'dd/MM')} - {format(finVentana, 'dd/MM')}
                         </p>
                       )}
                       <div className="mt-2 flex items-center justify-center gap-1">
@@ -741,7 +759,7 @@ export function MaquinistaPE1201Tab({
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                         )}
                       </div>
-                      {/* Mark as no procede */}
+                      {/* Mark as no procede or revert */}
                       {puedeEditar && !bloque.actuacion_id && bloque.estado !== 'no_procede' && (
                         <Button 
                           variant="ghost" 
@@ -753,6 +771,20 @@ export function MaquinistaPE1201Tab({
                           }}
                         >
                           No procede
+                        </Button>
+                      )}
+                      {/* Revert no procede */}
+                      {puedeEditar && bloque.estado === 'no_procede' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="mt-2 text-xs h-6 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRevertirNoProcede(bloque.id);
+                          }}
+                        >
+                          Restaurar
                         </Button>
                       )}
                     </div>
@@ -795,7 +827,7 @@ export function MaquinistaPE1201Tab({
                   >
                     <div>
                       <p className="text-sm font-medium">
-                        {tiposAccion.find(t => t.value === act.tipo_accion)?.label || act.tipo_accion}
+                        {tipoLabels[act.tipo_accion] || act.tipo_accion || 'Actuación'}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {act.fecha_real ? format(parseISO(act.fecha_real), 'dd/MM/yyyy') : '-'}
@@ -902,21 +934,6 @@ export function MaquinistaPE1201Tab({
               />
             </div>
 
-            {/* Tipo de acción */}
-            <div className="space-y-2">
-              <Label>Tipo de acción *</Label>
-              <Select value={tipoAccion} onValueChange={setTipoAccion}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposAccion.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Descripción */}
             <div className="space-y-2">
               <Label>Descripción</Label>
@@ -977,20 +994,6 @@ export function MaquinistaPE1201Tab({
                 value={fechaActuacion}
                 onChange={(e) => setFechaActuacion(e.target.value)}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de acción *</Label>
-              <Select value={tipoAccion} onValueChange={setTipoAccion}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposAccion.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">
