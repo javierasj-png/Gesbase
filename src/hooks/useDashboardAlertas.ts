@@ -245,14 +245,13 @@ export function useDashboardAlertas(baseFilter?: string) {
 
             if (item.fecha_objetivo) {
               const fechaObjetivo = new Date(item.fecha_objetivo);
-              // Ventana PE 12.01 es ±2 días
-              const inicioVentana = new Date(fechaObjetivo);
-              inicioVentana.setDate(inicioVentana.getDate() - 2);
-              const finVentana = new Date(fechaObjetivo);
-              finVentana.setDate(finVentana.getDate() + 2);
-              const diasRestantes = differenceInDays(finVentana, today);
+              fechaObjetivo.setHours(0, 0, 0, 0);
+              const todayNorm = new Date(today);
+              todayNorm.setHours(0, 0, 0, 0);
+              const diasRestantes = differenceInDays(fechaObjetivo, todayNorm);
               
-              if (today > finVentana) {
+              // PE 12.01 NO tiene ventana - solo fecha exacta
+              if (todayNorm > fechaObjetivo) {
                 allAlertas.push({
                   tipo: 'pe1201',
                   id: exp.id,
@@ -263,7 +262,8 @@ export function useDashboardAlertas(baseFilter?: string) {
                   estado: 'Vencida',
                   dias_restantes: diasRestantes,
                 });
-              } else if (today >= inicioVentana) {
+              } else if (diasRestantes <= 3) {
+                // Alertar si faltan 3 días o menos para la fecha objetivo
                 allAlertas.push({
                   tipo: 'pe1201',
                   id: exp.id,

@@ -223,7 +223,8 @@ export function MaquinistaPE1201Tab({
     return true; // Open and within 40 days
   }, [expediente, expedienteCerrado, deberiaCerrarseAuto, isAdmin]);
 
-  const getBlockState = (bloque: PlanBloque1201): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' | 'no_procede' => {
+  // PE 12.01 NO tiene ventana de cumplimiento - solo fecha exacta
+  const getBlockState = (bloque: PlanBloque1201): 'pendiente' | 'vencida' | 'cumplida' | 'no_procede' => {
     if (bloque.estado === 'no_procede') return 'no_procede';
     if (bloque.actuacion_id) return 'cumplida';
     
@@ -231,13 +232,10 @@ export function MaquinistaPE1201Tab({
     
     const fechaObjetivo = parseISO(bloque.fecha_objetivo);
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     
-    // Window: 2 days before to 2 days after
-    const iniciVentana = addDays(fechaObjetivo, -2);
-    const finVentana = addDays(fechaObjetivo, 2);
-    
-    if (isAfter(now, finVentana)) return 'vencida';
-    if (isAfter(now, iniciVentana) && isBefore(now, finVentana)) return 'en_ventana';
+    // Vencida si ya pasó la fecha objetivo
+    if (isAfter(now, fechaObjetivo)) return 'vencida';
     return 'pendiente';
   };
 
@@ -273,47 +271,30 @@ export function MaquinistaPE1201Tab({
     setEditingActuacion(null);
   };
 
-  // Get window dates for a block (±2 days from objective)
-  const getBlockWindow = (bloque: PlanBloque1201): { inicio: Date; fin: Date } | null => {
-    if (!bloque.fecha_objetivo) return null;
-    const fechaObjetivo = parseISO(bloque.fecha_objetivo);
-    return {
-      inicio: addDays(fechaObjetivo, -2),
-      fin: addDays(fechaObjetivo, 2)
-    };
-  };
-
-  // Auto-detect block based on fecha and tipo
+  // Auto-detect block based on fecha and tipo (sin ventana, asigna al bloque con fecha más cercana)
   const detectBlockForDate = (fecha: string, tipo: TipoBloque1201): PlanBloque1201 | null => {
     if (!fecha || !tipo) return null;
     
     const fechaDate = parseISO(fecha);
+    fechaDate.setHours(0, 0, 0, 0);
     const bloquesPendientes = plan.filter(b => b.tipo === tipo && !b.actuacion_id && b.estado !== 'no_procede');
     
-    // Find block where fecha is within window
-    for (const bloque of bloquesPendientes) {
-      const window = getBlockWindow(bloque);
-      if (window) {
-        if ((isAfter(fechaDate, window.inicio) || fechaDate.getTime() === window.inicio.getTime()) && 
-            (isBefore(fechaDate, window.fin) || fechaDate.getTime() === window.fin.getTime())) {
-          return bloque;
-        }
-      }
-    }
-    
-    // If no exact match, find the closest pending block
+    // Ordenar por día y buscar el bloque cuya fecha objetivo coincida o sea la siguiente
     const sortedBloques = bloquesPendientes.sort((a, b) => a.dia_desde_origen - b.dia_desde_origen);
+    
     for (const bloque of sortedBloques) {
-      const window = getBlockWindow(bloque);
-      if (window) {
-        if (isAfter(window.fin, fechaDate) || window.fin.getTime() === fechaDate.getTime()) {
-          return bloque;
-        }
+      if (!bloque.fecha_objetivo) continue;
+      const fechaObjetivo = parseISO(bloque.fecha_objetivo);
+      fechaObjetivo.setHours(0, 0, 0, 0);
+      
+      // Si la fecha de actuación es menor o igual a la fecha objetivo, asignar a este bloque
+      if (fechaDate.getTime() <= fechaObjetivo.getTime()) {
+        return bloque;
       }
     }
     
-    // Return first pending block as last resort
-    return sortedBloques[0] || null;
+    // Si la fecha es posterior a todos los bloques, asignar al último pendiente
+    return sortedBloques[sortedBloques.length - 1] || null;
   };
 
   // Auto-detected block based on fecha and tipo
@@ -817,7 +798,6 @@ export function MaquinistaPE1201Tab({
                   <div className="timeline-blocks">
                     {bloques.map((bloque) => {
                       const estado = getBlockState(bloque);
-                      const window = getBlockWindow(bloque);
                       const isEditable = puedeEditar && bloque.actuacion_id;
                       const actuacion = actuaciones.find(a => a.id === bloque.actuacion_id);
                       
@@ -827,7 +807,6 @@ export function MaquinistaPE1201Tab({
                           className={`timeline-block ${
                             estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
                             estado === 'no_procede' ? 'bg-muted/50 border border-muted-foreground/30' :
-                            estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
                             estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
                             'bg-muted border border-border'
                           } ${isEditable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
@@ -835,9 +814,9 @@ export function MaquinistaPE1201Tab({
                           title={isEditable ? 'Clic para editar' : undefined}
                         >
                           <p className="font-medium text-xs mb-1">{bloque.etiqueta}</p>
-                          {window && (
+                          {bloque.fecha_objetivo && (
                             <p className="text-[10px] text-muted-foreground">
-                              {format(window.inicio, 'dd/MM/yy')} - {format(window.fin, 'dd/MM/yy')}
+                              {format(parseISO(bloque.fecha_objetivo), 'dd/MM/yy')}
                             </p>
                           )}
                           <div className="mt-2 flex items-center justify-center gap-1">
@@ -850,8 +829,6 @@ export function MaquinistaPE1201Tab({
                               <Ban className="w-4 h-4 text-muted-foreground" />
                             ) : estado === 'vencida' ? (
                               <XCircle className="w-4 h-4 text-status-vencido" />
-                            ) : estado === 'en_ventana' ? (
-                              <Clock className="w-4 h-4 text-status-proximo" />
                             ) : (
                               <Calendar className="w-4 h-4 text-muted-foreground" />
                             )}
@@ -1014,7 +991,7 @@ export function MaquinistaPE1201Tab({
                       <p className="text-sm font-medium">Bloque detectado: {bloqueCoincidente.etiqueta}</p>
                       {bloqueCoincidente.fecha_objetivo && (
                         <p className="text-xs text-muted-foreground">
-                          Ventana: {format(addDays(parseISO(bloqueCoincidente.fecha_objetivo), -2), 'dd/MM')} - {format(addDays(parseISO(bloqueCoincidente.fecha_objetivo), 2), 'dd/MM/yyyy')}
+                          Fecha objetivo: {format(parseISO(bloqueCoincidente.fecha_objetivo), 'dd/MM/yyyy')}
                         </p>
                       )}
                     </div>
@@ -1112,7 +1089,7 @@ export function MaquinistaPE1201Tab({
                           </p>
                           {newBlock.fecha_objetivo && (
                             <p className="text-xs text-muted-foreground">
-                              Ventana: {format(addDays(parseISO(newBlock.fecha_objetivo), -2), 'dd/MM')} - {format(addDays(parseISO(newBlock.fecha_objetivo), 2), 'dd/MM/yyyy')}
+                              Fecha objetivo: {format(parseISO(newBlock.fecha_objetivo), 'dd/MM/yyyy')}
                             </p>
                           )}
                         </div>
