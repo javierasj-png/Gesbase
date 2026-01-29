@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Plus, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { useMaquinistas } from '@/hooks/useMaquinistas';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
 import { useAuth } from '@/contexts/AuthContext';
@@ -74,17 +74,11 @@ export default function MaquinistasPage() {
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Maquinistas</h1>
-            <p className="text-muted-foreground">
-              Censo de maquinistas y acceso a fichas individuales
-            </p>
-          </div>
-          <Button onClick={() => navigate('/admin')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Maquinista
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Maquinistas</h1>
+          <p className="text-muted-foreground">
+            Censo de maquinistas y acceso a fichas individuales
+          </p>
         </div>
 
         {/* Filters */}
