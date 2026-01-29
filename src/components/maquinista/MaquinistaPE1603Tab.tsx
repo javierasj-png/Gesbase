@@ -116,14 +116,26 @@ export function MaquinistaPE1603Tab({
     return isAfter(new Date(), fechaFinPrevista);
   }, [expediente1603, fechaFinPrevista]);
 
-  // Calculate block state based on mes and fecha_primer_servicio
+  // Calculate block state based on inicio_ventana/fin_ventana from DB
   const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' => {
     if (bloque.actuacion_id) return 'cumplida';
-    if (!expediente1603?.fecha_primer_servicio) return 'pendiente';
     
+    // Use DB dates if available
+    if (bloque.inicio_ventana && bloque.fin_ventana) {
+      const inicio = parseISO(bloque.inicio_ventana);
+      const fin = parseISO(bloque.fin_ventana);
+      const now = new Date();
+      
+      if (isAfter(now, fin)) return 'vencida';
+      if (isAfter(now, inicio) && isBefore(now, fin)) return 'en_ventana';
+      return 'pendiente';
+    }
+    
+    // Fallback to old calculation if DB dates not available
+    if (!expediente1603?.fecha_primer_servicio) return 'pendiente';
     const primerServicio = parseISO(expediente1603.fecha_primer_servicio);
-    const inicioVentana = addMonths(primerServicio, (bloque.mes - 1) * 6);
-    const finVentana = addMonths(primerServicio, bloque.mes * 6);
+    const inicioVentana = addMonths(primerServicio, (bloque.mes - 1));
+    const finVentana = addMonths(primerServicio, bloque.mes);
     const now = new Date();
     
     if (isAfter(now, finVentana)) return 'vencida';
@@ -131,14 +143,58 @@ export function MaquinistaPE1603Tab({
     return 'pendiente';
   };
 
-  // Get window dates for a block
+  // Get window dates for a block - prefer DB values
   const getBlockWindow = (bloque: PlanBloque1603): { inicio: Date; fin: Date } | null => {
+    // Use DB dates if available
+    if (bloque.inicio_ventana && bloque.fin_ventana) {
+      return {
+        inicio: parseISO(bloque.inicio_ventana),
+        fin: parseISO(bloque.fin_ventana)
+      };
+    }
+    
+    // Fallback to calculation
     if (!expediente1603?.fecha_primer_servicio) return null;
     const primerServicio = parseISO(expediente1603.fecha_primer_servicio);
     return {
-      inicio: addMonths(primerServicio, (bloque.mes - 1) * 6),
-      fin: addMonths(primerServicio, bloque.mes * 6)
+      inicio: addMonths(primerServicio, bloque.mes - 1),
+      fin: addMonths(primerServicio, bloque.mes)
     };
+  };
+
+  // Auto-detect block based on fecha and tipo
+  const detectBlockForDate = (fecha: string, tipo: TipoActuacion1603): PlanBloque1603 | null => {
+    if (!fecha || !tipo) return null;
+    
+    const fechaDate = parseISO(fecha);
+    const bloquesPendientes = plan1603.filter(b => b.tipo === tipo && !b.actuacion_id);
+    
+    // Find block where fecha is within window
+    for (const bloque of bloquesPendientes) {
+      const window = getBlockWindow(bloque);
+      if (window) {
+        // Allow some flexibility: check if date is in window or slightly before/after
+        if ((isAfter(fechaDate, window.inicio) || fechaDate.getTime() === window.inicio.getTime()) && 
+            (isBefore(fechaDate, window.fin) || fechaDate.getTime() === window.fin.getTime())) {
+          return bloque;
+        }
+      }
+    }
+    
+    // If no exact match, find the closest pending block
+    const sortedBloques = bloquesPendientes.sort((a, b) => a.mes - b.mes);
+    for (const bloque of sortedBloques) {
+      const window = getBlockWindow(bloque);
+      if (window) {
+        // Find first block whose window hasn't ended or the closest upcoming one
+        if (isAfter(window.fin, fechaDate) || window.fin.getTime() === fechaDate.getTime()) {
+          return bloque;
+        }
+      }
+    }
+    
+    // Return first pending block as last resort
+    return sortedBloques[0] || null;
   };
 
   // Count pending blocks per type (for display)
@@ -164,11 +220,15 @@ export function MaquinistaPE1603Tab({
     return plan1603.length > 0 && plan1603.every(b => b.actuacion_id !== null);
   }, [plan1603]);
 
-  // Find matching block for registration
+  // Find matching block for registration - now uses detectBlockForDate
   const bloqueCoincidente = useMemo(() => {
-    if (!selectedTipo || !selectedMes) return null;
-    return plan1603.find(b => b.tipo === selectedTipo && b.mes === selectedMes && !b.actuacion_id);
-  }, [selectedTipo, selectedMes, plan1603]);
+    if (!selectedTipo || !fechaActuacion) return null;
+    // If selectedMes is set (manual override), use it; otherwise auto-detect
+    if (selectedMes) {
+      return plan1603.find(b => b.tipo === selectedTipo && b.mes === selectedMes && !b.actuacion_id) || null;
+    }
+    return detectBlockForDate(fechaActuacion, selectedTipo);
+  }, [selectedTipo, selectedMes, fechaActuacion, plan1603]);
 
   const handleRegistrar = async () => {
     if (!selectedTipo || !selectedMes || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
@@ -341,6 +401,32 @@ export function MaquinistaPE1603Tab({
     setObservaciones(actuacion.observaciones || '');
     setResultado(actuacion.resultado || '');
     setEditarOpen(true);
+  };
+
+  // Load actuacion and open edit modal for a completed block
+  const handleBlockClick = async (bloque: PlanBloque1603) => {
+    if (!puedeEditar) return;
+    if (!bloque.actuacion_id) return; // Only editable if has actuacion
+    
+    try {
+      const { data: actuacion, error } = await supabase
+        .from('actuaciones_1603')
+        .select('*')
+        .eq('id', bloque.actuacion_id)
+        .single();
+      
+      if (error) throw error;
+      if (actuacion) {
+        openEditModal(actuacion, bloque.tipo);
+      }
+    } catch (err) {
+      console.error('Error loading actuacion:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo cargar la actuación',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Color map for action types
@@ -700,6 +786,7 @@ export function MaquinistaPE1603Tab({
                     {bloquesTipo.map((bloque) => {
                       const estado = getBlockState(bloque);
                       const window = getBlockWindow(bloque);
+                      const isEditable = puedeEditar && bloque.actuacion_id;
                       return (
                         <div 
                           key={bloque.id} 
@@ -708,23 +795,28 @@ export function MaquinistaPE1603Tab({
                             estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
                             estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
                             'bg-muted border border-border'
-                          }`}
+                          } ${isEditable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                          onClick={() => isEditable && handleBlockClick(bloque)}
+                          title={isEditable ? 'Clic para editar' : undefined}
                         >
-                          <p className="font-medium text-xs mb-1">Semestre {bloque.mes}</p>
+                          <p className="font-medium text-xs mb-1">{bloque.etiqueta || `Mes ${bloque.mes}`}</p>
                           {window && (
                             <p className="text-[10px] text-muted-foreground">
                               {format(window.inicio, 'dd/MM/yy')} - {format(window.fin, 'dd/MM/yy')}
                             </p>
                           )}
-                          <div className="mt-2">
+                          <div className="mt-2 flex items-center justify-center gap-1">
                             {estado === 'cumplida' ? (
-                              <CheckCircle2 className="w-4 h-4 text-status-ok mx-auto" />
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-status-ok" />
+                                {isEditable && <Pencil className="w-3 h-3 text-muted-foreground" />}
+                              </>
                             ) : estado === 'vencida' ? (
-                              <XCircle className="w-4 h-4 text-status-vencido mx-auto" />
+                              <XCircle className="w-4 h-4 text-status-vencido" />
                             ) : estado === 'en_ventana' ? (
-                              <Clock className="w-4 h-4 text-status-proximo mx-auto" />
+                              <Clock className="w-4 h-4 text-status-proximo" />
                             ) : (
-                              <Calendar className="w-4 h-4 text-muted-foreground mx-auto" />
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
                             )}
                           </div>
                         </div>
@@ -811,19 +903,50 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Selecciona el tipo de actuación y el semestre correspondiente.
+              Introduce la fecha de la actuación para detectar automáticamente el bloque.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Fecha PRIMERO - detecta bloque automáticamente */}
+            <div className="space-y-2">
+              <Label>Fecha de la actuación *</Label>
+              <Input
+                type="date"
+                value={fechaActuacion}
+                onChange={(e) => {
+                  setFechaActuacion(e.target.value);
+                  // Auto-detect block if tipo is selected
+                  if (selectedTipo && e.target.value) {
+                    const detected = detectBlockForDate(e.target.value, selectedTipo);
+                    if (detected) {
+                      setSelectedMes(detected.mes);
+                    }
+                  }
+                }}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
             {/* Select tipo de actuación */}
             <div className="space-y-2">
-              <Label>Tipo de acción de vigilancia</Label>
+              <Label>Tipo de acción de vigilancia *</Label>
               <Select 
                 value={selectedTipo} 
                 onValueChange={(v) => {
-                  setSelectedTipo(v as TipoActuacion1603);
-                  setSelectedMes(null);
+                  const tipo = v as TipoActuacion1603;
+                  setSelectedTipo(tipo);
+                  // Auto-detect block based on fecha
+                  if (fechaActuacion) {
+                    const detected = detectBlockForDate(fechaActuacion, tipo);
+                    if (detected) {
+                      setSelectedMes(detected.mes);
+                    } else {
+                      setSelectedMes(null);
+                    }
+                  } else {
+                    setSelectedMes(null);
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -845,44 +968,60 @@ export function MaquinistaPE1603Tab({
               </Select>
             </div>
 
-            {/* Select semestre */}
+            {/* Bloque detectado automáticamente o manual */}
             {selectedTipo && (
               <div className="space-y-2">
-                <Label>Semestre</Label>
-                <Select 
-                  value={selectedMes?.toString() || ''} 
-                  onValueChange={(v) => setSelectedMes(parseInt(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un semestre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bloquesPendientesPorTipo[selectedTipo].map(bloque => {
-                      const window = getBlockWindow(bloque);
-                      return (
-                        <SelectItem 
-                          key={bloque.id} 
-                          value={bloque.mes.toString()}
-                        >
-                          Semestre {bloque.mes} {window ? `(${format(window.inicio, 'MM/yy')} - ${format(window.fin, 'MM/yy')})` : ''}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <Label>Bloque asignado</Label>
+                {bloqueCoincidente ? (
+                  <div className="p-3 rounded-lg bg-status-ok-bg border border-status-ok">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-status-ok" />
+                      <span className="font-medium text-sm">
+                        {bloqueCoincidente.etiqueta || `Mes ${bloqueCoincidente.mes}`}
+                      </span>
+                    </div>
+                    {bloqueCoincidente.inicio_ventana && bloqueCoincidente.fin_ventana && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ventana: {format(parseISO(bloqueCoincidente.inicio_ventana), 'dd/MM/yyyy')} - {format(parseISO(bloqueCoincidente.fin_ventana), 'dd/MM/yyyy')}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-status-vencido-bg border border-status-vencido">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-status-vencido" />
+                      <span className="font-medium text-sm text-status-vencido">
+                        No hay bloque pendiente para esta fecha
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      La fecha no coincide con ninguna ventana pendiente. Selecciona manualmente:
+                    </p>
+                    <Select 
+                      value={selectedMes?.toString() || ''} 
+                      onValueChange={(v) => setSelectedMes(parseInt(v))}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Seleccionar bloque manualmente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bloquesPendientesPorTipo[selectedTipo].map(bloque => {
+                          const window = getBlockWindow(bloque);
+                          return (
+                            <SelectItem 
+                              key={bloque.id} 
+                              value={bloque.mes.toString()}
+                            >
+                              {bloque.etiqueta || `Mes ${bloque.mes}`} {window ? `(${format(window.inicio, 'dd/MM/yy')} - ${format(window.fin, 'dd/MM/yy')})` : ''}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
-
-            {/* Fecha */}
-            <div className="space-y-2">
-              <Label>Fecha de la actuación</Label>
-              <Input
-                type="date"
-                value={fechaActuacion}
-                onChange={(e) => setFechaActuacion(e.target.value)}
-                max={format(new Date(), 'yyyy-MM-dd')}
-              />
-            </div>
 
             {/* Índice PREVER (opcional) */}
             <div className="space-y-2">
@@ -929,7 +1068,7 @@ export function MaquinistaPE1603Tab({
             </Button>
             <Button 
               onClick={handleRegistrar} 
-              disabled={saving || !selectedTipo || !selectedMes || !fechaActuacion}
+              disabled={saving || !selectedTipo || !bloqueCoincidente || !fechaActuacion}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar
