@@ -112,10 +112,11 @@ export function MaquinistaPE1201Tab({
   
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
+  const [editarExpedienteOpen, setEditarExpedienteOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Form state
+  // Form state for actuacion
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [tipoAccion, setTipoAccion] = useState('entrevista');
@@ -123,6 +124,13 @@ export function MaquinistaPE1201Tab({
   const [resultado, setResultado] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [editingActuacion, setEditingActuacion] = useState<Actuacion1201 | null>(null);
+  
+  // Form state for expediente edit
+  const [editIdSuceso, setEditIdSuceso] = useState('');
+  const [editFechaSuceso, setEditFechaSuceso] = useState('');
+  const [editFechaPrimerServicio, setEditFechaPrimerServicio] = useState('');
+  const [editDescripcionSuceso, setEditDescripcionSuceso] = useState('');
+  const [editObservaciones, setEditObservaciones] = useState('');
 
   const fetchData = async () => {
     setLoading(true);
@@ -424,6 +432,55 @@ export function MaquinistaPE1201Tab({
     setEditarOpen(true);
   };
 
+  const openEditExpedienteModal = () => {
+    if (!expediente) return;
+    setEditIdSuceso(expediente.id_suceso);
+    setEditFechaSuceso(expediente.fecha_suceso || '');
+    setEditFechaPrimerServicio(expediente.fecha_primer_servicio);
+    setEditDescripcionSuceso(expediente.descripcion_suceso || '');
+    setEditObservaciones(expediente.observaciones || '');
+    setEditarExpedienteOpen(true);
+  };
+
+  const handleEditarExpediente = async () => {
+    if (!expediente) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('expedientes_1201')
+        .update({
+          id_suceso: editIdSuceso.trim(),
+          fecha_suceso: editFechaSuceso || null,
+          fecha_primer_servicio: editFechaPrimerServicio,
+          descripcion_suceso: editDescripcionSuceso.trim() || null,
+          observaciones: editObservaciones.trim() || null,
+          updated_by: user?.id,
+        })
+        .eq('id', expediente.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Expediente actualizado',
+        description: 'Los cambios se han guardado correctamente.',
+      });
+
+      setEditarExpedienteOpen(false);
+      fetchData();
+      onRefetch?.();
+    } catch (err) {
+      console.error('Error updating expediente:', err);
+      toast({
+        title: 'Error',
+        description: (err as any)?.message || 'No se pudo actualizar el expediente',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -494,6 +551,12 @@ export function MaquinistaPE1201Tab({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
+              {puedeEditar && (
+                <Button variant="outline" size="sm" onClick={openEditExpedienteModal}>
+                  <Pencil className="w-3 h-3 mr-1" />
+                  Editar
+                </Button>
+              )}
               <StatusBadge estado={expediente.estado === 'abierto' ? 'Abierta' : 'Cerrada'} />
               {expedienteCerrado && expediente.cierre_manual && (
                 <Badge variant="secondary" className="text-xs">Manual</Badge>
@@ -856,6 +919,85 @@ export function MaquinistaPE1201Tab({
             <Button variant="destructive" onClick={handleCerrar} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Cerrar Expediente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Expediente */}
+      <Dialog open={editarExpedienteOpen} onOpenChange={setEditarExpedienteOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              Editar Expediente PE 12.01
+            </DialogTitle>
+            <DialogDescription>
+              Modifica los datos del expediente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* ID Suceso */}
+            <div className="space-y-2">
+              <Label>ID Suceso *</Label>
+              <Input
+                placeholder="Ej: SUC-2025-0001"
+                value={editIdSuceso}
+                onChange={(e) => setEditIdSuceso(e.target.value)}
+              />
+            </div>
+
+            {/* Fechas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha del suceso</Label>
+                <Input
+                  type="date"
+                  value={editFechaSuceso}
+                  onChange={(e) => setEditFechaSuceso(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Primer servicio tras suceso *</Label>
+                <Input
+                  type="date"
+                  value={editFechaPrimerServicio}
+                  onChange={(e) => setEditFechaPrimerServicio(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2">
+              <Label>Descripción del suceso</Label>
+              <Textarea
+                placeholder="Descripción breve del suceso..."
+                value={editDescripcionSuceso}
+                onChange={(e) => setEditDescripcionSuceso(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Observaciones */}
+            <div className="space-y-2">
+              <Label>Observaciones</Label>
+              <Textarea
+                placeholder="Notas adicionales..."
+                value={editObservaciones}
+                onChange={(e) => setEditObservaciones(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditarExpedienteOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditarExpediente} disabled={saving || !editIdSuceso.trim() || !editFechaPrimerServicio}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Guardar cambios
             </Button>
           </DialogFooter>
         </DialogContent>
