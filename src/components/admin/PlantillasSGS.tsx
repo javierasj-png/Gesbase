@@ -109,8 +109,8 @@ export function PlantillasSGS() {
           
           <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              <strong>Nota:</strong> El cierre de la ficha PE 12.01 es manual según criterio del mando (PREVER).
-              El plazo recomendado es de 30 días desde el primer servicio tras el suceso.
+              <strong>Nota:</strong> El cierre automático de la ficha PE 12.01 se produce a los 40 días del primer servicio tras el suceso.
+              El cierre manual está disponible según criterio del mando (PREVER).
             </p>
           </div>
         </CardContent>
