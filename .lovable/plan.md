@@ -1,86 +1,103 @@
 
-# Plan: Corregir migración y eliminar botón "Nuevo Maquinista"
+# Plan: Resolver Error de Acceso al Sistema
 
-## Resumen
+## Diagnóstico
 
-Este plan aborda dos cambios:
-1. **Corregir el error de migración** causado por conflictos con políticas RLS
-2. **Eliminar el botón "+ Nuevo Maquinista"** de la página de Maquinistas
+El sistema no permite iniciar sesión porque **las tablas de la base de datos no existen**. Las migraciones están definidas en el código pero no se han aplicado correctamente.
 
----
+### Causa raíz
+La última migración intenta modificar la tabla `expedientes_1603` añadiendo columnas (`cierre_manual`, `fecha_cierre`, `cerrado_por`), pero esta tabla no existe porque las migraciones anteriores nunca se ejecutaron.
 
-## 1. Corregir la migración de base de datos
-
-El error actual se produce porque el sistema de migraciones está intentando recrear la función `can_access_base` que tiene políticas RLS dependientes. 
-
-### Solución
-
-Reescribir la migración para que sea más simple y no interfiera con funciones existentes:
-
-- Añadir solo las columnas nuevas a `expedientes_1603`:
-  - `cierre_manual` (boolean)
-  - `fecha_cierre` (timestamp)
-  - `cerrado_por` (uuid)
-
-- Usar `CREATE OR REPLACE FUNCTION` para actualizar la función de cierre automático sin afectar otras funciones
-
-**Archivo a modificar:** `supabase/migrations/20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql`
-
-La migración corregida incluirá:
-```sql
--- Solo añade columnas nuevas
-ALTER TABLE public.expedientes_1603 
-ADD COLUMN IF NOT EXISTS cierre_manual boolean DEFAULT false,
-ADD COLUMN IF NOT EXISTS fecha_cierre timestamp with time zone,
-ADD COLUMN IF NOT EXISTS cerrado_por uuid;
-
--- Actualiza la función existente
-CREATE OR REPLACE FUNCTION public.cerrar_expedientes_1603_expirados()
-...
-```
+### Error visible
+- "Invalid login credentials" (400) al intentar acceder
+- Los errores de TypeScript (`never` type) ocurren porque el archivo de tipos no tiene definiciones de tablas
 
 ---
 
-## 2. Eliminar botón "Nuevo Maquinista"
+## Solución
 
-Según lo solicitado, se eliminará el botón de la página de Maquinistas ya que la creación de maquinistas se gestiona desde el panel de Administración.
+Crear una **migración consolidada** que:
+1. Cree todas las tablas necesarias en el orden correcto
+2. Sea idempotente (use `IF NOT EXISTS` para evitar errores)
+3. Incluya los campos nuevos de cierre manual/automático
 
-**Archivo a modificar:** `src/pages/MaquinistasPage.tsx`
+### Estructura de tablas a crear
 
-### Cambios:
-- Eliminar el import de `Plus` de lucide-react
-- Eliminar el `<Button>` que redirige a `/admin`
-- El header quedará solo con el título y descripción
-
-### Código actual (a eliminar):
-```tsx
-<Button onClick={() => navigate('/admin')}>
-  <Plus className="w-4 h-4 mr-2" />
-  Nuevo Maquinista
-</Button>
+```text
++-------------------+     +-------------------+     +-------------------+
+|   auth.users      |<----|    profiles       |     |   user_roles      |
+| (Supabase nativo) |     | id, email, nombre |     | user_id, role     |
++-------------------+     +-------------------+     +-------------------+
+                                    |
+                                    v
++-------------------+     +-------------------+     +-------------------+
+| base_assignments  |     | bases_conduccion  |<----| base_certificac.  |
+| user_id, base     |     | nombre, codigo    |     | base_id, config   |
++-------------------+     +-------------------+     +-------------------+
+                                    |
+                                    v
++-------------------+     +-------------------+     +-------------------+
+|   maquinistas     |<----|  expedientes_1603 |<----|    plan_1603      |
+| matricula, base   |     | maquinista_id     |     | expediente_id     |
++-------------------+     +-------------------+     +-------------------+
+                                    |
+                                    v
+                          +-------------------+
+                          | actuaciones_1603  |
+                          | expediente_id     |
+                          +-------------------+
 ```
 
-### Resultado visual:
-```
-+--------------------------------------------------+
-| Maquinistas                                      |
-| Censo de maquinistas y acceso a fichas           |
-+--------------------------------------------------+
-```
+---
+
+## Pasos de implementación
+
+### 1. Reemplazar la migración problemática
+
+Sustituir el archivo `20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql` con una versión que:
+- Use `IF NOT EXISTS` para todas las operaciones
+- Solo añada columnas si la tabla ya existe
+- Sea compatible tanto si es la primera ejecución como si es una re-ejecución
+
+### 2. Verificar configuración de autenticación
+
+Asegurar que la confirmación automática de email esté habilitada para que los nuevos usuarios puedan acceder inmediatamente.
+
+### 3. Crear usuario administrador inicial
+
+Una vez las tablas existan, se necesitará:
+- Registrar un usuario desde la interfaz
+- Asignarle el rol `admin` en la tabla `user_roles`
 
 ---
 
 ## Detalles técnicos
 
-### Archivos modificados
+### Archivo a modificar
+`supabase/migrations/20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql`
 
-| Archivo | Cambio |
-|---------|--------|
-| `supabase/migrations/...sql` | Simplificar migración, eliminar posibles conflictos |
-| `src/pages/MaquinistasPage.tsx` | Eliminar botón y import no usado |
+### SQL corregido
+La migración usará:
+- `CREATE TABLE IF NOT EXISTS` para evitar errores si la tabla ya existe
+- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para añadir columnas de forma segura
+- `CREATE OR REPLACE FUNCTION` para funciones
 
-### Impacto
+### Flujo post-implementación
 
-- **Sin impacto en funcionalidad existente**: Los usuarios pueden seguir creando maquinistas desde Administración
-- **Mejor UX**: Se elimina confusión sobre dónde crear maquinistas
-- **Base de datos**: Se añaden campos para gestión de cierre manual/automático de expedientes PE 16.03
+1. El sistema aplicará la migración consolidada
+2. Se crearán todas las tablas con RLS habilitado
+3. El trigger `on_auth_user_created` creará perfiles automáticamente
+4. Los usuarios podrán registrarse y acceder
+5. Un administrador deberá asignar roles manualmente
+
+### Configuración requerida
+- Habilitar auto-confirmación de email en la configuración de autenticación
+
+---
+
+## Resultado esperado
+
+- Los usuarios podrán registrarse creando su cuenta
+- El sistema creará automáticamente su perfil
+- Un administrador asignará roles desde el panel de administración
+- Los errores de TypeScript se resolverán automáticamente cuando se regeneren los tipos tras la migración
