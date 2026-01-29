@@ -26,6 +26,9 @@ export interface Expediente1603Detail {
   fecha_fin_prevista: string;
   estado: 'Activo' | 'Cerrado';
   observaciones: string | null;
+  cierre_manual: boolean | null;
+  fecha_cierre: string | null;
+  cerrado_por: string | null;
 }
 
 export interface PlanBloque1603 {
@@ -111,7 +114,7 @@ export function useMaquinistaDetail(id: string | undefined) {
 
       setMaquinista(maqData as MaquinistaDB);
 
-      // Fetch expediente 1603
+      // Fetch expediente 1603 with new fields
       const { data: expData, error: expError } = await supabase
         .from('expedientes_1603')
         .select('*')
@@ -123,7 +126,18 @@ export function useMaquinistaDetail(id: string | undefined) {
       }
 
       if (expData) {
-        setExpediente1603(expData as Expediente1603Detail);
+        setExpediente1603({
+          id: expData.id,
+          maquinista_id: expData.maquinista_id,
+          fecha_primer_servicio: expData.fecha_primer_servicio,
+          fecha_inicio: expData.fecha_inicio,
+          fecha_fin_prevista: expData.fecha_fin_prevista,
+          estado: expData.estado as 'Activo' | 'Cerrado',
+          observaciones: expData.observaciones,
+          cierre_manual: (expData as any).cierre_manual ?? null,
+          fecha_cierre: (expData as any).fecha_cierre ?? null,
+          cerrado_por: (expData as any).cerrado_por ?? null,
+        });
 
         // Fetch plan
         const { data: planData, error: planError } = await supabase

@@ -215,9 +215,12 @@ export type Database = {
       }
       expedientes_1603: {
         Row: {
+          cerrado_por: string | null
+          cierre_manual: boolean | null
           created_at: string
           created_by: string | null
           estado: Database["public"]["Enums"]["estado_expediente"]
+          fecha_cierre: string | null
           fecha_fin_prevista: string
           fecha_inicio: string
           fecha_primer_servicio: string
@@ -228,9 +231,12 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
           created_at?: string
           created_by?: string | null
           estado?: Database["public"]["Enums"]["estado_expediente"]
+          fecha_cierre?: string | null
           fecha_fin_prevista: string
           fecha_inicio?: string
           fecha_primer_servicio: string
@@ -241,9 +247,12 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
           created_at?: string
           created_by?: string | null
           estado?: Database["public"]["Enums"]["estado_expediente"]
+          fecha_cierre?: string | null
           fecha_fin_prevista?: string
           fecha_inicio?: string
           fecha_primer_servicio?: string

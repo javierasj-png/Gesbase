@@ -16,6 +16,9 @@ export interface Expediente1603DB {
   fecha_fin_prevista: string;
   estado: EstadoExpediente;
   observaciones: string | null;
+  cierre_manual: boolean | null;
+  fecha_cierre: string | null;
+  cerrado_por: string | null;
   created_at: string;
   created_by: string | null;
   updated_at: string;
