@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { addMonths, differenceInDays, isAfter, isWithinInterval, isBefore } from 'date-fns';
+import { addMonths, differenceInDays } from 'date-fns';
 
 export interface AlertaCertificacion {
   tipo: 'certificacion';
@@ -58,167 +58,130 @@ export function useDashboardAlertas(baseFilter?: string) {
     try {
       const allAlertas: Alerta[] = [];
 
-      // 1. CERTIFICACIONES: Obtener todas las certificaciones con sus maquinistas
+      // 1. CERTIFICACIONES: Obtener maquinista_certificaciones con fecha_ultimo_servicio
       const { data: maqCerts, error: certError } = await supabase
         .from('maquinista_certificaciones')
-        .select(`
-          id,
-          maquinista_id,
-          certificacion_id,
-          vigilar_vencimiento,
-          periodo_inactividad_meses,
-          aviso_dias,
-          fecha_ultimo_servicio
-        `);
+        .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio');
 
       if (!certError && maqCerts) {
+        // Obtener base_certificaciones para config de vigilancia
+        const { data: baseCerts } = await supabase
+          .from('base_certificaciones')
+          .select('certificacion_id, vigilar_vencimiento, periodo_inactividad_meses, aviso_dias');
+
+        const configMap = new Map(baseCerts?.map(bc => [bc.certificacion_id, bc]) || []);
+
         // Obtener maquinistas
         const maqIds = [...new Set(maqCerts.map(mc => mc.maquinista_id))];
-        const { data: maquinistas } = await supabase
-          .from('maquinistas')
-          .select('id, nombre_apellidos, base, activo')
-          .in('id', maqIds)
-          .eq('activo', true);
-
-        // Obtener catálogo de certificaciones
-        const certIds = [...new Set(maqCerts.map(mc => mc.certificacion_id))];
-        const { data: catalogo } = await supabase
-          .from('certificaciones')
-          .select('id, nombre, tipo')
-          .in('id', certIds);
-
-        const maqMap = new Map(maquinistas?.map(m => [m.id, m]) || []);
-        const certMap = new Map(catalogo?.map(c => [c.id, c]) || []);
-
-        for (const mc of maqCerts) {
-          if (!mc.vigilar_vencimiento) continue;
-          
-          const maq = maqMap.get(mc.maquinista_id);
-          if (!maq) continue;
-
-          // Filtrar por base
-          if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
-          if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
-
-          const cert = certMap.get(mc.certificacion_id);
-          if (!cert) continue;
-
-          let estado: 'Próxima a vencer' | 'Vencida' | null = null;
-          let diasRestantes: number | null = null;
-          let fechaVencimiento: Date | null = null;
-
-          if (!mc.fecha_ultimo_servicio) {
-            estado = 'Vencida';
-          } else {
-            fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), mc.periodo_inactividad_meses);
-            diasRestantes = differenceInDays(fechaVencimiento, new Date());
-
-            if (diasRestantes < 0) {
-              estado = 'Vencida';
-            } else if (diasRestantes <= mc.aviso_dias) {
-              estado = 'Próxima a vencer';
-            }
-          }
-
-          if (estado) {
-            allAlertas.push({
-              tipo: 'certificacion',
-              id: mc.id,
-              maquinista_id: mc.maquinista_id,
-              maquinista_nombre: maq.nombre_apellidos,
-              maquinista_base: maq.base,
-              certificacion_nombre: cert.nombre,
-              certificacion_tipo: cert.tipo as 'vehiculo' | 'linea',
-              estado,
-              dias_restantes: diasRestantes,
-              fecha_vencimiento: fechaVencimiento,
-            });
-          }
-        }
-      }
-
-      // 2. PE 16.03: Obtener bloques en ventana o vencidos
-      const { data: planes1603, error: planError } = await supabase
-        .from('plan_1603')
-        .select(`
-          id,
-          expediente_id,
-          tipo,
-          etiqueta,
-          inicio_ventana,
-          fin_ventana,
-          actuacion_id
-        `);
-
-      if (!planError && planes1603) {
-        // Obtener expedientes
-        const expIds = [...new Set(planes1603.map(p => p.expediente_id))];
-        const { data: expedientes } = await supabase
-          .from('expedientes_1603')
-          .select('id, maquinista_id, estado')
-          .in('id', expIds)
-          .eq('estado', 'Activo');
-
-        if (expedientes) {
-          const expMap = new Map(expedientes.map(e => [e.id, e]));
-
-          // Obtener maquinistas de expedientes
-          const maqExpIds = [...new Set(expedientes.map(e => e.maquinista_id))];
-          const { data: maquinistasExp } = await supabase
+        if (maqIds.length > 0) {
+          const { data: maquinistas } = await supabase
             .from('maquinistas')
-            .select('id, nombre_apellidos, base')
-            .in('id', maqExpIds);
+            .select('id, nombre, apellidos, base, activo')
+            .in('id', maqIds)
+            .eq('activo', true);
 
-          const maqExpMap = new Map(maquinistasExp?.map(m => [m.id, m]) || []);
+          const maqMap = new Map(maquinistas?.map(m => [m.id, m]) || []);
 
-          const hoy = new Date();
+          for (const mc of maqCerts) {
+            const config = configMap.get(mc.certificacion_id);
+            if (!config?.vigilar_vencimiento) continue;
 
-          for (const bloque of planes1603) {
-            if (bloque.actuacion_id) continue; // Ya cumplido
-
-            const exp = expMap.get(bloque.expediente_id);
-            if (!exp) continue;
-
-            const maq = maqExpMap.get(exp.maquinista_id);
+            const maq = maqMap.get(mc.maquinista_id);
             if (!maq) continue;
 
             // Filtrar por base
             if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
             if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
 
-            const inicioVentana = new Date(bloque.inicio_ventana);
-            const finVentana = new Date(bloque.fin_ventana);
-            const diasRestantes = differenceInDays(finVentana, hoy);
+            let estado: 'Próxima a vencer' | 'Vencida' | null = null;
+            let diasRestantes: number | null = null;
+            let fechaVencimiento: Date | null = null;
 
-            let estado: 'En ventana' | 'Vencida' | null = null;
-
-            if (isAfter(hoy, finVentana)) {
+            if (!mc.fecha_ultimo_servicio) {
               estado = 'Vencida';
-            } else if (isWithinInterval(hoy, { start: inicioVentana, end: finVentana })) {
-              estado = 'En ventana';
+            } else {
+              fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), config.periodo_inactividad_meses);
+              diasRestantes = differenceInDays(fechaVencimiento, new Date());
+
+              if (diasRestantes < 0) {
+                estado = 'Vencida';
+              } else if (diasRestantes <= config.aviso_dias) {
+                estado = 'Próxima a vencer';
+              }
             }
 
             if (estado) {
               allAlertas.push({
-                tipo: 'pe1603',
-                id: exp.id,
-                bloque_id: bloque.id,
-                maquinista_id: exp.maquinista_id,
-                maquinista_nombre: maq.nombre_apellidos,
+                tipo: 'certificacion',
+                id: mc.id,
+                maquinista_id: mc.maquinista_id,
+                maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
                 maquinista_base: maq.base,
-                etiqueta: bloque.etiqueta,
-                tipo_actuacion: bloque.tipo,
+                certificacion_nombre: mc.certificacion_nombre,
+                certificacion_tipo: mc.certificacion_tipo as 'vehiculo' | 'linea',
                 estado,
                 dias_restantes: diasRestantes,
-                fin_ventana: finVentana,
+                fecha_vencimiento: fechaVencimiento,
               });
             }
           }
         }
       }
 
-      // 3. PE 12.01: Para ahora usamos mock (cuando se implemente real se actualiza)
-      // TODO: Implementar cuando PE 12.01 esté en BD
+      // 2. PE 16.03: Simplified - get expedientes abiertos
+      const { data: expedientes1603, error: expError } = await supabase
+        .from('expedientes_1603')
+        .select('id, maquinista_id, fecha_primer_servicio, estado')
+        .eq('estado', 'abierto');
+
+      if (!expError && expedientes1603 && expedientes1603.length > 0) {
+        const maqIds1603 = [...new Set(expedientes1603.map(e => e.maquinista_id))];
+        const { data: maquinistas1603 } = await supabase
+          .from('maquinistas')
+          .select('id, nombre, apellidos, base')
+          .in('id', maqIds1603);
+
+        const maqMap1603 = new Map(maquinistas1603?.map(m => [m.id, m]) || []);
+
+        // Get plan items without actuacion
+        const expIds = expedientes1603.map(e => e.id);
+        const { data: planItems } = await supabase
+          .from('plan_1603')
+          .select('id, expediente_id, tipo, mes, estado, actuacion_id')
+          .in('expediente_id', expIds)
+          .is('actuacion_id', null);
+
+        if (planItems) {
+          for (const item of planItems) {
+            const exp = expedientes1603.find(e => e.id === item.expediente_id);
+            if (!exp) continue;
+
+            const maq = maqMap1603.get(exp.maquinista_id);
+            if (!maq) continue;
+
+            // Filtrar por base
+            if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
+            if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+
+            // Simple alert for pending items in first 6 months
+            if (item.mes <= 6) {
+              allAlertas.push({
+                tipo: 'pe1603',
+                id: exp.id,
+                bloque_id: item.id,
+                maquinista_id: exp.maquinista_id,
+                maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                maquinista_base: maq.base,
+                etiqueta: `${item.tipo} - Mes ${item.mes}`,
+                tipo_actuacion: item.tipo,
+                estado: 'En ventana',
+                dias_restantes: 30,
+                fin_ventana: new Date(),
+              });
+            }
+          }
+        }
+      }
 
       // Ordenar: primero vencidas, luego por días restantes
       allAlertas.sort((a, b) => {

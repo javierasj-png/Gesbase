@@ -7,16 +7,21 @@ import { Base } from '@/types';
 export interface MaquinistaDB {
   id: string;
   matricula: string;
-  nombre_apellidos: string;
+  nombre: string;
+  apellidos: string;
   base: string;
+  email: string | null;
+  telefono: string | null;
+  fecha_ingreso: string | null;
   activo: boolean;
-  observaciones: string | null;
-  bajo_pe_1603: boolean;
-  fecha_primer_servicio: string | null;
   created_at: string;
-  created_by: string | null;
   updated_at: string;
-  updated_by: string | null;
+}
+
+// Computed field for convenience
+export interface MaquinistaConNombre extends MaquinistaDB {
+  nombre_apellidos: string;
+  bajo_pe_1603?: boolean;
 }
 
 export interface MaquinistaInput {
@@ -32,7 +37,7 @@ export interface MaquinistaInput {
 export function useMaquinistas() {
   const { user, isAdmin, assignedBases } = useAuth();
   const { toast } = useToast();
-  const [maquinistas, setMaquinistas] = useState<MaquinistaDB[]>([]);
+  const [maquinistas, setMaquinistas] = useState<MaquinistaConNombre[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMaquinistas = useCallback(async () => {
@@ -41,7 +46,8 @@ export function useMaquinistas() {
       let query = supabase
         .from('maquinistas')
         .select('*')
-        .order('nombre_apellidos');
+        .order('nombre')
+        .order('apellidos');
 
       // Si no es admin, filtrar por bases asignadas
       if (!isAdmin && assignedBases.length > 0) {
@@ -60,7 +66,14 @@ export function useMaquinistas() {
         return;
       }
 
-      setMaquinistas(data || []);
+      // Add computed nombre_apellidos field
+      const maquinistasConNombre: MaquinistaConNombre[] = (data || []).map(m => ({
+        ...m,
+        nombre_apellidos: `${m.nombre} ${m.apellidos}`,
+        bajo_pe_1603: false, // Will be calculated from expedientes
+      }));
+
+      setMaquinistas(maquinistasConNombre);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -76,21 +89,20 @@ export function useMaquinistas() {
 
   const createMaquinista = async (input: MaquinistaInput): Promise<boolean> => {
     try {
+      // Split nombre y apellidos
+      const parts = input.nombreApellidos.trim().split(' ');
+      const nombre = parts[0] || '';
+      const apellidos = parts.slice(1).join(' ') || '';
+
       const { error } = await supabase
         .from('maquinistas')
-        .insert({
+        .insert([{
           matricula: input.matricula,
-          nombre_apellidos: input.nombreApellidos,
+          nombre,
+          apellidos,
           base: input.base,
           activo: input.activo,
-          observaciones: input.observaciones || null,
-          bajo_pe_1603: input.bajoPE1603 || false,
-          fecha_primer_servicio: input.fechaPrimerServicio 
-            ? input.fechaPrimerServicio.toISOString().split('T')[0] 
-            : null,
-          created_by: user?.id,
-          updated_by: user?.id,
-        });
+        }]);
 
       if (error) {
         console.error('Error creating maquinista:', error);
@@ -112,9 +124,7 @@ export function useMaquinistas() {
 
       toast({
         title: 'Maquinista creado',
-        description: input.bajoPE1603 
-          ? `${input.nombreApellidos} guardado y asignado a vigilancia PE 16.03`
-          : `${input.nombreApellidos} guardado correctamente`,
+        description: `${input.nombreApellidos} guardado correctamente`,
       });
 
       await fetchMaquinistas();
@@ -127,21 +137,16 @@ export function useMaquinistas() {
 
   const updateMaquinista = async (id: string, input: Partial<MaquinistaInput>): Promise<boolean> => {
     try {
-      const updateData: Record<string, unknown> = {
-        updated_by: user?.id,
-      };
+      const updateData: Record<string, unknown> = {};
 
       if (input.matricula !== undefined) updateData.matricula = input.matricula;
-      if (input.nombreApellidos !== undefined) updateData.nombre_apellidos = input.nombreApellidos;
+      if (input.nombreApellidos !== undefined) {
+        const parts = input.nombreApellidos.trim().split(' ');
+        updateData.nombre = parts[0] || '';
+        updateData.apellidos = parts.slice(1).join(' ') || '';
+      }
       if (input.base !== undefined) updateData.base = input.base;
       if (input.activo !== undefined) updateData.activo = input.activo;
-      if (input.observaciones !== undefined) updateData.observaciones = input.observaciones || null;
-      if (input.bajoPE1603 !== undefined) updateData.bajo_pe_1603 = input.bajoPE1603;
-      if (input.fechaPrimerServicio !== undefined) {
-        updateData.fecha_primer_servicio = input.fechaPrimerServicio 
-          ? input.fechaPrimerServicio.toISOString().split('T')[0] 
-          : null;
-      }
 
       const { error } = await supabase
         .from('maquinistas')

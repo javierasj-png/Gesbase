@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Select, 
@@ -39,13 +38,12 @@ export default function MaquinistasPage() {
   const getAccessibleBases = [...new Set(maquinistas.map(m => m.base))].sort();
 
   // Calcular resumen de estado por maquinista
-  const getMaquinistaStatus = (maquinistaId: string, bajoPe1603: boolean) => {
+  const getMaquinistaStatus = (maquinistaId: string) => {
     const has1603 = expedientes.some(e => 
-      e.expediente.maquinista_id === maquinistaId && e.expediente.estado === 'Activo'
+      e.expediente.maquinista_id === maquinistaId && e.expediente.estado === 'abierto'
     );
     
-    if (bajoPe1603 && has1603) return { label: 'En seguimiento', variant: 'success' as const };
-    if (bajoPe1603) return { label: 'Vigilancia', variant: 'warning' as const };
+    if (has1603) return { label: 'En seguimiento', variant: 'success' as const };
     return { label: 'OK', variant: 'default' as const };
   };
 
@@ -143,9 +141,9 @@ export default function MaquinistasPage() {
                 ) : (
                   filteredMaquinistas.map((maquinista) => {
                     const exp1603 = expedientes.filter(e => 
-                      e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'Activo'
+                      e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'abierto'
                     ).length;
-                    const status = getMaquinistaStatus(maquinista.id, maquinista.bajo_pe_1603);
+                    const status = getMaquinistaStatus(maquinista.id);
 
                     return (
                       <TableRow 
@@ -166,10 +164,6 @@ export default function MaquinistasPage() {
                           {exp1603 > 0 ? (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-ok-bg text-status-ok text-xs font-medium">
                               {exp1603}
-                            </span>
-                          ) : maquinista.bajo_pe_1603 ? (
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-proximo-bg text-status-proximo text-xs font-medium">
-                              !
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>

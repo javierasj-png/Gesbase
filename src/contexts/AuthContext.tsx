@@ -28,11 +28,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user profile, roles and base assignments
   const fetchUserAccess = async (userId: string): Promise<UserWithAccess | null> => {
     try {
-      // Fetch profile
+      // Fetch profile - use user_id column, not id
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (profileError) {
@@ -50,10 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching roles:', rolesError);
       }
 
-      // Fetch base assignments
+      // Fetch base assignments - column is base_nombre, not base
       const { data: basesData, error: basesError } = await supabase
         .from('base_assignments')
-        .select('base')
+        .select('base_nombre')
         .eq('user_id', userId);
 
       if (basesError) {
@@ -61,14 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const roles = (rolesData || []).map(r => r.role as AppRole);
-      const assignedBases = (basesData || []).map(b => b.base as Base);
+      const assignedBases = (basesData || []).map(b => b.base_nombre as Base);
       const isAdmin = roles.includes('admin');
 
       const profile: UserProfile = {
         id: profileData?.id || userId,
         email: profileData?.email || '',
-        nombre: profileData?.nombre,
-        apellidos: profileData?.apellidos,
+        nombre: profileData?.nombre || undefined,
+        apellidos: profileData?.apellidos || undefined,
       };
 
       return {
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabase
         .from('profiles')
         .update({ nombre, apellidos })
-        .eq('id', data.user.id);
+        .eq('user_id', data.user.id);
     }
 
     return { error: error as Error | null };

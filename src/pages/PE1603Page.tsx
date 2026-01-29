@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Select, 
@@ -24,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
 import { useAuth } from '@/contexts/AuthContext';
-import { format } from 'date-fns';
+import { format, addYears } from 'date-fns';
 
 export default function PE1603Page() {
   const navigate = useNavigate();
@@ -129,8 +128,8 @@ export default function PE1603Page() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Activo">Activos</SelectItem>
-                  <SelectItem value="Cerrado">Cerrados</SelectItem>
+                  <SelectItem value="abierto">Activos</SelectItem>
+                  <SelectItem value="cerrado">Cerrados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -147,67 +146,78 @@ export default function PE1603Page() {
         {/* Expedientes List */}
         {!loading && (
           <div className="space-y-4">
-            {filtered.map(({ expediente, maquinista, resumen }) => (
-              <Card 
-                key={expediente.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/maquinistas/${expediente.maquinista_id}?tab=pe1603`)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <FileCheck className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{maquinista?.nombre_apellidos || 'Maquinista desconocido'}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            Inicio: {format(new Date(expediente.fecha_inicio), 'dd/MM/yyyy')}
-                          </span>
-                          <span>→</span>
-                          <span>Fin: {format(new Date(expediente.fecha_fin_prevista), 'dd/MM/yyyy')}</span>
-                          <span className={resumen.diasRestantes < 90 ? 'text-status-proximo font-medium' : ''}>
-                            ({resumen.diasRestantes} días restantes)
-                          </span>
+            {filtered.map(({ expediente, maquinista, resumen }) => {
+              // Calculate fecha_fin_prevista from fecha_primer_servicio
+              const fechaFinPrevista = expediente.fecha_primer_servicio 
+                ? addYears(new Date(expediente.fecha_primer_servicio), 3)
+                : null;
+
+              return (
+                <Card 
+                  key={expediente.id} 
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/maquinistas/${expediente.maquinista_id}?tab=pe1603`)}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <FileCheck className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{maquinista?.nombre_apellidos || 'Maquinista desconocido'}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              Inicio: {format(new Date(expediente.fecha_inicio), 'dd/MM/yyyy')}
+                            </span>
+                            {fechaFinPrevista && (
+                              <>
+                                <span>→</span>
+                                <span>Fin: {format(fechaFinPrevista, 'dd/MM/yyyy')}</span>
+                                <span className={resumen.diasRestantes < 90 ? 'text-status-proximo font-medium' : ''}>
+                                  ({resumen.diasRestantes} días restantes)
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      {/* Resumen de bloques */}
-                      <div className="flex items-center gap-2">
-                        {resumen.vencidas > 0 && (
-                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-vencido-bg">
-                            <XCircle className="w-3 h-3 text-status-vencido" />
-                            <span className="text-xs font-medium text-status-vencido">{resumen.vencidas}</span>
-                          </div>
-                        )}
-                        {resumen.enVentana > 0 && (
-                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-proximo-bg">
-                            <Clock className="w-3 h-3 text-status-proximo" />
-                            <span className="text-xs font-medium text-status-proximo">{resumen.enVentana}</span>
-                          </div>
-                        )}
-                        {resumen.cumplidas > 0 && (
-                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-cumplida-bg">
-                            <CheckCircle2 className="w-3 h-3 text-status-cumplida" />
-                            <span className="text-xs font-medium text-status-cumplida">{resumen.cumplidas}</span>
-                          </div>
-                        )}
-                      </div>
                       
-                      <StatusBadge estado={expediente.estado} />
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <div className="flex items-center gap-4">
+                        {/* Resumen de bloques */}
+                        <div className="flex items-center gap-2">
+                          {resumen.vencidas > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-vencido-bg">
+                              <XCircle className="w-3 h-3 text-status-vencido" />
+                              <span className="text-xs font-medium text-status-vencido">{resumen.vencidas}</span>
+                            </div>
+                          )}
+                          {resumen.enVentana > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-proximo-bg">
+                              <Clock className="w-3 h-3 text-status-proximo" />
+                              <span className="text-xs font-medium text-status-proximo">{resumen.enVentana}</span>
+                            </div>
+                          )}
+                          {resumen.cumplidas > 0 && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-status-cumplida-bg">
+                              <CheckCircle2 className="w-3 h-3 text-status-cumplida" />
+                              <span className="text-xs font-medium text-status-cumplida">{resumen.cumplidas}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <StatusBadge estado={expediente.estado === 'abierto' ? 'Activo' : 'Cerrado'} />
+                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
 
             {filtered.length === 0 && (
               <Card>

@@ -39,7 +39,7 @@ interface MaquinistaCertificacionesTabProps {
 }
 
 export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: MaquinistaCertificacionesTabProps) {
-  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, asignarCertificacion, toggleObtenida } = useMaquinistaCertificaciones(maquinistaId, baseName);
+  const { certificaciones, disponibles, loading, kpis, actualizarFechaServicio, toggleObtenida } = useMaquinistaCertificaciones(maquinistaId, baseName);
   const [registrarServicioOpen, setRegistrarServicioOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
@@ -49,26 +49,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
     if (!selectedCert || !fechaServicio) return;
 
     setSaving(true);
-    
-    // Check if certification is already assigned
-    const yaAsignada = certificaciones.find(c => c.certificacion_id === selectedCert);
-    
-    if (yaAsignada) {
-      await actualizarFechaServicio(selectedCert, fechaServicio);
-    } else {
-      // Get config from disponibles
-      const disp = disponibles.find(d => d.id === selectedCert);
-      if (disp) {
-        await asignarCertificacion(selectedCert, {
-          obligatoria: disp.obligatoria,
-          vigilar_vencimiento: disp.vigilar_vencimiento,
-          periodo_inactividad_meses: disp.periodo_inactividad_meses,
-          aviso_dias: disp.aviso_dias,
-          fecha_ultimo_servicio: fechaServicio,
-        });
-      }
-    }
-    
+    await actualizarFechaServicio(selectedCert, fechaServicio);
     setSaving(false);
     setRegistrarServicioOpen(false);
     setSelectedCert('');

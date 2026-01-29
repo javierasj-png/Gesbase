@@ -1,24 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Users, Shield, Building2, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Users, Shield, Building2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AppRole, Base } from '@/types';
+import { AppRole } from '@/types';
 
 interface UserWithDetails {
   id: string;
+  user_id: string;
   email: string;
   nombre?: string;
   apellidos?: string;
@@ -70,7 +63,7 @@ export function UserManagement() {
 
       if (rolesError) throw rolesError;
 
-      // Fetch base assignments
+      // Fetch base assignments - column is base_nombre
       const { data: bases, error: basesError } = await supabase
         .from('base_assignments')
         .select('*');
@@ -80,15 +73,16 @@ export function UserManagement() {
       // Combine data
       const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => ({
         id: profile.id,
+        user_id: profile.user_id,
         email: profile.email,
-        nombre: profile.nombre,
-        apellidos: profile.apellidos,
+        nombre: profile.nombre || undefined,
+        apellidos: profile.apellidos || undefined,
         roles: (roles || [])
-          .filter(r => r.user_id === profile.id)
+          .filter(r => r.user_id === profile.user_id)
           .map(r => r.role as AppRole),
         bases: (bases || [])
-          .filter(b => b.user_id === profile.id)
-          .map(b => b.base as string),
+          .filter(b => b.user_id === profile.user_id)
+          .map(b => b.base_nombre as string),
       }));
 
       setUsers(usersWithDetails);
@@ -106,7 +100,7 @@ export function UserManagement() {
 
   const handleToggleRole = async (userId: string, role: AppRole) => {
     setSaving(userId);
-    const user = users.find(u => u.id === userId);
+    const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
     const hasRole = user.roles.includes(role);
@@ -125,14 +119,14 @@ export function UserManagement() {
         // Add role
         const { error } = await supabase
           .from('user_roles')
-          .insert({ user_id: userId, role });
+          .insert([{ user_id: userId, role }]);
 
         if (error) throw error;
       }
 
       // Update local state
       setUsers(prev => prev.map(u => {
-        if (u.id === userId) {
+        if (u.user_id === userId) {
           return {
             ...u,
             roles: hasRole 
@@ -159,12 +153,12 @@ export function UserManagement() {
     }
   };
 
-  const handleToggleBase = async (userId: string, base: string) => {
+  const handleToggleBase = async (userId: string, baseName: string) => {
     setSaving(userId);
-    const user = users.find(u => u.id === userId);
+    const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
-    const hasBase = user.bases.includes(base);
+    const hasBase = user.bases.includes(baseName);
 
     try {
       if (hasBase) {
@@ -173,26 +167,26 @@ export function UserManagement() {
           .from('base_assignments')
           .delete()
           .eq('user_id', userId)
-          .eq('base', base);
+          .eq('base_nombre', baseName);
 
         if (error) throw error;
       } else {
         // Add base
         const { error } = await supabase
           .from('base_assignments')
-          .insert({ user_id: userId, base });
+          .insert([{ user_id: userId, base_nombre: baseName }]);
 
         if (error) throw error;
       }
 
       // Update local state
       setUsers(prev => prev.map(u => {
-        if (u.id === userId) {
+        if (u.user_id === userId) {
           return {
             ...u,
             bases: hasBase 
-              ? u.bases.filter(b => b !== base)
-              : [...u.bases, base],
+              ? u.bases.filter(b => b !== baseName)
+              : [...u.bases, baseName],
           };
         }
         return u;
@@ -200,7 +194,7 @@ export function UserManagement() {
 
       toast({
         title: hasBase ? 'Base eliminada' : 'Base asignada',
-        description: `${base} ${hasBase ? 'eliminada de' : 'asignada a'} ${user.email}`,
+        description: `${baseName} ${hasBase ? 'eliminada de' : 'asignada a'} ${user.email}`,
       });
     } catch (error) {
       console.error('Error toggling base:', error);
@@ -282,16 +276,16 @@ export function UserManagement() {
                           <span className="text-sm">Administrador</span>
                           <Switch
                             checked={user.roles.includes('admin')}
-                            onCheckedChange={() => handleToggleRole(user.id, 'admin')}
-                            disabled={saving === user.id}
+                            onCheckedChange={() => handleToggleRole(user.user_id, 'admin')}
+                            disabled={saving === user.user_id}
                           />
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Mando</span>
                           <Switch
                             checked={user.roles.includes('mando')}
-                            onCheckedChange={() => handleToggleRole(user.id, 'mando')}
-                            disabled={saving === user.id}
+                            onCheckedChange={() => handleToggleRole(user.user_id, 'mando')}
+                            disabled={saving === user.user_id}
                           />
                         </div>
                       </div>
@@ -312,8 +306,8 @@ export function UserManagement() {
                             <span className="text-sm">{base.nombre}</span>
                             <Switch
                               checked={user.bases.includes(base.nombre) || user.roles.includes('admin')}
-                              onCheckedChange={() => handleToggleBase(user.id, base.nombre)}
-                              disabled={saving === user.id || user.roles.includes('admin')}
+                              onCheckedChange={() => handleToggleBase(user.user_id, base.nombre)}
+                              disabled={saving === user.user_id || user.roles.includes('admin')}
                             />
                           </div>
                         ))}

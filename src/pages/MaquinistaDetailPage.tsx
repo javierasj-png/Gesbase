@@ -86,7 +86,7 @@ export default function MaquinistaDetailPage() {
                 <User className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">{maquinista.nombre_apellidos}</h1>
+                <h1 className="text-xl font-bold text-foreground">{maquinista.nombre} {maquinista.apellidos}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="font-mono">{maquinista.matricula}</span>
                   <span>•</span>
@@ -95,11 +95,6 @@ export default function MaquinistaDetailPage() {
                   <Badge variant={maquinista.activo ? 'default' : 'secondary'}>
                     {maquinista.activo ? 'Activo' : 'Inactivo'}
                   </Badge>
-                  {maquinista.bajo_pe_1603 && (
-                    <Badge variant="outline" className="text-primary border-primary">
-                      PE 16.03
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
@@ -134,7 +129,13 @@ export default function MaquinistaDetailPage() {
           {/* Tab: PE 16.03 */}
           <TabsContent value="pe1603">
             <MaquinistaPE1603Tab
-              maquinista={maquinista}
+              maquinista={{
+                id: maquinista.id,
+                nombre_apellidos: `${maquinista.nombre} ${maquinista.apellidos}`,
+                matricula: maquinista.matricula,
+                base: maquinista.base,
+                bajo_pe_1603: !!expediente1603,
+              }}
               expediente1603={expediente1603}
               plan1603={plan1603}
               onRefetch={refetch}
