@@ -240,14 +240,16 @@ export function MaquinistaPE1201Tab({
   };
 
   // Calculate compliance
+  // Calculate compliance: % = acciones registradas / bloques que proceden
   const cumplimiento = useMemo(() => {
     if (plan.length === 0) return { total: 0, cumplidas: 0, porcentaje: 0 };
     
-    const totalObligatorios = plan.filter(b => b.obligatorio).length;
-    const cumplidos = plan.filter(b => b.obligatorio && (b.actuacion_id || b.estado === 'no_procede')).length;
-    const porcentaje = totalObligatorios > 0 ? Math.round((cumplidos / totalObligatorios) * 100) : 0;
+    // Solo contar bloques que "proceden" (excluyendo no_procede)
+    const bloquesQueProceden = plan.filter(b => b.estado !== 'no_procede').length;
+    const accionesRegistradas = plan.filter(b => b.actuacion_id && b.estado !== 'no_procede').length;
+    const porcentaje = bloquesQueProceden > 0 ? Math.round((accionesRegistradas / bloquesQueProceden) * 100) : 0;
     
-    return { total: totalObligatorios, cumplidas: cumplidos, porcentaje };
+    return { total: bloquesQueProceden, cumplidas: accionesRegistradas, porcentaje };
   }, [plan]);
 
   // Group plan by type
