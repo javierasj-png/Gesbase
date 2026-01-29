@@ -36,7 +36,7 @@ import {
   CalendarClock,
   Pencil
 } from 'lucide-react';
-import { format, isWithinInterval, parseISO, isAfter } from 'date-fns';
+import { format, addMonths, parseISO, isAfter, isBefore, addYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -62,7 +62,15 @@ interface MaquinistaPE1603TabProps {
   onRefetch: () => void;
 }
 
-const tiposActuacion: TipoActuacion1603[] = ['Acompañamiento', 'Registro', 'Alcohol', 'Drogas'];
+// Map lowercase types to display labels
+const tipoLabels: Record<TipoActuacion1603, string> = {
+  'acompanamiento': 'Acompañamiento',
+  'registro': 'Registro',
+  'alcohol': 'Alcohol',
+  'drogas': 'Drogas'
+};
+
+const tiposActuacion: TipoActuacion1603[] = ['acompanamiento', 'registro', 'alcohol', 'drogas'];
 
 export function MaquinistaPE1603Tab({ 
   maquinista, 
@@ -81,13 +89,14 @@ export function MaquinistaPE1603Tab({
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
+  const [selectedMes, setSelectedMes] = useState<number | null>(null);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [indicePrever, setIndicePrever] = useState('');
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
   // Check if expediente is closed
-  const expedienteCerrado = expediente1603?.estado === 'Cerrado';
+  const expedienteCerrado = expediente1603?.estado === 'cerrado';
   
   // Permissions: solo admin puede editar fichas cerradas
   const puedeEditar = !expedienteCerrado || isAdmin;
@@ -95,37 +104,50 @@ export function MaquinistaPE1603Tab({
   // Solo mandos pueden cerrar manualmente (admins también)
   const puedeCerrarManual = !expedienteCerrado;
 
-  // Find matching block based on type and date - busca en TODOS los bloques del tipo
-  const bloqueCoincidente = useMemo(() => {
-    if (!selectedTipo || !fechaActuacion) return null;
-    
-    const fecha = parseISO(fechaActuacion);
-    const bloquesTipo = plan1603.filter(b => b.tipo === selectedTipo && !b.actuacion_id);
-    
-    // Buscar bloque donde la fecha esté dentro de la ventana
-    const bloqueEnVentana = bloquesTipo.find(b => {
-      const inicio = parseISO(b.inicio_ventana);
-      const fin = parseISO(b.fin_ventana);
-      return isWithinInterval(fecha, { start: inicio, end: fin });
-    });
-    
-    return bloqueEnVentana || null;
-  }, [selectedTipo, fechaActuacion, plan1603]);
+  // Calculate fecha_fin_prevista (3 years from primer servicio)
+  const fechaFinPrevista = useMemo(() => {
+    if (!expediente1603?.fecha_primer_servicio) return null;
+    return addYears(parseISO(expediente1603.fecha_primer_servicio), 3);
+  }, [expediente1603?.fecha_primer_servicio]);
 
-  // Check if expediente should be auto-closed (past end date)
+  // Check if expediente should be auto-closed (past 3 years)
   const deberiaCerrarseAuto = useMemo(() => {
-    if (!expediente1603 || expediente1603.estado === 'Cerrado') return false;
-    const fechaFin = parseISO(expediente1603.fecha_fin_prevista);
-    return isAfter(new Date(), fechaFin);
-  }, [expediente1603]);
+    if (!expediente1603 || expediente1603.estado === 'cerrado' || !fechaFinPrevista) return false;
+    return isAfter(new Date(), fechaFinPrevista);
+  }, [expediente1603, fechaFinPrevista]);
+
+  // Calculate block state based on mes and fecha_primer_servicio
+  const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' => {
+    if (bloque.actuacion_id) return 'cumplida';
+    if (!expediente1603?.fecha_primer_servicio) return 'pendiente';
+    
+    const primerServicio = parseISO(expediente1603.fecha_primer_servicio);
+    const inicioVentana = addMonths(primerServicio, (bloque.mes - 1) * 6);
+    const finVentana = addMonths(primerServicio, bloque.mes * 6);
+    const now = new Date();
+    
+    if (isAfter(now, finVentana)) return 'vencida';
+    if (isAfter(now, inicioVentana) && isBefore(now, finVentana)) return 'en_ventana';
+    return 'pendiente';
+  };
+
+  // Get window dates for a block
+  const getBlockWindow = (bloque: PlanBloque1603): { inicio: Date; fin: Date } | null => {
+    if (!expediente1603?.fecha_primer_servicio) return null;
+    const primerServicio = parseISO(expediente1603.fecha_primer_servicio);
+    return {
+      inicio: addMonths(primerServicio, (bloque.mes - 1) * 6),
+      fin: addMonths(primerServicio, bloque.mes * 6)
+    };
+  };
 
   // Count pending blocks per type (for display)
   const bloquesPendientesPorTipo = useMemo(() => {
     const result: Record<TipoActuacion1603, PlanBloque1603[]> = {
-      'Acompañamiento': [],
-      'Registro': [],
-      'Alcohol': [],
-      'Drogas': []
+      'acompanamiento': [],
+      'registro': [],
+      'alcohol': [],
+      'drogas': []
     };
     
     plan1603.forEach(b => {
@@ -139,21 +161,17 @@ export function MaquinistaPE1603Tab({
 
   // Check if all blocks are completed
   const todosCumplidos = useMemo(() => {
-    return plan1603.length > 0 && plan1603.every(b => b.estadoCalculado === 'Cumplida');
+    return plan1603.length > 0 && plan1603.every(b => b.actuacion_id !== null);
   }, [plan1603]);
 
-  const handleRegistrar = async () => {
-    if (!selectedTipo || !fechaActuacion || !expediente1603) return;
+  // Find matching block for registration
+  const bloqueCoincidente = useMemo(() => {
+    if (!selectedTipo || !selectedMes) return null;
+    return plan1603.find(b => b.tipo === selectedTipo && b.mes === selectedMes && !b.actuacion_id);
+  }, [selectedTipo, selectedMes, plan1603]);
 
-    // Validar que hay un bloque coincidente
-    if (!bloqueCoincidente) {
-      toast({
-        title: 'Error',
-        description: 'La fecha introducida no corresponde a ningún periodo del plan de vigilancia para este tipo de acción.',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleRegistrar = async () => {
+    if (!selectedTipo || !selectedMes || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
 
     // Validar permisos si está cerrado
     if (expedienteCerrado && !isAdmin) {
@@ -175,10 +193,8 @@ export function MaquinistaPE1603Tab({
           tipo: selectedTipo,
           fecha_real: fechaActuacion,
           resultado: resultado || null,
-          observaciones: [
-            indicePrever ? `Índice PREVER: ${indicePrever}` : '',
-            observaciones
-          ].filter(Boolean).join('\n') || null,
+          indice_prever: indicePrever ? parseFloat(indicePrever) : null,
+          observaciones: observaciones || null,
         })
         .select()
         .single();
@@ -190,7 +206,7 @@ export function MaquinistaPE1603Tab({
         .from('plan_1603')
         .update({
           actuacion_id: actuacion.id,
-          estado: 'Cumplida',
+          estado: 'realizado',
         })
         .eq('id', bloqueCoincidente.id);
 
@@ -198,11 +214,12 @@ export function MaquinistaPE1603Tab({
 
       toast({
         title: 'Actuación registrada',
-        description: `${selectedTipo} - ${bloqueCoincidente.etiqueta} marcada como cumplida`,
+        description: `${tipoLabels[selectedTipo]} - Semestre ${selectedMes} marcado como cumplido`,
       });
 
       // Reset form and close
       setSelectedTipo('');
+      setSelectedMes(null);
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
       setIndicePrever('');
       setResultado('');
@@ -231,11 +248,11 @@ export function MaquinistaPE1603Tab({
       const { error } = await supabase
         .from('expedientes_1603')
         .update({ 
-          estado: 'Cerrado',
+          estado: 'cerrado',
           cierre_manual: true,
           fecha_cierre: new Date().toISOString(),
           cerrado_por: user?.id,
-        } as any)
+        })
         .eq('id', expediente1603.id);
 
       if (error) throw error;
@@ -280,11 +297,9 @@ export function MaquinistaPE1603Tab({
         .update({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
-          observaciones: [
-            indicePrever ? `Índice PREVER: ${indicePrever}` : '',
-            observaciones
-          ].filter(Boolean).join('\n') || null,
-        } as any)
+          indice_prever: indicePrever ? parseFloat(indicePrever) : null,
+          observaciones: observaciones || null,
+        })
         .eq('id', editingActuacion.id);
 
       if (error) throw error;
@@ -297,6 +312,7 @@ export function MaquinistaPE1603Tab({
       // Reset form and close
       setEditingActuacion(null);
       setSelectedTipo('');
+      setSelectedMes(null);
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
       setIndicePrever('');
       setResultado('');
@@ -317,43 +333,29 @@ export function MaquinistaPE1603Tab({
     }
   };
 
-  const openEditModal = (actuacion: any) => {
+  const openEditModal = (actuacion: any, tipo: TipoActuacion1603) => {
     setEditingActuacion(actuacion);
-    setSelectedTipo(actuacion.tipo);
+    setSelectedTipo(tipo);
     setFechaActuacion(actuacion.fecha_real);
-    
-    // Extract PREVER index from observaciones if present
-    const preverMatch = actuacion.observaciones?.match(/Índice PREVER:\s*([^\n]+)/);
-    setIndicePrever(preverMatch ? preverMatch[1].trim() : '');
-    
-    // Extract observaciones without PREVER
-    const cleanObs = actuacion.observaciones?.replace(/Índice PREVER:[^\n]*\n?/, '').trim() || '';
-    setObservaciones(cleanObs);
-    
+    setIndicePrever(actuacion.indice_prever?.toString() || '');
+    setObservaciones(actuacion.observaciones || '');
     setResultado(actuacion.resultado || '');
     setEditarOpen(true);
   };
 
   // Color map for action types
   const tipoColors: Record<TipoActuacion1603, { primary: [number, number, number]; light: [number, number, number] }> = {
-    'Acompañamiento': { primary: [59, 130, 246], light: [219, 234, 254] },
-    'Registro': { primary: [34, 197, 94], light: [220, 252, 231] },
-    'Alcohol': { primary: [249, 115, 22], light: [255, 237, 213] },
-    'Drogas': { primary: [168, 85, 247], light: [243, 232, 255] },
+    'acompanamiento': { primary: [59, 130, 246], light: [219, 234, 254] },
+    'registro': { primary: [34, 197, 94], light: [220, 252, 231] },
+    'alcohol': { primary: [249, 115, 22], light: [255, 237, 213] },
+    'drogas': { primary: [168, 85, 247], light: [243, 232, 255] },
   };
 
   const estadoColors: Record<string, [number, number, number]> = {
-    'Cumplida': [34, 197, 94],
-    'En ventana': [249, 115, 22],
-    'Vencida': [239, 68, 68],
-    'Pendiente': [156, 163, 175],
-  };
-
-  // Extract PREVER index from observaciones
-  const extractPreverIndex = (observaciones: string | null): string => {
-    if (!observaciones) return '-';
-    const match = observaciones.match(/Índice PREVER:\s*([^\n]+)/);
-    return match ? match[1].trim() : '-';
+    'cumplida': [34, 197, 94],
+    'en_ventana': [249, 115, 22],
+    'vencida': [239, 68, 68],
+    'pendiente': [156, 163, 175],
   };
 
   const handleExportPDF = async () => {
@@ -425,22 +427,26 @@ export function MaquinistaPE1603Tab({
     
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text(`Período: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')} - ${format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}`, 20, 94);
+    const fechaFinStr = fechaFinPrevista ? format(fechaFinPrevista, 'dd/MM/yyyy') : 'N/A';
+    doc.text(`Período: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')} - ${fechaFinStr}`, 20, 94);
     
     // Estado badge
-    const estadoColor = expediente1603.estado === 'Activo' ? [34, 197, 94] : [156, 163, 175];
+    const estadoLabel = expediente1603.estado === 'abierto' ? 'Activo' : 'Cerrado';
+    const estadoColor = expediente1603.estado === 'abierto' ? [34, 197, 94] : [156, 163, 175];
     doc.setFillColor(estadoColor[0], estadoColor[1], estadoColor[2]);
     doc.roundedRect(pageWidth - 50, 84, 36, 8, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
-    doc.text(expediente1603.estado, pageWidth - 32, 89.5, { align: 'center' });
+    doc.text(estadoLabel, pageWidth - 32, 89.5, { align: 'center' });
     
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(9);
-    doc.text(`Primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 20, 100);
+    if (expediente1603.fecha_primer_servicio) {
+      doc.text(`Primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 20, 100);
+    }
     
     // Show closure info if closed
-    if (expediente1603.estado === 'Cerrado' && expediente1603.fecha_cierre) {
+    if (expediente1603.estado === 'cerrado' && expediente1603.fecha_cierre) {
       const tipoCierre = expediente1603.cierre_manual ? 'Manual' : 'Automático';
       doc.text(`Cierre: ${tipoCierre} - ${format(parseISO(expediente1603.fecha_cierre), 'dd/MM/yyyy HH:mm')}`, 20, 106);
     }
@@ -456,11 +462,11 @@ export function MaquinistaPE1603Tab({
 
     const planData = tiposActuacion.map(tipo => {
       const bloques = plan1603.filter(b => b.tipo === tipo);
-      const cumplidos = bloques.filter(b => b.estadoCalculado === 'Cumplida').length;
-      const enVentana = bloques.filter(b => b.estadoCalculado === 'En ventana').length;
-      const vencidos = bloques.filter(b => b.estadoCalculado === 'Vencida').length;
-      const pendientes = bloques.filter(b => b.estadoCalculado === 'Pendiente').length;
-      return [tipo, bloques.length.toString(), cumplidos.toString(), enVentana.toString(), vencidos.toString(), pendientes.toString()];
+      const cumplidos = bloques.filter(b => getBlockState(b) === 'cumplida').length;
+      const enVentana = bloques.filter(b => getBlockState(b) === 'en_ventana').length;
+      const vencidos = bloques.filter(b => getBlockState(b) === 'vencida').length;
+      const pendientes = bloques.filter(b => getBlockState(b) === 'pendiente').length;
+      return [tipoLabels[tipo], bloques.length.toString(), cumplidos.toString(), enVentana.toString(), vencidos.toString(), pendientes.toString()];
     });
 
     autoTable(doc, {
@@ -473,26 +479,6 @@ export function MaquinistaPE1603Tab({
       bodyStyles: { textColor: [30, 41, 59] },
       tableLineColor: [130, 0, 94],
       tableLineWidth: 0.75,
-      willDrawCell: (data) => {
-        if (data.section === 'body' && data.column.index === 0) {
-          const tipo = data.cell.raw as TipoActuacion1603;
-          const colors = tipoColors[tipo];
-          if (colors) {
-            doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
-          }
-        }
-      },
-      didDrawCell: (data) => {
-        if (data.section === 'body' && data.column.index === 0) {
-          const tipo = data.cell.raw as TipoActuacion1603;
-          const colors = tipoColors[tipo];
-          if (colors) {
-            doc.setDrawColor(130, 0, 94); // Magenta corporativo
-            doc.setLineWidth(2);
-            doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
-          }
-        }
-      },
     });
 
     // Detailed blocks table
@@ -504,17 +490,18 @@ export function MaquinistaPE1603Tab({
     doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
 
     const bloquesData = plan1603
-      .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.orden - b.orden)
+      .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.mes - b.mes)
       .map(b => {
+        const window = getBlockWindow(b);
+        const estado = getBlockState(b);
         const actuacion = actuaciones?.find(a => a.tipo === b.tipo && b.actuacion_id === a.id);
-        const preverIndex = actuacion ? extractPreverIndex(actuacion.observaciones) : '-';
         return [
-          b.tipo,
-          b.etiqueta,
-          `${format(parseISO(b.inicio_ventana), 'dd/MM/yy')} - ${format(parseISO(b.fin_ventana), 'dd/MM/yy')}`,
-          b.estadoCalculado,
+          tipoLabels[b.tipo],
+          `Semestre ${b.mes}`,
+          window ? `${format(window.inicio, 'dd/MM/yy')} - ${format(window.fin, 'dd/MM/yy')}` : 'N/A',
+          estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' '),
           actuacion ? format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy') : '-',
-          preverIndex
+          actuacion?.indice_prever?.toString() || '-'
         ];
       });
 
@@ -531,35 +518,6 @@ export function MaquinistaPE1603Tab({
       columnStyles: {
         2: { cellWidth: 32 },
         5: { halign: 'center' },
-      },
-      willDrawCell: (data) => {
-        if (data.section === 'body') {
-          if (data.column.index === 0) {
-            const tipo = data.cell.raw as TipoActuacion1603;
-            const colors = tipoColors[tipo];
-            if (colors) {
-              doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
-            }
-          }
-          if (data.column.index === 3) {
-            const estado = data.cell.raw as string;
-            const color = estadoColors[estado];
-            if (color) {
-              doc.setFillColor(color[0] + 40 > 255 ? 255 : color[0] + 180, color[1] + 40 > 255 ? 255 : color[1] + 180, color[2] + 40 > 255 ? 255 : color[2] + 180);
-            }
-          }
-        }
-      },
-      didDrawCell: (data) => {
-        if (data.section === 'body' && data.column.index === 0) {
-          const tipo = data.cell.raw as TipoActuacion1603;
-          const colors = tipoColors[tipo];
-          if (colors) {
-            doc.setDrawColor(130, 0, 94); // Magenta corporativo
-            doc.setLineWidth(1.5);
-            doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
-          }
-        }
       },
     });
 
@@ -585,13 +543,11 @@ export function MaquinistaPE1603Tab({
       doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
       const actuacionesData = actuaciones.map(a => {
-        const preverIndex = extractPreverIndex(a.observaciones);
-        const cleanObs = a.observaciones?.replace(/Índice PREVER:[^\n]*\n?/, '').trim() || '-';
         return [
-          a.tipo,
+          tipoLabels[a.tipo as TipoActuacion1603] || a.tipo,
           format(parseISO(a.fecha_real), 'dd/MM/yyyy'),
-          preverIndex,
-          cleanObs
+          a.indice_prever?.toString() || '-',
+          a.observaciones || '-'
         ];
       });
 
@@ -606,26 +562,6 @@ export function MaquinistaPE1603Tab({
         columnStyles: {
           2: { halign: 'center', cellWidth: 28 },
           3: { cellWidth: 70 },
-        },
-        willDrawCell: (data) => {
-          if (data.section === 'body' && data.column.index === 0) {
-            const tipo = data.cell.raw as TipoActuacion1603;
-            const colors = tipoColors[tipo];
-            if (colors) {
-              doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
-            }
-          }
-        },
-        didDrawCell: (data) => {
-          if (data.section === 'body' && data.column.index === 0) {
-            const tipo = data.cell.raw as TipoActuacion1603;
-            const colors = tipoColors[tipo];
-            if (colors) {
-              doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-              doc.setLineWidth(1.5);
-              doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
-            }
-          }
         },
       });
     }
@@ -688,7 +624,7 @@ export function MaquinistaPE1603Tab({
       </div>
 
       {/* Warning if should auto-close */}
-      {deberiaCerrarseAuto && !expedienteCerrado && (
+      {deberiaCerrarseAuto && !expedienteCerrado && fechaFinPrevista && (
         <Card className="border-amber-500/50 bg-amber-500/10">
           <CardContent className="py-3 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600" />
@@ -697,7 +633,7 @@ export function MaquinistaPE1603Tab({
                 El período de vigilancia ha finalizado
               </p>
               <p className="text-xs text-amber-600">
-                La fecha fin prevista ({format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}) ya ha pasado. 
+                La fecha fin prevista ({format(fechaFinPrevista, 'dd/MM/yyyy')}) ya ha pasado. 
                 Se recomienda cerrar el expediente.
               </p>
             </div>
@@ -716,11 +652,11 @@ export function MaquinistaPE1603Tab({
               <CardTitle className="text-base">Expediente PE 16.03</CardTitle>
               <CardDescription>
                 Inicio: {format(new Date(expediente1603.fecha_inicio), 'dd/MM/yyyy')} • 
-                Fin previsto: {format(new Date(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}
+                Fin previsto: {fechaFinPrevista ? format(fechaFinPrevista, 'dd/MM/yyyy') : 'N/A'}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <StatusBadge estado={expediente1603.estado} />
+              <StatusBadge estado={expediente1603.estado === 'abierto' ? 'Activo' : 'Cerrado'} />
               {expedienteCerrado && (
                 <Badge variant="secondary" className="text-xs">
                   {expediente1603.cierre_manual ? 'Manual' : 'Automático'}
@@ -751,43 +687,49 @@ export function MaquinistaPE1603Tab({
             {tiposActuacion.map((tipo) => {
               const bloquesTipo = plan1603
                 .filter(b => b.tipo === tipo)
-                .sort((a, b) => a.orden - b.orden);
+                .sort((a, b) => a.mes - b.mes);
               
               if (bloquesTipo.length === 0) return null;
               
               return (
                 <div key={tipo} className="timeline-band">
                   <div className="timeline-label">
-                    {tipo}
+                    {tipoLabels[tipo]}
                   </div>
                   <div className="timeline-blocks">
-                    {bloquesTipo.map((bloque) => (
-                      <div 
-                        key={bloque.id} 
-                        className={`timeline-block ${
-                          bloque.estadoCalculado === 'Cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
-                          bloque.estadoCalculado === 'En ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
-                          bloque.estadoCalculado === 'Vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
-                          'bg-muted border border-border'
-                        }`}
-                      >
-                        <p className="font-medium text-xs mb-1">{bloque.etiqueta}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {format(new Date(bloque.inicio_ventana), 'dd/MM/yy')} - {format(new Date(bloque.fin_ventana), 'dd/MM/yy')}
-                        </p>
-                        <div className="mt-2">
-                          {bloque.estadoCalculado === 'Cumplida' ? (
-                            <CheckCircle2 className="w-4 h-4 text-status-ok mx-auto" />
-                          ) : bloque.estadoCalculado === 'Vencida' ? (
-                            <XCircle className="w-4 h-4 text-status-vencido mx-auto" />
-                          ) : bloque.estadoCalculado === 'En ventana' ? (
-                            <Clock className="w-4 h-4 text-status-proximo mx-auto" />
-                          ) : (
-                            <Calendar className="w-4 h-4 text-muted-foreground mx-auto" />
+                    {bloquesTipo.map((bloque) => {
+                      const estado = getBlockState(bloque);
+                      const window = getBlockWindow(bloque);
+                      return (
+                        <div 
+                          key={bloque.id} 
+                          className={`timeline-block ${
+                            estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
+                            estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
+                            estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
+                            'bg-muted border border-border'
+                          }`}
+                        >
+                          <p className="font-medium text-xs mb-1">Semestre {bloque.mes}</p>
+                          {window && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(window.inicio, 'dd/MM/yy')} - {format(window.fin, 'dd/MM/yy')}
+                            </p>
                           )}
+                          <div className="mt-2">
+                            {estado === 'cumplida' ? (
+                              <CheckCircle2 className="w-4 h-4 text-status-ok mx-auto" />
+                            ) : estado === 'vencida' ? (
+                              <XCircle className="w-4 h-4 text-status-vencido mx-auto" />
+                            ) : estado === 'en_ventana' ? (
+                              <Clock className="w-4 h-4 text-status-proximo mx-auto" />
+                            ) : (
+                              <Calendar className="w-4 h-4 text-muted-foreground mx-auto" />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -869,17 +811,20 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Introduce la fecha de la actuación. El sistema asignará automáticamente el periodo correspondiente.
+              Selecciona el tipo de actuación y el semestre correspondiente.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Select tipo de actuación - ya no limita por estado */}
+            {/* Select tipo de actuación */}
             <div className="space-y-2">
               <Label>Tipo de acción de vigilancia</Label>
               <Select 
                 value={selectedTipo} 
-                onValueChange={(v) => setSelectedTipo(v as TipoActuacion1603)}
+                onValueChange={(v) => {
+                  setSelectedTipo(v as TipoActuacion1603);
+                  setSelectedMes(null);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un tipo" />
@@ -892,13 +837,41 @@ export function MaquinistaPE1603Tab({
                         key={tipo} 
                         value={tipo}
                       >
-                        {tipo} ({sinCumplir} sin cumplir)
+                        {tipoLabels[tipo]} ({sinCumplir} sin cumplir)
                       </SelectItem>
                     );
                   })}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Select semestre */}
+            {selectedTipo && (
+              <div className="space-y-2">
+                <Label>Semestre</Label>
+                <Select 
+                  value={selectedMes?.toString() || ''} 
+                  onValueChange={(v) => setSelectedMes(parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un semestre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bloquesPendientesPorTipo[selectedTipo].map(bloque => {
+                      const window = getBlockWindow(bloque);
+                      return (
+                        <SelectItem 
+                          key={bloque.id} 
+                          value={bloque.mes.toString()}
+                        >
+                          Semestre {bloque.mes} {window ? `(${format(window.inicio, 'MM/yy')} - ${format(window.fin, 'MM/yy')})` : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Fecha */}
             <div className="space-y-2">
@@ -911,33 +884,6 @@ export function MaquinistaPE1603Tab({
               />
             </div>
 
-            {/* Bloque detectado */}
-            {selectedTipo && fechaActuacion && (
-              <div className="p-3 rounded-lg bg-muted/50 border">
-                {bloqueCoincidente ? (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-status-ok mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Periodo asignado automáticamente:</p>
-                      <p className="text-sm text-muted-foreground">
-                        {bloqueCoincidente.etiqueta} ({format(parseISO(bloqueCoincidente.inicio_ventana), 'dd/MM/yy')} - {format(parseISO(bloqueCoincidente.fin_ventana), 'dd/MM/yy')})
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-destructive">Fecha fuera de rango</p>
-                      <p className="text-xs text-muted-foreground">
-                        La fecha introducida no corresponde a ningún periodo sin cumplir para este tipo de acción.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Índice PREVER (opcional) */}
             <div className="space-y-2">
               <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
@@ -945,12 +891,12 @@ export function MaquinistaPE1603Tab({
                 type="text"
                 value={indicePrever}
                 onChange={(e) => setIndicePrever(e.target.value)}
-                placeholder="Ej: PRV-2026-0042"
+                placeholder="Ej: 4.5"
               />
             </div>
 
             {/* Resultado (para Alcohol/Drogas) */}
-            {selectedTipo && (selectedTipo === 'Alcohol' || selectedTipo === 'Drogas') && (
+            {selectedTipo && (selectedTipo === 'alcohol' || selectedTipo === 'drogas') && (
               <div className="space-y-2">
                 <Label>Resultado</Label>
                 <Select value={resultado} onValueChange={setResultado}>
@@ -983,7 +929,7 @@ export function MaquinistaPE1603Tab({
             </Button>
             <Button 
               onClick={handleRegistrar} 
-              disabled={saving || !selectedTipo || !fechaActuacion || !bloqueCoincidente}
+              disabled={saving || !selectedTipo || !selectedMes || !fechaActuacion}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar
@@ -1011,10 +957,10 @@ export function MaquinistaPE1603Tab({
                 <span className="font-medium">Maquinista:</span> {maquinista.nombre_apellidos}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Fecha fin prevista:</span> {format(parseISO(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}
+                <span className="font-medium">Fecha fin prevista:</span> {fechaFinPrevista ? format(fechaFinPrevista, 'dd/MM/yyyy') : 'N/A'}
               </p>
               <p className="text-sm">
-                <span className="font-medium">Bloques cumplidos:</span> {plan1603.filter(b => b.estadoCalculado === 'Cumplida').length} de {plan1603.length}
+                <span className="font-medium">Bloques cumplidos:</span> {plan1603.filter(b => b.actuacion_id !== null).length} de {plan1603.length}
               </p>
             </div>
 
@@ -1067,7 +1013,7 @@ export function MaquinistaPE1603Tab({
             <div className="space-y-2">
               <Label>Tipo de acción</Label>
               <Input
-                value={selectedTipo}
+                value={selectedTipo ? tipoLabels[selectedTipo] : ''}
                 disabled
                 className="bg-muted"
               />
@@ -1091,12 +1037,12 @@ export function MaquinistaPE1603Tab({
                 type="text"
                 value={indicePrever}
                 onChange={(e) => setIndicePrever(e.target.value)}
-                placeholder="Ej: PRV-2026-0042"
+                placeholder="Ej: 4.5"
               />
             </div>
 
             {/* Resultado (para Alcohol/Drogas) */}
-            {selectedTipo && (selectedTipo === 'Alcohol' || selectedTipo === 'Drogas') && (
+            {selectedTipo && (selectedTipo === 'alcohol' || selectedTipo === 'drogas') && (
               <div className="space-y-2">
                 <Label>Resultado</Label>
                 <Select value={resultado} onValueChange={setResultado}>
