@@ -28,7 +28,11 @@ export interface Plan1603DB {
   expediente_id: string;
   actuacion_id: string | null;
   tipo: TipoActuacion1603;
+  etiqueta: string | null;
+  orden: number | null;
   mes: number;
+  inicio_ventana: string | null;
+  fin_ventana: string | null;
   estado: EstadoBloque1603;
   created_at: string;
 }
@@ -125,16 +129,48 @@ export function useExpedientes1603() {
 
         const planExpediente = (planesData || []).filter(p => p.expediente_id === exp.id);
         
-        // Calculate estado for each bloque
-        const planConEstado = planExpediente.map(bloque => ({
-          ...bloque,
-          tipo: bloque.tipo as TipoActuacion1603,
-          estado: bloque.estado as EstadoBloque1603,
-          estadoCalculado: bloque.actuacion_id ? 'realizado' : bloque.estado
-        }));
-
-        const cumplidas = planConEstado.filter(b => b.estadoCalculado === 'realizado').length;
-        const pendientes = planConEstado.filter(b => b.estadoCalculado === 'pendiente').length;
+        // Calculate estado for each bloque based on ventana dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let vencidas = 0;
+        let enVentana = 0;
+        let cumplidas = 0;
+        let pendientes = 0;
+        
+        const planConEstado = planExpediente.map(bloque => {
+          let estadoCalculado = 'pendiente';
+          
+          if (bloque.actuacion_id) {
+            estadoCalculado = 'realizado';
+            cumplidas++;
+          } else if (bloque.inicio_ventana && bloque.fin_ventana) {
+            const inicioVentana = new Date(bloque.inicio_ventana);
+            const finVentana = new Date(bloque.fin_ventana);
+            inicioVentana.setHours(0, 0, 0, 0);
+            finVentana.setHours(23, 59, 59, 999);
+            
+            if (today > finVentana) {
+              estadoCalculado = 'vencida';
+              vencidas++;
+            } else if (today >= inicioVentana && today <= finVentana) {
+              estadoCalculado = 'en_ventana';
+              enVentana++;
+            } else {
+              // Aún no abre (futuro)
+              pendientes++;
+            }
+          } else {
+            pendientes++;
+          }
+          
+          return {
+            ...bloque,
+            tipo: bloque.tipo as TipoActuacion1603,
+            estado: bloque.estado as EstadoBloque1603,
+            estadoCalculado
+          };
+        });
 
         // Calculate days remaining (3 years from fecha_primer_servicio)
         let diasRestantes = 0;
@@ -152,8 +188,8 @@ export function useExpedientes1603() {
           maquinista,
           plan: planConEstado as (Plan1603DB & { estadoCalculado: string })[],
           resumen: { 
-            vencidas: 0, 
-            enVentana: 0, 
+            vencidas, 
+            enVentana, 
             cumplidas, 
             pendientes, 
             diasRestantes 
