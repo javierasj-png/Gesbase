@@ -95,6 +95,16 @@ export function MaquinistaPE1603Tab({
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
+  const parseIndicePrever = (raw: string): number | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    // permitir coma decimal
+    const normalized = trimmed.replace(',', '.');
+    const val = Number.parseFloat(normalized);
+    if (Number.isNaN(val)) return null;
+    return val;
+  };
+
   // Check if expediente is closed
   const expedienteCerrado = expediente1603?.estado === 'cerrado';
   
@@ -245,6 +255,16 @@ export function MaquinistaPE1603Tab({
 
     setSaving(true);
     try {
+      const indicePreverValue = parseIndicePrever(indicePrever);
+      if (indicePrever.trim() && indicePreverValue === null) {
+        toast({
+          title: 'Dato inválido',
+          description: 'El Índice PREVER debe ser numérico.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // 1. Create actuacion
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1603')
@@ -253,8 +273,9 @@ export function MaquinistaPE1603Tab({
           tipo: selectedTipo,
           fecha_real: fechaActuacion,
           resultado: resultado || null,
-          indice_prever: indicePrever ? parseFloat(indicePrever) : null,
+          indice_prever: indicePreverValue,
           observaciones: observaciones || null,
+          registrado_por: user?.id ?? null,
         })
         .select()
         .single();
@@ -292,7 +313,7 @@ export function MaquinistaPE1603Tab({
       console.error('Error registering actuacion:', err);
       toast({
         title: 'Error',
-        description: 'No se pudo registrar la actuación',
+        description: (err as any)?.message || 'No se pudo registrar la actuación',
         variant: 'destructive',
       });
     } finally {
@@ -352,12 +373,22 @@ export function MaquinistaPE1603Tab({
 
     setSaving(true);
     try {
+      const indicePreverValue = parseIndicePrever(indicePrever);
+      if (indicePrever.trim() && indicePreverValue === null) {
+        toast({
+          title: 'Dato inválido',
+          description: 'El Índice PREVER debe ser numérico.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('actuaciones_1603')
         .update({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
-          indice_prever: indicePrever ? parseFloat(indicePrever) : null,
+          indice_prever: indicePreverValue,
           observaciones: observaciones || null,
         })
         .eq('id', editingActuacion.id);
@@ -385,7 +416,7 @@ export function MaquinistaPE1603Tab({
       console.error('Error updating actuacion:', err);
       toast({
         title: 'Error',
-        description: 'No se pudo actualizar la actuación',
+        description: (err as any)?.message || 'No se pudo actualizar la actuación',
         variant: 'destructive',
       });
     } finally {
