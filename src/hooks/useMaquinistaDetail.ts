@@ -41,6 +41,10 @@ export interface PlanBloque1603 {
   mes: number;
   estado: EstadoBloque1603;
   created_at: string;
+  etiqueta?: string | null;
+  orden?: number | null;
+  inicio_ventana?: string | null;
+  fin_ventana?: string | null;
 }
 
 export function useMaquinistaDetail(id: string | undefined) {
