@@ -775,99 +775,106 @@ export function MaquinistaPE1201Tab({
             </p>
           </div>
 
-          {/* Hitos por tipo */}
-          {Object.entries(planPorTipo).map(([tipo, bloques]) => (
-            <div key={tipo} className="border rounded-lg p-4">
-              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                {tipo === 'acompanamiento' ? (
-                  <Users className="w-4 h-4 text-primary" />
-                ) : tipo === 'registro' ? (
-                  <FileText className="w-4 h-4 text-primary" />
-                ) : (
-                  <Calendar className="w-4 h-4 text-primary" />
-                )}
-                {tipoLabels[tipo] || tipo}
-              </h4>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {bloques.map((bloque) => {
-                  const estado = getBlockState(bloque);
-                  const isEditable = puedeEditar && bloque.actuacion_id;
-                  const actuacion = actuaciones.find(a => a.id === bloque.actuacion_id);
-                  
-                  // Calculate window dates (±2 days from objective)
-                  const fechaObjetivo = bloque.fecha_objetivo ? parseISO(bloque.fecha_objetivo) : null;
-                  const inicioVentana = fechaObjetivo ? addDays(fechaObjetivo, -2) : null;
-                  const finVentana = fechaObjetivo ? addDays(fechaObjetivo, 2) : null;
-                  
-                  return (
-                    <div 
-                      key={bloque.id} 
-                      className={`min-w-[130px] p-3 rounded-lg text-center ${
-                        estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
-                        estado === 'no_procede' ? 'bg-muted/50 border border-muted-foreground/30' :
-                        estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo' :
-                        estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
-                        'bg-muted border border-border'
-                      } ${isEditable ? 'cursor-pointer hover:opacity-80' : ''}`}
-                      onClick={() => actuacion && isEditable && openEditModal(actuacion)}
-                    >
-                      <p className="font-medium text-sm">{bloque.etiqueta}</p>
-                      {/* Show window like PE 16.03 */}
-                      {inicioVentana && finVentana && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(inicioVentana, 'dd/MM')} - {format(finVentana, 'dd/MM')}
-                        </p>
-                      )}
-                      <div className="mt-2 flex items-center justify-center gap-1">
-                        {estado === 'cumplida' ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-status-ok" />
-                            {isEditable && <Pencil className="w-3 h-3 text-muted-foreground" />}
-                          </>
-                        ) : estado === 'no_procede' ? (
-                          <Ban className="w-4 h-4 text-muted-foreground" />
-                        ) : estado === 'vencida' ? (
-                          <XCircle className="w-4 h-4 text-status-vencido" />
-                        ) : estado === 'en_ventana' ? (
-                          <Clock className="w-4 h-4 text-status-proximo" />
-                        ) : (
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                        )}
+          {/* Timeline por bandas - igual que PE 16.03 */}
+          <div className="border rounded-lg overflow-hidden">
+            {Object.entries(planPorTipo).map(([tipo, bloques]) => {
+              if (bloques.length === 0) return null;
+              
+              return (
+                <div key={tipo} className="timeline-band">
+                  <div className="timeline-label">
+                    {tipo === 'acompanamiento' ? (
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {tipoLabels[tipo] || tipo}
                       </div>
-                      {/* Mark as no procede or revert */}
-                      {puedeEditar && !bloque.actuacion_id && bloque.estado !== 'no_procede' && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="mt-2 text-xs h-6 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMarcarNoProcede(bloque.id);
-                          }}
+                    ) : tipo === 'registro' ? (
+                      <div className="flex items-center gap-1">
+                        <FileText className="w-3 h-3" />
+                        {tipoLabels[tipo] || tipo}
+                      </div>
+                    ) : (
+                      tipoLabels[tipo] || tipo
+                    )}
+                  </div>
+                  <div className="timeline-blocks">
+                    {bloques.map((bloque) => {
+                      const estado = getBlockState(bloque);
+                      const window = getBlockWindow(bloque);
+                      const isEditable = puedeEditar && bloque.actuacion_id;
+                      const actuacion = actuaciones.find(a => a.id === bloque.actuacion_id);
+                      
+                      return (
+                        <div 
+                          key={bloque.id} 
+                          className={`timeline-block ${
+                            estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
+                            estado === 'no_procede' ? 'bg-muted/50 border border-muted-foreground/30' :
+                            estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
+                            estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
+                            'bg-muted border border-border'
+                          } ${isEditable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                          onClick={() => actuacion && isEditable && openEditModal(actuacion)}
+                          title={isEditable ? 'Clic para editar' : undefined}
                         >
-                          No procede
-                        </Button>
-                      )}
-                      {/* Revert no procede */}
-                      {puedeEditar && bloque.estado === 'no_procede' && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="mt-2 text-xs h-6 px-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRevertirNoProcede(bloque.id);
-                          }}
-                        >
-                          Restaurar
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+                          <p className="font-medium text-xs mb-1">{bloque.etiqueta}</p>
+                          {window && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(window.inicio, 'dd/MM/yy')} - {format(window.fin, 'dd/MM/yy')}
+                            </p>
+                          )}
+                          <div className="mt-2 flex items-center justify-center gap-1">
+                            {estado === 'cumplida' ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-status-ok" />
+                                {isEditable && <Pencil className="w-3 h-3 text-muted-foreground" />}
+                              </>
+                            ) : estado === 'no_procede' ? (
+                              <Ban className="w-4 h-4 text-muted-foreground" />
+                            ) : estado === 'vencida' ? (
+                              <XCircle className="w-4 h-4 text-status-vencido" />
+                            ) : estado === 'en_ventana' ? (
+                              <Clock className="w-4 h-4 text-status-proximo" />
+                            ) : (
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
+                          {/* Mark as no procede */}
+                          {puedeEditar && !bloque.actuacion_id && bloque.estado !== 'no_procede' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="mt-2 text-xs h-5 px-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarcarNoProcede(bloque.id);
+                              }}
+                            >
+                              No procede
+                            </Button>
+                          )}
+                          {/* Revert no procede */}
+                          {puedeEditar && bloque.estado === 'no_procede' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="mt-2 text-xs h-5 px-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRevertirNoProcede(bloque.id);
+                              }}
+                            >
+                              Restaurar
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
           {/* Leyenda */}
           <div className="flex items-center gap-4 text-xs border-t pt-3">
