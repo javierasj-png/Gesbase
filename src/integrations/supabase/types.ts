@@ -467,6 +467,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalcular_plan_1603: {
+        Args: { _expediente_id: string; _fecha_origen: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "mando"
