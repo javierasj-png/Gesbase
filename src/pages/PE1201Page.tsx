@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { format, addDays, differenceInDays } from 'date-fns';
 import { format, addDays, differenceInDays } from 'date-fns';
 
 // TODO: Cuando se implemente PE 12.01 con base de datos, reemplazar estos mock data
@@ -37,12 +39,20 @@ import {
 
 export default function PE1201Page() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useState<string>('all');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
   const [bases, setBases] = useState<{id: string; nombre: string}[]>([]);
   
   const { isAdmin, assignedBases } = useAuth();
+
+  const handleNuevoExpediente = () => {
+    toast({
+      title: 'Funcionalidad en desarrollo',
+      description: 'La creación de expedientes PE 12.01 estará disponible próximamente. Por ahora, los expedientes de ejemplo son datos de demostración.',
+    });
+  };
   
   // Cargar bases de la BD y filtrar según permisos del usuario
   useEffect(() => {
@@ -131,7 +141,7 @@ export default function PE1201Page() {
               Gestión de expedientes tras suceso con programación ad-hoc
             </p>
           </div>
-          <Button>
+          <Button onClick={handleNuevoExpediente}>
             <Plus className="w-4 h-4 mr-2" />
             Nuevo Expediente
           </Button>

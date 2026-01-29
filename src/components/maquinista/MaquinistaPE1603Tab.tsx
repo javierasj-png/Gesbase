@@ -33,7 +33,8 @@ import {
   Printer,
   Lock,
   User,
-  CalendarClock
+  CalendarClock,
+  Pencil
 } from 'lucide-react';
 import { format, isWithinInterval, parseISO, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -73,8 +74,10 @@ export function MaquinistaPE1603Tab({
   const { isAdmin, user } = useAuth();
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [editingActuacion, setEditingActuacion] = useState<any>(null);
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
@@ -256,6 +259,81 @@ export function MaquinistaPE1603Tab({
     }
   };
 
+  // Handle edit actuacion
+  const handleEditarActuacion = async () => {
+    if (!editingActuacion) return;
+    
+    // Validar permisos si está cerrado
+    if (expedienteCerrado && !isAdmin) {
+      toast({
+        title: 'Sin permisos',
+        description: 'Solo un administrador puede modificar una ficha cerrada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('actuaciones_1603')
+        .update({
+          fecha_real: fechaActuacion,
+          resultado: resultado || null,
+          observaciones: [
+            indicePrever ? `Índice PREVER: ${indicePrever}` : '',
+            observaciones
+          ].filter(Boolean).join('\n') || null,
+        } as any)
+        .eq('id', editingActuacion.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Actuación actualizada',
+        description: 'Los cambios se han guardado correctamente',
+      });
+
+      // Reset form and close
+      setEditingActuacion(null);
+      setSelectedTipo('');
+      setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
+      setIndicePrever('');
+      setResultado('');
+      setObservaciones('');
+      setEditarOpen(false);
+      
+      // Refresh data
+      onRefetch();
+    } catch (err) {
+      console.error('Error updating actuacion:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar la actuación',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditModal = (actuacion: any) => {
+    setEditingActuacion(actuacion);
+    setSelectedTipo(actuacion.tipo);
+    setFechaActuacion(actuacion.fecha_real);
+    
+    // Extract PREVER index from observaciones if present
+    const preverMatch = actuacion.observaciones?.match(/Índice PREVER:\s*([^\n]+)/);
+    setIndicePrever(preverMatch ? preverMatch[1].trim() : '');
+    
+    // Extract observaciones without PREVER
+    const cleanObs = actuacion.observaciones?.replace(/Índice PREVER:[^\n]*\n?/, '').trim() || '';
+    setObservaciones(cleanObs);
+    
+    setResultado(actuacion.resultado || '');
+    setEditarOpen(true);
+  };
+
   // Color map for action types
   const tipoColors: Record<TipoActuacion1603, { primary: [number, number, number]; light: [number, number, number] }> = {
     'Acompañamiento': { primary: [59, 130, 246], light: [219, 234, 254] },
@@ -391,8 +469,10 @@ export function MaquinistaPE1603Tab({
       body: planData,
       theme: 'grid',
       headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 4 },
+      styles: { fontSize: 9, cellPadding: 4, lineColor: [152, 153, 155], lineWidth: 0.5 },
       bodyStyles: { textColor: [30, 41, 59] },
+      tableLineColor: [130, 0, 94],
+      tableLineWidth: 0.75,
       willDrawCell: (data) => {
         if (data.section === 'body' && data.column.index === 0) {
           const tipo = data.cell.raw as TipoActuacion1603;
@@ -407,7 +487,7 @@ export function MaquinistaPE1603Tab({
           const tipo = data.cell.raw as TipoActuacion1603;
           const colors = tipoColors[tipo];
           if (colors) {
-            doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.setDrawColor(130, 0, 94); // Magenta corporativo
             doc.setLineWidth(2);
             doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
           }
@@ -444,8 +524,10 @@ export function MaquinistaPE1603Tab({
       body: bloquesData,
       theme: 'grid',
       headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 3, lineColor: [152, 153, 155], lineWidth: 0.5 },
       bodyStyles: { textColor: [30, 41, 59] },
+      tableLineColor: [130, 0, 94],
+      tableLineWidth: 0.75,
       columnStyles: {
         2: { cellWidth: 32 },
         5: { halign: 'center' },
@@ -473,7 +555,7 @@ export function MaquinistaPE1603Tab({
           const tipo = data.cell.raw as TipoActuacion1603;
           const colors = tipoColors[tipo];
           if (colors) {
-            doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+            doc.setDrawColor(130, 0, 94); // Magenta corporativo
             doc.setLineWidth(1.5);
             doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
           }
@@ -750,7 +832,7 @@ export function MaquinistaPE1603Tab({
                   onClick={() => setCerrarOpen(true)}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Cerrar Ficha Manualmente
+                  Cierre Manual del Expediente
                 </Button>
               )}
             </div>
@@ -916,10 +998,10 @@ export function MaquinistaPE1603Tab({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-primary" />
-              Cerrar Ficha Manualmente
+              Cierre Manual del Expediente
             </DialogTitle>
             <DialogDescription>
-              Al cerrar la ficha manualmente, quedará bloqueada y solo un administrador podrá modificarla.
+              Al cerrar el expediente manualmente, quedará bloqueado y solo un administrador podrá modificarlo.
             </DialogDescription>
           </DialogHeader>
 
@@ -958,7 +1040,99 @@ export function MaquinistaPE1603Tab({
               disabled={closing}
             >
               {closing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Cerrar Ficha
+              Cerrar Expediente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar Actuación */}
+      <Dialog open={editarOpen} onOpenChange={(open) => {
+        setEditarOpen(open);
+        if (!open) setEditingActuacion(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              Editar Actuación
+            </DialogTitle>
+            <DialogDescription>
+              Modifica los datos de la actuación registrada.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Tipo (solo lectura) */}
+            <div className="space-y-2">
+              <Label>Tipo de acción</Label>
+              <Input
+                value={selectedTipo}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+
+            {/* Fecha */}
+            <div className="space-y-2">
+              <Label>Fecha de la actuación</Label>
+              <Input
+                type="date"
+                value={fechaActuacion}
+                onChange={(e) => setFechaActuacion(e.target.value)}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            {/* Índice PREVER (opcional) */}
+            <div className="space-y-2">
+              <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                type="text"
+                value={indicePrever}
+                onChange={(e) => setIndicePrever(e.target.value)}
+                placeholder="Ej: PRV-2026-0042"
+              />
+            </div>
+
+            {/* Resultado (para Alcohol/Drogas) */}
+            {selectedTipo && (selectedTipo === 'Alcohol' || selectedTipo === 'Drogas') && (
+              <div className="space-y-2">
+                <Label>Resultado</Label>
+                <Select value={resultado} onValueChange={setResultado}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona resultado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Negativo">Negativo</SelectItem>
+                    <SelectItem value="Positivo">Positivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Observaciones */}
+            <div className="space-y-2">
+              <Label>Observaciones <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Textarea
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                placeholder="Notas adicionales sobre la actuación..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditarOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleEditarActuacion} 
+              disabled={saving || !fechaActuacion}
+            >
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>
