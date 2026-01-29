@@ -123,13 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     return { error: error as Error | null };
   };
 
   const signUp = async (email: string, password: string, nombre?: string, apellidos?: string) => {
+    const emailTrimmed = email.trim();
     const { error, data } = await supabase.auth.signUp({
-      email,
+      email: emailTrimmed,
       password,
       options: {
         emailRedirectTo: window.location.origin,
@@ -137,12 +138,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Update profile with nombre/apellidos after signup
-    if (!error && data.user && (nombre || apellidos)) {
-      await supabase
+    // Ensure profile exists (avoid relying on DB triggers)
+    // Works when auto-confirm is enabled and session is created immediately.
+    if (!error && data.user && data.session) {
+      const { error: profileUpsertError } = await supabase
         .from('profiles')
-        .update({ nombre, apellidos })
-        .eq('user_id', data.user.id);
+        .upsert(
+          {
+            user_id: data.user.id,
+            email: emailTrimmed,
+            nombre: nombre || null,
+            apellidos: apellidos || null,
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (profileUpsertError) {
+        console.error('Error creating/updating profile after signup:', profileUpsertError);
+      }
     }
 
     return { error: error as Error | null };
