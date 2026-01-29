@@ -571,11 +571,48 @@ export function MaquinistaPE1603Tab({
     // Reset
     doc.setTextColor(0, 0, 0);
 
+    // Calculate overall compliance percentage
+    const totalBloques = plan1603.length;
+    const bloquesCumplidos = plan1603.filter(b => getBlockState(b) === 'cumplida').length;
+    const porcentajeCumplimiento = totalBloques > 0 ? Math.round((bloquesCumplidos / totalBloques) * 100) : 0;
+
+    // Compliance percentage display
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(130, 0, 94);
+    doc.text('% CUMPLIMIENTO DEL PLAN', 14, 118);
+    
+    // Draw percentage box
+    const boxX = 90;
+    const boxY = 110;
+    const boxWidth = 40;
+    const boxHeight = 14;
+    
+    // Background color based on percentage
+    if (porcentajeCumplimiento >= 75) {
+      doc.setFillColor(34, 197, 94); // Green
+    } else if (porcentajeCumplimiento >= 50) {
+      doc.setFillColor(234, 179, 8); // Yellow
+    } else {
+      doc.setFillColor(239, 68, 68); // Red
+    }
+    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 3, 3, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text(`${porcentajeCumplimiento}%`, boxX + boxWidth / 2, boxY + 9.5, { align: 'center' });
+    
+    // Additional stats text
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`(${bloquesCumplidos} de ${totalBloques} bloques cumplidos)`, boxX + boxWidth + 5, boxY + 9);
+
     // Plan summary with colored rows
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(130, 0, 94);
-    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 120);
+    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 138);
 
     const planData = tiposActuacion.map(tipo => {
       const bloques = plan1603.filter(b => b.tipo === tipo);
@@ -587,7 +624,7 @@ export function MaquinistaPE1603Tab({
     });
 
     autoTable(doc, {
-      startY: 124,
+      startY: 142,
       head: [['Tipo de Acción', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
       body: planData,
       theme: 'grid',

@@ -48,7 +48,7 @@ export interface BaseCertificacion {
   certificacionId: string;
   vigilarVencimiento: boolean;
   periodoInactividadMeses: number; // default 12
-  avisoDias: number; // default 60
+  avisoDias: number; // default 90
   obligatoria: boolean; // default false
 }
 
