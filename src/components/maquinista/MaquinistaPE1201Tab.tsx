@@ -176,12 +176,12 @@ export function MaquinistaPE1201Tab({
           setPlan(planData as PlanBloque1201[]);
         }
 
-        // Fetch actuaciones
+        // Fetch actuaciones - orden ascendente por fecha
         const { data: actData } = await supabase
           .from('actuaciones_1201')
           .select('*')
           .eq('expediente_id', expData.id)
-          .order('fecha_real', { ascending: false });
+          .order('fecha_real', { ascending: true });
 
         if (actData) {
           setActuaciones(actData as Actuacion1201[]);
@@ -611,6 +611,8 @@ export function MaquinistaPE1201Tab({
 
     setSaving(true);
     try {
+      const fechaCambio = editFechaPrimerServicio !== expediente.fecha_primer_servicio;
+      
       const { error } = await supabase
         .from('expedientes_1201')
         .update({
@@ -625,9 +627,24 @@ export function MaquinistaPE1201Tab({
 
       if (error) throw error;
 
+      // Si cambió la fecha de primer servicio, recalcular el plan
+      if (fechaCambio) {
+        const { error: recalcError } = await supabase.rpc('recalcular_plan_1201', {
+          _expediente_id: expediente.id,
+          _fecha_origen: editFechaPrimerServicio,
+        });
+        
+        if (recalcError) {
+          console.error('Error recalculando plan:', recalcError);
+          // No lanzamos error porque el expediente ya se actualizó
+        }
+      }
+
       toast({
         title: 'Expediente actualizado',
-        description: 'Los cambios se han guardado correctamente.',
+        description: fechaCambio 
+          ? 'Los cambios se han guardado y el plan ha sido recalculado.' 
+          : 'Los cambios se han guardado correctamente.',
       });
 
       setEditarExpedienteOpen(false);
