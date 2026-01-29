@@ -1,83 +1,86 @@
 
-# Plan: Añadir selector de "Obligatoria" para certificaciones
+# Plan: Corregir migración y eliminar botón "Nuevo Maquinista"
 
 ## Resumen
 
-Se añadirá la posibilidad de que el administrador pueda marcar/desmarcar una certificación como obligatoria directamente en la tabla de certificaciones del maquinista. Esta funcionalidad estará disponible solo para usuarios con rol de administrador.
+Este plan aborda dos cambios:
+1. **Corregir el error de migración** causado por conflictos con políticas RLS
+2. **Eliminar el botón "+ Nuevo Maquinista"** de la página de Maquinistas
 
-## Cambios a implementar
+---
 
-### 1. Actualizar el componente MaquinistaCertificacionesTab
+## 1. Corregir la migración de base de datos
 
-**Archivo:** `src/components/maquinista/MaquinistaCertificacionesTab.tsx`
+El error actual se produce porque el sistema de migraciones está intentando recrear la función `can_access_base` que tiene políticas RLS dependientes. 
 
-- Importar el hook `useAuth` para verificar si el usuario actual es administrador
-- Añadir una nueva columna "Obligatoria" en la tabla con un `Checkbox`
-- El checkbox solo será interactivo si:
-  - El usuario es administrador
-  - La certificación está marcada como "obtenida" por el maquinista
-- Para usuarios no administradores, se mostrará solo un indicador visual (badge o texto)
+### Solución
 
-### 2. Actualizar el hook useMaquinistaCertificaciones
+Reescribir la migración para que sea más simple y no interfiera con funciones existentes:
 
-**Archivo:** `src/hooks/useMaquinistaCertificaciones.ts`
+- Añadir solo las columnas nuevas a `expedientes_1603`:
+  - `cierre_manual` (boolean)
+  - `fecha_cierre` (timestamp)
+  - `cerrado_por` (uuid)
 
-- Añadir nueva función `toggleObligatoria(certificacionId: string, obligatoria: boolean)`
-- Esta función actualizará el campo `obligatoria` en la tabla `maquinista_certificaciones`
-- Si la certificación aún no está asignada al maquinista (no obtenida), no se permitirá el cambio
+- Usar `CREATE OR REPLACE FUNCTION` para actualizar la función de cierre automático sin afectar otras funciones
 
-## Diseño de la interfaz
+**Archivo a modificar:** `supabase/migrations/20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql`
 
-```text
-+----------+--------+---------------+--------------+--------+----------------+----------+------+--------+
-| Obtenida |  Tipo  | Certificación | Obligatoria  | Vigilar| Último Servicio| Venc.Est.| Días | Estado |
-+----------+--------+---------------+--------------+--------+----------------+----------+------+--------+
-|   [x]    | línea  | AVE Madrid    |    [x]       |  ...   |   01/05/2025   | 01/05/26 |  95  | Vigente|
-|   [ ]    | vehíc. | Serie 103     |    [ ]  *    |  ...   |       -        |    -     |  -   | Pend.  |
-+----------+--------+---------------+--------------+--------+----------------+----------+------+--------+
+La migración corregida incluirá:
+```sql
+-- Solo añade columnas nuevas
+ALTER TABLE public.expedientes_1603 
+ADD COLUMN IF NOT EXISTS cierre_manual boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS fecha_cierre timestamp with time zone,
+ADD COLUMN IF NOT EXISTS cerrado_por uuid;
 
-* El checkbox de "Obligatoria" estará deshabilitado si la certificación no está obtenida
-  o si el usuario no es administrador
+-- Actualiza la función existente
+CREATE OR REPLACE FUNCTION public.cerrar_expedientes_1603_expirados()
+...
 ```
+
+---
+
+## 2. Eliminar botón "Nuevo Maquinista"
+
+Según lo solicitado, se eliminará el botón de la página de Maquinistas ya que la creación de maquinistas se gestiona desde el panel de Administración.
+
+**Archivo a modificar:** `src/pages/MaquinistasPage.tsx`
+
+### Cambios:
+- Eliminar el import de `Plus` de lucide-react
+- Eliminar el `<Button>` que redirige a `/admin`
+- El header quedará solo con el título y descripción
+
+### Código actual (a eliminar):
+```tsx
+<Button onClick={() => navigate('/admin')}>
+  <Plus className="w-4 h-4 mr-2" />
+  Nuevo Maquinista
+</Button>
+```
+
+### Resultado visual:
+```
++--------------------------------------------------+
+| Maquinistas                                      |
+| Censo de maquinistas y acceso a fichas           |
++--------------------------------------------------+
+```
+
+---
 
 ## Detalles técnicos
 
-### Cambios en MaquinistaCertificacionesTab.tsx
+### Archivos modificados
 
-1. Nueva columna en el header de la tabla:
-   - Posición: Entre "Certificación" y "Vigilar"
-   - Título: "Obligatoria"
-   - Alineación: Centro
+| Archivo | Cambio |
+|---------|--------|
+| `supabase/migrations/...sql` | Simplificar migración, eliminar posibles conflictos |
+| `src/pages/MaquinistasPage.tsx` | Eliminar botón y import no usado |
 
-2. Nueva celda en cada fila:
-   - Checkbox controlado por `item.obligatoria`
-   - `disabled` si `!isAdmin` o `!item.obtenida`
-   - Al cambiar: llamar a `toggleObligatoria(item.certificacion_id, !item.obligatoria)`
+### Impacto
 
-### Nueva función en useMaquinistaCertificaciones.ts
-
-```typescript
-const toggleObligatoria = async (
-  certificacionId: string, 
-  obligatoria: boolean
-): Promise<boolean> => {
-  // 1. Verificar que la certificación esté asignada (obtenida)
-  // 2. Actualizar en maquinista_certificaciones
-  // 3. Refrescar datos
-  // 4. Mostrar toast de confirmación
-}
-```
-
-## Flujo de usuario
-
-1. El administrador entra a la ficha de un maquinista
-2. Navega a la pestaña "Certificaciones"
-3. En la tabla, ve la nueva columna "Obligatoria"
-4. Para certificaciones ya obtenidas, puede hacer clic en el checkbox para cambiar si es obligatoria
-5. El sistema actualiza la base de datos y muestra un mensaje de confirmación
-6. Los KPIs de "Obligatorias sin obtener" se recalculan automáticamente
-
-## Seguridad
-
-- Solo usuarios con rol `admin` podrán modificar el campo
-- Las políticas RLS existentes en `maquinista_certificaciones` ya permiten que los mandos actualicen certificaciones de maquinistas de sus bases, pero la UI solo habilitará el control para administradores
+- **Sin impacto en funcionalidad existente**: Los usuarios pueden seguir creando maquinistas desde Administración
+- **Mejor UX**: Se elimina confusión sobre dónde crear maquinistas
+- **Base de datos**: Se añaden campos para gestión de cierre manual/automático de expedientes PE 16.03
