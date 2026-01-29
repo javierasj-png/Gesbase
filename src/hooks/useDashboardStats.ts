@@ -139,31 +139,26 @@ export function useDashboardStats(baseFilter?: string) {
               
               const { data: planItems } = await supabase
                 .from('plan_1603')
-                .select('id, expediente_id, estado, actuacion_id, mes, tipo')
-                .in('expediente_id', expIds);
-
-              const { data: actuaciones } = await supabase
-                .from('actuaciones_1603')
-                .select('id, expediente_id, fecha_real')
+                .select('id, expediente_id, estado, actuacion_id, mes, tipo, inicio_ventana, fin_ventana')
                 .in('expediente_id', expIds);
 
               if (planItems) {
-                // Acciones pendientes = sin actuacion_id
-                newStats.pe1603AccionesPendientes = planItems.filter(p => !p.actuacion_id).length;
-                
-                // Acciones vencidas = pendientes fuera de ventana
                 const today = new Date();
+                
                 for (const item of planItems) {
                   if (item.actuacion_id) continue; // ya realizada
                   
-                  const exp = expActivos.find(e => e.id === item.expediente_id);
-                  if (!exp?.fecha_primer_servicio) continue;
-                  
-                  const inicio = new Date(exp.fecha_primer_servicio);
-                  const finVentana = addMonths(inicio, item.mes);
-                  
-                  if (today > finVentana) {
-                    newStats.pe1603AccionesVencidas++;
+                  // Usar inicio_ventana y fin_ventana de la DB
+                  if (item.fin_ventana) {
+                    const finVentana = new Date(item.fin_ventana);
+                    if (today > finVentana) {
+                      newStats.pe1603AccionesVencidas++;
+                    } else if (item.inicio_ventana) {
+                      const inicioVentana = new Date(item.inicio_ventana);
+                      if (today >= inicioVentana) {
+                        newStats.pe1603AccionesPendientes++;
+                      }
+                    }
                   }
                 }
 
@@ -177,22 +172,52 @@ export function useDashboardStats(baseFilter?: string) {
             }
           }
 
-          // 4. PE 12.01 - Por ahora solo expedientes activos (la tabla real no existe aún)
-          // Usamos expedientes_1603 con tipo diferente si existe, o mostramos 0
+          // 4. PE 12.01 - Usar tabla correcta expedientes_1201
           const { data: expedientes1201 } = await supabase
-            .from('expedientes_1603')
-            .select('id, maquinista_id, estado, tipo')
-            .in('maquinista_id', maqIds)
-            .eq('tipo', 'pe1201');
+            .from('expedientes_1201')
+            .select('id, maquinista_id, estado, fecha_primer_servicio')
+            .in('maquinista_id', maqIds);
 
           if (expedientes1201) {
             const exp1201Activos = expedientes1201.filter(e => e.estado === 'abierto');
             newStats.pe1201ExpedientesActivos = exp1201Activos.length;
-            
-            // TODO: Cuando exista la tabla de actuaciones 12.01, calcular vencidas/pendientes
-            newStats.pe1201AccionesVencidas = 0;
-            newStats.pe1201AccionesPendientes = 0;
-            newStats.pe1201PorcentajeCumplimiento = exp1201Activos.length > 0 ? 0 : 100;
+
+            if (exp1201Activos.length > 0) {
+              const expIds1201 = exp1201Activos.map(e => e.id);
+              
+              const { data: planItems1201 } = await supabase
+                .from('plan_1201')
+                .select('id, expediente_id, estado, actuacion_id, dia_desde_origen, fecha_objetivo, obligatorio')
+                .in('expediente_id', expIds1201);
+
+              if (planItems1201) {
+                const today = new Date();
+                
+                for (const item of planItems1201) {
+                  if (item.actuacion_id || item.estado === 'no_procede') continue; // ya realizada o no procede
+                  
+                  if (item.fecha_objetivo) {
+                    const fechaObjetivo = new Date(item.fecha_objetivo);
+                    // Ventana PE 12.01 es ±2 días
+                    const finVentana = new Date(fechaObjetivo);
+                    finVentana.setDate(finVentana.getDate() + 2);
+                    
+                    if (today > finVentana) {
+                      newStats.pe1201AccionesVencidas++;
+                    } else {
+                      newStats.pe1201AccionesPendientes++;
+                    }
+                  }
+                }
+
+                // Porcentaje cumplimiento (solo obligatorios)
+                const totalObligatorios = planItems1201.filter(p => p.obligatorio).length;
+                const realizados = planItems1201.filter(p => p.obligatorio && (p.actuacion_id || p.estado === 'no_procede')).length;
+                if (totalObligatorios > 0) {
+                  newStats.pe1201PorcentajeCumplimiento = Math.round((realizados / totalObligatorios) * 100);
+                }
+              }
+            }
           }
         }
       }
