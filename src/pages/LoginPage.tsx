@@ -35,15 +35,15 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const { error } = await signIn(loginEmail, loginPassword);
+
+    const { error } = await signIn(loginEmail.trim(), loginPassword);
     
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Error de acceso',
         description: error.message === 'Invalid login credentials' 
-          ? 'Email o contraseña incorrectos' 
+          ? 'Email o contraseña incorrectos (si es tu primera vez, usa "Registrarse")'
           : error.message,
       });
     } else {
@@ -60,8 +60,8 @@ export default function LoginPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const { error } = await signUp(signupEmail, signupPassword, signupNombre, signupApellidos);
+
+    const { error } = await signUp(signupEmail.trim(), signupPassword, signupNombre, signupApellidos);
     
     if (error) {
       toast({
