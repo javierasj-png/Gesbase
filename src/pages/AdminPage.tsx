@@ -336,12 +336,6 @@ export default function AdminPage() {
           } : null}
           onSave={handleSaveMaquinista}
         />
-              setIsNewMaquinista(false);
-            }
-          }}
-          maquinista={editingMaquinista}
-          onSave={handleSaveMaquinista}
-        />
 
         {/* Modal de certificaciones de maquinista */}
         <MaquinistaCertificacionesModal
