@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
-import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -12,20 +11,12 @@ import {
   Train, 
   FileCheck, 
   AlertTriangle,
-  Plus,
   Loader2
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
-import { 
-  expedientes1201Mock,
-  catalogoHitos1201Mock,
-  programacion1201Mock,
-  actuaciones1201Mock 
-} from '@/data/mockData';
-import { format, addDays } from 'date-fns';
-import { Bloque1201, Etiqueta1201 } from '@/types';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
+import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -68,9 +59,6 @@ export default function MaquinistaDetailPage() {
       </AppLayout>
     );
   }
-
-  // PE 12.01 still uses mock (for now)
-  const exp1201 = expedientes1201Mock.filter(e => e.maquinistaId === id);
 
   return (
     <AppLayout>
@@ -143,148 +131,12 @@ export default function MaquinistaDetailPage() {
           </TabsContent>
 
           {/* Tab: PE 12.01 */}
-          <TabsContent value="pe1201" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">PE 12.01 - Factor Humano</h2>
-                <p className="text-sm text-muted-foreground">Gestión de expedientes tras suceso</p>
-              </div>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Crear Expediente
-              </Button>
-            </div>
-
-            {exp1201.map((expediente) => {
-              const origen = expediente.fechaPrimerServicioTrasSuceso;
-              const fechaCierreRecomendada = addDays(origen, 30);
-              
-              const bloques: Bloque1201[] = ['Acompañamientos', 'Registros'];
-              const etiquetas: Etiqueta1201[] = ['Día 1', 'A los 7 días', 'A los 23 días', 'A los 30 días'];
-
-              // Construir matriz de celdas
-              const getCeldaEstado = (bloque: Bloque1201, etiqueta: Etiqueta1201) => {
-                const hito = catalogoHitos1201Mock.find(h => h.bloque === bloque && h.etiqueta === etiqueta);
-                const fechaObjetivo = hito ? addDays(origen, hito.offsetDias) : origen;
-                
-                const programacion = programacion1201Mock.find(
-                  p => p.expediente1201Id === expediente.id && p.bloque === bloque && p.etiqueta === etiqueta
-                );
-                
-                const actuacion = actuaciones1201Mock.find(
-                  a => a.expediente1201Id === expediente.id && a.bloque === bloque && a.etiqueta === etiqueta
-                );
-
-                if (actuacion) return { estado: 'Cumplida' as const, fechaObjetivo, actuacion };
-                if (programacion) return { estado: 'Pendiente' as const, fechaObjetivo, programacion };
-                return { estado: 'No procede' as const, fechaObjetivo };
-              };
-
-              return (
-                <Card key={expediente.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base">Suceso: {expediente.idSuceso}</CardTitle>
-                          <StatusBadge estado={expediente.estado} />
-                        </div>
-                        <CardDescription>
-                          1er servicio tras suceso: {format(origen, 'dd/MM/yyyy')} • 
-                          Apertura: {format(expediente.fechaAperturaFicha, 'dd/MM/yyyy')}
-                        </CardDescription>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-muted-foreground">Cierre recomendado:</p>
-                        <p className="font-medium">{format(fechaCierreRecomendada, 'dd/MM/yyyy')}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Tabla AD-HOC */}
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="adhoc-table">
-                        <thead>
-                          <tr>
-                            <th className="adhoc-cell adhoc-header"></th>
-                            {etiquetas.map(etiqueta => (
-                              <th key={etiqueta} className="adhoc-cell adhoc-header">
-                                {etiqueta}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bloques.map(bloque => (
-                            <tr key={bloque}>
-                              <td className="adhoc-cell adhoc-header">{bloque}</td>
-                              {etiquetas.map(etiqueta => {
-                                const celda = getCeldaEstado(bloque, etiqueta);
-                                return (
-                                  <td 
-                                    key={`${bloque}-${etiqueta}`} 
-                                    className={`adhoc-cell ${
-                                      celda.estado === 'Cumplida' ? 'bg-status-cumplida-bg' :
-                                      celda.estado === 'Pendiente' ? 'bg-status-pendiente-bg' :
-                                      'bg-status-no-procede-bg'
-                                    }`}
-                                  >
-                                    <div className="space-y-1">
-                                      <p className="text-xs text-muted-foreground">
-                                        {format(celda.fechaObjetivo, 'dd/MM')}
-                                      </p>
-                                      <StatusBadge estado={celda.estado} size="sm" />
-                                      {celda.estado === 'No procede' && (
-                                        <Button variant="ghost" size="sm" className="text-xs h-6 mt-1">
-                                          Programar
-                                        </Button>
-                                      )}
-                                      {celda.estado === 'Pendiente' && (
-                                        <Button variant="ghost" size="sm" className="text-xs h-6 mt-1">
-                                          Registrar
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Observaciones */}
-                    {expediente.observaciones && (
-                      <div className="p-3 bg-muted/50 rounded-lg text-sm">
-                        <p className="font-medium text-xs text-muted-foreground mb-1">Observaciones:</p>
-                        <p>{expediente.observaciones}</p>
-                      </div>
-                    )}
-
-                    {/* Botón cerrar ficha */}
-                    {expediente.estado === 'Abierta' && (
-                      <Button variant="outline" className="w-full">
-                        Cerrar Ficha
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-
-            {exp1201.length === 0 && (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No hay expedientes PE 12.01 para este maquinista</p>
-                  <Button variant="outline" className="mt-4">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Crear expediente por suceso
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+          <TabsContent value="pe1201">
+            <MaquinistaPE1201Tab
+              maquinistaId={maquinista.id}
+              maquinistaNombre={`${maquinista.nombre} ${maquinista.apellidos}`}
+              onRefetch={refetch}
+            />
           </TabsContent>
         </Tabs>
       </div>

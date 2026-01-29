@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      actuaciones_1201: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          expediente_id: string
+          fecha_programada: string | null
+          fecha_real: string | null
+          id: string
+          observaciones: string | null
+          plan_id: string | null
+          registrado_por: string | null
+          resultado: string | null
+          tipo_accion: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          expediente_id: string
+          fecha_programada?: string | null
+          fecha_real?: string | null
+          id?: string
+          observaciones?: string | null
+          plan_id?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo_accion: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          expediente_id?: string
+          fecha_programada?: string | null
+          fecha_real?: string | null
+          id?: string
+          observaciones?: string | null
+          plan_id?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo_accion?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuaciones_1201_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1201"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actuaciones_1201_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan_1201"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actuaciones_1603: {
         Row: {
           created_at: string | null
@@ -186,6 +246,71 @@ export type Database = {
         }
         Relationships: []
       }
+      expedientes_1201: {
+        Row: {
+          cerrado_por: string | null
+          cierre_manual: boolean | null
+          created_at: string | null
+          created_by: string | null
+          descripcion_suceso: string | null
+          estado: string | null
+          fecha_cierre: string | null
+          fecha_fin_prevista: string | null
+          fecha_primer_servicio: string
+          fecha_suceso: string | null
+          id: string
+          id_suceso: string
+          maquinista_id: string
+          observaciones: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descripcion_suceso?: string | null
+          estado?: string | null
+          fecha_cierre?: string | null
+          fecha_fin_prevista?: string | null
+          fecha_primer_servicio: string
+          fecha_suceso?: string | null
+          id?: string
+          id_suceso: string
+          maquinista_id: string
+          observaciones?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descripcion_suceso?: string | null
+          estado?: string | null
+          fecha_cierre?: string | null
+          fecha_fin_prevista?: string | null
+          fecha_primer_servicio?: string
+          fecha_suceso?: string | null
+          id?: string
+          id_suceso?: string
+          maquinista_id?: string
+          observaciones?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expedientes_1201_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expedientes_1603: {
         Row: {
           cerrado_por: string | null
@@ -342,6 +467,60 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      plan_1201: {
+        Row: {
+          actuacion_id: string | null
+          created_at: string | null
+          dia_desde_origen: number
+          estado: string | null
+          etiqueta: string
+          expediente_id: string
+          fecha_objetivo: string | null
+          id: string
+          obligatorio: boolean | null
+          tipo: string
+        }
+        Insert: {
+          actuacion_id?: string | null
+          created_at?: string | null
+          dia_desde_origen: number
+          estado?: string | null
+          etiqueta: string
+          expediente_id: string
+          fecha_objetivo?: string | null
+          id?: string
+          obligatorio?: boolean | null
+          tipo: string
+        }
+        Update: {
+          actuacion_id?: string | null
+          created_at?: string | null
+          dia_desde_origen?: number
+          estado?: string | null
+          etiqueta?: string
+          expediente_id?: string
+          fecha_objetivo?: string | null
+          id?: string
+          obligatorio?: boolean | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_1201_actuacion_id_fkey"
+            columns: ["actuacion_id"]
+            isOneToOne: false
+            referencedRelation: "actuaciones_1201"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_1201_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1201"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_1603: {
         Row: {
