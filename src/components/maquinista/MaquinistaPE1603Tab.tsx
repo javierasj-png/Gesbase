@@ -272,8 +272,8 @@ export function MaquinistaPE1603Tab({
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header with colored banner
-    doc.setFillColor(30, 58, 138); // Dark blue
+    // Header with colored banner - Renfe corporate magenta
+    doc.setFillColor(130, 0, 94); // Renfe Magenta #82005E
     doc.rect(0, 0, pageWidth, 35, 'F');
     
     doc.setTextColor(255, 255, 255);
@@ -297,7 +297,7 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 58, 138);
+    doc.setTextColor(130, 0, 94); // Renfe Magenta
     doc.text('MAQUINISTA', 20, 52);
     
     doc.setFont('helvetica', 'normal');
@@ -313,7 +313,7 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 58, 138);
+    doc.setTextColor(130, 0, 94); // Renfe Magenta
     doc.text('EXPEDIENTE', 20, 86);
     
     doc.setFont('helvetica', 'normal');
@@ -338,7 +338,7 @@ export function MaquinistaPE1603Tab({
     // Plan summary with colored rows
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 58, 138);
+    doc.setTextColor(130, 0, 94); // Renfe Magenta
     doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 116);
 
     const planData = tiposActuacion.map(tipo => {
@@ -355,7 +355,7 @@ export function MaquinistaPE1603Tab({
       head: [['Tipo de Acción', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
       body: planData,
       theme: 'grid',
-      headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
       styles: { fontSize: 9, cellPadding: 4 },
       bodyStyles: { textColor: [30, 41, 59] },
       willDrawCell: (data) => {
@@ -386,7 +386,7 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 58, 138);
+    doc.setTextColor(130, 0, 94); // Renfe Magenta
     doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
 
     const bloquesData = plan1603
@@ -409,7 +409,7 @@ export function MaquinistaPE1603Tab({
       head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Índice PREVER']],
       body: bloquesData,
       theme: 'grid',
-      headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
       styles: { fontSize: 8, cellPadding: 3 },
       bodyStyles: { textColor: [30, 41, 59] },
       columnStyles: {
@@ -457,7 +457,7 @@ export function MaquinistaPE1603Tab({
       if (finalY2 > 240) {
         doc.addPage();
         // Header on new page
-        doc.setFillColor(30, 58, 138);
+        doc.setFillColor(130, 0, 94); // Renfe Magenta
         doc.rect(0, 0, pageWidth, 12, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
@@ -468,7 +468,7 @@ export function MaquinistaPE1603Tab({
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(30, 58, 138);
+      doc.setTextColor(130, 0, 94); // Renfe Magenta
       doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
       const actuacionesData = actuaciones.map(a => {
@@ -488,7 +488,7 @@ export function MaquinistaPE1603Tab({
         head: [['Tipo', 'Fecha', 'Índice PREVER', 'Observaciones']],
         body: actuacionesData,
         theme: 'grid',
-        headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
+        headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
         styles: { fontSize: 8, cellPadding: 3 },
         bodyStyles: { textColor: [30, 41, 59] },
         columnStyles: {
@@ -523,7 +523,7 @@ export function MaquinistaPE1603Tab({
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(156, 163, 175);
+      doc.setTextColor(152, 153, 155); // Renfe Cool Gray #98999b
       doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
