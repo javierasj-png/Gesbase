@@ -128,7 +128,7 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
-      // 2. PE 16.03: Simplified - get expedientes abiertos
+      // 2. PE 16.03: Usar inicio_ventana y fin_ventana de la DB
       const { data: expedientes1603, error: expError } = await supabase
         .from('expedientes_1603')
         .select('id, maquinista_id, fecha_primer_servicio, estado')
@@ -147,11 +147,13 @@ export function useDashboardAlertas(baseFilter?: string) {
         const expIds = expedientes1603.map(e => e.id);
         const { data: planItems } = await supabase
           .from('plan_1603')
-          .select('id, expediente_id, tipo, mes, estado, actuacion_id')
+          .select('id, expediente_id, tipo, etiqueta, mes, estado, actuacion_id, inicio_ventana, fin_ventana')
           .in('expediente_id', expIds)
           .is('actuacion_id', null);
 
         if (planItems) {
+          const today = new Date();
+          
           for (const item of planItems) {
             const exp = expedientes1603.find(e => e.id === item.expediente_id);
             if (!exp) continue;
@@ -163,21 +165,116 @@ export function useDashboardAlertas(baseFilter?: string) {
             if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
             if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
 
-            // Simple alert for pending items in first 6 months
-            if (item.mes <= 6) {
-              allAlertas.push({
-                tipo: 'pe1603',
-                id: exp.id,
-                bloque_id: item.id,
-                maquinista_id: exp.maquinista_id,
-                maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
-                maquinista_base: maq.base,
-                etiqueta: `${item.tipo} - Mes ${item.mes}`,
-                tipo_actuacion: item.tipo,
-                estado: 'En ventana',
-                dias_restantes: 30,
-                fin_ventana: new Date(),
-              });
+            // Usar fechas de la DB
+            if (item.inicio_ventana && item.fin_ventana) {
+              const inicioVentana = new Date(item.inicio_ventana);
+              const finVentana = new Date(item.fin_ventana);
+              const diasRestantes = differenceInDays(finVentana, today);
+              
+              // Solo alertar si está en ventana o vencida
+              if (today > finVentana) {
+                allAlertas.push({
+                  tipo: 'pe1603',
+                  id: exp.id,
+                  bloque_id: item.id,
+                  maquinista_id: exp.maquinista_id,
+                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                  maquinista_base: maq.base,
+                  etiqueta: item.etiqueta || `${item.tipo} - Mes ${item.mes}`,
+                  tipo_actuacion: item.tipo,
+                  estado: 'Vencida',
+                  dias_restantes: diasRestantes,
+                  fin_ventana: finVentana,
+                });
+              } else if (today >= inicioVentana) {
+                allAlertas.push({
+                  tipo: 'pe1603',
+                  id: exp.id,
+                  bloque_id: item.id,
+                  maquinista_id: exp.maquinista_id,
+                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                  maquinista_base: maq.base,
+                  etiqueta: item.etiqueta || `${item.tipo} - Mes ${item.mes}`,
+                  tipo_actuacion: item.tipo,
+                  estado: 'En ventana',
+                  dias_restantes: diasRestantes,
+                  fin_ventana: finVentana,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // 3. PE 12.01: Usar tabla correcta
+      const { data: expedientes1201, error: exp1201Error } = await supabase
+        .from('expedientes_1201')
+        .select('id, maquinista_id, fecha_primer_servicio, estado')
+        .eq('estado', 'abierto');
+
+      if (!exp1201Error && expedientes1201 && expedientes1201.length > 0) {
+        const maqIds1201 = [...new Set(expedientes1201.map(e => e.maquinista_id))];
+        const { data: maquinistas1201 } = await supabase
+          .from('maquinistas')
+          .select('id, nombre, apellidos, base')
+          .in('id', maqIds1201);
+
+        const maqMap1201 = new Map(maquinistas1201?.map(m => [m.id, m]) || []);
+
+        const expIds1201 = expedientes1201.map(e => e.id);
+        const { data: planItems1201 } = await supabase
+          .from('plan_1201')
+          .select('id, expediente_id, tipo, etiqueta, dia_desde_origen, fecha_objetivo, estado, actuacion_id, obligatorio')
+          .in('expediente_id', expIds1201)
+          .is('actuacion_id', null)
+          .neq('estado', 'no_procede');
+
+        if (planItems1201) {
+          const today = new Date();
+          
+          for (const item of planItems1201) {
+            const exp = expedientes1201.find(e => e.id === item.expediente_id);
+            if (!exp) continue;
+
+            const maq = maqMap1201.get(exp.maquinista_id);
+            if (!maq) continue;
+
+            // Filtrar por base
+            if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
+            if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+
+            if (item.fecha_objetivo) {
+              const fechaObjetivo = new Date(item.fecha_objetivo);
+              // Ventana PE 12.01 es ±2 días
+              const inicioVentana = new Date(fechaObjetivo);
+              inicioVentana.setDate(inicioVentana.getDate() - 2);
+              const finVentana = new Date(fechaObjetivo);
+              finVentana.setDate(finVentana.getDate() + 2);
+              const diasRestantes = differenceInDays(finVentana, today);
+              
+              if (today > finVentana) {
+                allAlertas.push({
+                  tipo: 'pe1201',
+                  id: exp.id,
+                  maquinista_id: exp.maquinista_id,
+                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                  maquinista_base: maq.base,
+                  hito: `${item.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'} ${item.etiqueta}`,
+                  estado: 'Vencida',
+                  dias_restantes: diasRestantes,
+                });
+              } else if (today >= inicioVentana) {
+                allAlertas.push({
+                  tipo: 'pe1201',
+                  id: exp.id,
+                  maquinista_id: exp.maquinista_id,
+                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                  maquinista_base: maq.base,
+                  hito: `${item.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'} ${item.etiqueta}`,
+                  estado: 'Pendiente',
+                  dias_restantes: diasRestantes,
+                });
+              }
             }
           }
         }
