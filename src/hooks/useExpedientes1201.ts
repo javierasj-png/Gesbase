@@ -70,6 +70,7 @@ export interface ExpedienteConPlan1201 {
     realizados: number;
     diasHastaCierre: number;
     fechaCierreRecomendada: Date | null;
+    porcentajeCumplimiento: number;
   };
 }
 
@@ -131,8 +132,12 @@ export function useExpedientes1201() {
 
         const planExpediente = (planesData || []).filter(p => p.expediente_id === exp.id) as Plan1201DB[];
 
-        const pendientes = planExpediente.filter(b => b.estado === 'pendiente').length;
-        const realizados = planExpediente.filter(b => b.estado === 'realizado').length;
+        // Calculate counts based on actuacion_id and estado
+        const pendientes = planExpediente.filter(b => !b.actuacion_id && b.estado !== 'no_procede').length;
+        const realizados = planExpediente.filter(b => b.actuacion_id || b.estado === 'realizado').length;
+        const totalObligatorios = planExpediente.filter(b => b.obligatorio).length;
+        const completados = planExpediente.filter(b => b.obligatorio && (b.actuacion_id || b.estado === 'no_procede')).length;
+        const porcentajeCumplimiento = totalObligatorios > 0 ? Math.round((completados / totalObligatorios) * 100) : 0;
 
         // Calculate days until close (40 days from primer servicio)
         const fechaCierreRecomendada = exp.fecha_primer_servicio 
