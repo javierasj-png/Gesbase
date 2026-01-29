@@ -1,14 +1,35 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Base, Maquinista } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook para filtrar datos según las bases asignadas al usuario actual.
- * - Admin: ve todo
+ * - Admin: ve todas las bases activas de bases_conduccion
  * - Mando: solo ve datos de sus bases asignadas
  */
 export function useBaseFilter() {
   const { isAdmin, assignedBases, canAccessBase } = useAuth();
+  const [basesFromDB, setBasesFromDB] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar bases desde la BD
+  useEffect(() => {
+    async function fetchBases() {
+      const { data, error } = await supabase
+        .from('bases_conduccion')
+        .select('nombre')
+        .eq('activa', true)
+        .order('nombre');
+
+      if (!error && data) {
+        setBasesFromDB(data.map(b => b.nombre));
+      }
+      setLoading(false);
+    }
+
+    fetchBases();
+  }, []);
 
   const filterByBase = useMemo(() => {
     return <T extends { base?: Base | string }>(items: T[]): T[] => {
@@ -28,16 +49,10 @@ export function useBaseFilter() {
   }, [isAdmin, assignedBases]);
 
   const getAccessibleBases = useMemo(() => {
-    const allBases: Base[] = [
-      'Madrid-Chamartín',
-      'Barcelona-Sants',
-      'Sevilla-Santa Justa',
-      'Valencia-Joaquín Sorolla'
-    ];
-    
-    if (isAdmin) return allBases;
-    return assignedBases;
-  }, [isAdmin, assignedBases]);
+    if (isAdmin) return basesFromDB;
+    // Para mandos, filtrar solo las bases asignadas que existan en BD
+    return assignedBases.filter(b => basesFromDB.includes(b));
+  }, [isAdmin, assignedBases, basesFromDB]);
 
   return {
     filterByBase,
@@ -46,5 +61,6 @@ export function useBaseFilter() {
     canAccessBase,
     isAdmin,
     assignedBases,
+    loading,
   };
 }
