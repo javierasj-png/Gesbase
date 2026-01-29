@@ -72,8 +72,8 @@ export function PlantillasSGS() {
             <CardTitle>Catálogo Hitos PE 12.01 - Factor Humano</CardTitle>
           </div>
           <CardDescription>
-            Hitos de seguimiento tras un suceso. El resto de la programación es ad-hoc según criterio del mando.
-            Los hitos no programados se visualizan como "No procede".
+            Hitos de seguimiento tras un suceso (día 1, 7, 23, 30, 40 desde primer servicio). 
+            Se generan automáticamente al crear el expediente. El resto de la programación es ad-hoc según criterio del mando.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,19 +85,19 @@ export function PlantillasSGS() {
                   <div className="flex items-center gap-2 mb-3">
                     <Badge variant="outline">{bloque}</Badge>
                     <span className="text-sm text-muted-foreground">
-                      ({hitos.length} hitos)
+                      ({hitos.length} hitos obligatorios)
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {hitos.map(hito => (
                       <div 
                         key={hito.id} 
-                        className="p-3 bg-muted/50 rounded-lg border"
+                        className="p-3 bg-muted/50 rounded-lg border text-center"
                       >
                         <p className="font-medium text-sm">{hito.etiqueta}</p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-center gap-1 mt-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>+{hito.offsetDias} días desde 1er servicio</span>
+                          <span>±2 días</span>
                         </div>
                       </div>
                     ))}
@@ -109,8 +109,8 @@ export function PlantillasSGS() {
           
           <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              <strong>Nota:</strong> El cierre automático de la ficha PE 12.01 se produce a los 40 días del primer servicio tras el suceso.
-              El cierre manual está disponible según criterio del mando (PREVER).
+              <strong>Nota:</strong> La ficha PE 12.01 tiene un período de vigilancia de 40 días desde el primer servicio tras el suceso.
+              Cada hito tiene una ventana de cumplimiento de ±2 días. El cierre manual está disponible según criterio del mando (PREVER).
             </p>
           </div>
         </CardContent>
