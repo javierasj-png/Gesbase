@@ -241,9 +241,8 @@ function EditBaseAsignacionModal({ base, existingAsignaciones, open, onOpenChang
 
   useEffect(() => {
     if (base && open && !loadingCatalogo) {
-      // Usar las certificaciones activas de la BD
-      const activeCerts = catalogoCertificaciones.filter(c => c.activo);
-      const certs = activeCerts.map(cert => {
+      // Usar todas las certificaciones de la BD
+      const certs = catalogoCertificaciones.map(cert => {
         const existing = existingAsignaciones.find(e => e.certificacion_id === cert.id);
         return {
           id: cert.id,

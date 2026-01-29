@@ -24,22 +24,22 @@ import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacion
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
 import { MaquinistaCertificacionesModal } from '@/components/admin/MaquinistaCertificacionesModal';
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
-import { useMaquinistas, MaquinistaDB, MaquinistaInput } from '@/hooks/useMaquinistas';
+import { useMaquinistas, MaquinistaConNombre, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 
 export default function AdminPage() {
   // Hook para maquinistas con Supabase
   const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo } = useMaquinistas();
-  const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaDB | null>(null);
+  const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaConNombre | null>(null);
   const [isNewMaquinista, setIsNewMaquinista] = useState(false);
 
   // Hook para certificaciones con Supabase
-  const { certificaciones, loading: loadingCertificaciones, createCertificacion, updateCertificacion, toggleActivo: toggleCertificacionActivo } = useCertificaciones();
+  const { certificaciones, loading: loadingCertificaciones, createCertificacion, updateCertificacion, deleteCertificacion } = useCertificaciones();
   const [editingCertificacion, setEditingCertificacion] = useState<CertificacionDB | null>(null);
   const [isNewCertificacion, setIsNewCertificacion] = useState(false);
 
   // Estado para modal de certificaciones de maquinista
-  const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaDB | null>(null);
+  const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaConNombre | null>(null);
 
   const handleSaveCertificacion = async (input: CertificacionInput, id?: string): Promise<boolean> => {
     if (id) {
@@ -64,7 +64,7 @@ export default function AdminPage() {
     setIsNewMaquinista(true);
   };
 
-  const handleEditMaquinista = (maquinista: MaquinistaDB) => {
+  const handleEditMaquinista = (maquinista: MaquinistaConNombre) => {
     setEditingMaquinista(maquinista);
     setIsNewMaquinista(false);
   };
@@ -77,15 +77,16 @@ export default function AdminPage() {
     }
   };
 
-  const handleToggleMaquinistaActivo = async (maquinista: MaquinistaDB) => {
+  const handleToggleMaquinistaActivo = async (maquinista: MaquinistaConNombre) => {
     await toggleActivo(maquinista.id, maquinista.activo);
   };
 
-  const handleDeleteMaquinista = async (maquinista: MaquinistaDB) => {
+  const handleDeleteMaquinista = async (maquinista: MaquinistaConNombre) => {
     if (confirm(`¿Eliminar a ${maquinista.nombre_apellidos}?`)) {
       await deleteMaquinista(maquinista.id);
     }
   };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -161,7 +162,6 @@ export default function AdminPage() {
                         <th className="text-left p-3 font-medium text-sm">Matrícula</th>
                         <th className="text-left p-3 font-medium text-sm">Nombre</th>
                         <th className="text-left p-3 font-medium text-sm">Base</th>
-                        <th className="text-left p-3 font-medium text-sm">PE 16.03</th>
                         <th className="text-left p-3 font-medium text-sm">Estado</th>
                         <th className="text-left p-3 font-medium text-sm">Acciones</th>
                       </tr>
@@ -172,13 +172,6 @@ export default function AdminPage() {
                           <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
                           <td className="p-3 text-sm">{maquinista.nombre_apellidos}</td>
                           <td className="p-3 text-sm text-muted-foreground">{maquinista.base}</td>
-                          <td className="p-3">
-                            {maquinista.bajo_pe_1603 ? (
-                              <Badge variant="secondary" className="text-xs">Vigilancia</Badge>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">-</span>
-                            )}
-                          </td>
                           <td className="p-3">
                             <Switch 
                               checked={maquinista.activo} 
@@ -252,28 +245,23 @@ export default function AdminPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b bg-muted/50">
+                        <th className="text-left p-3 font-medium text-sm">ID</th>
                         <th className="text-left p-3 font-medium text-sm">Nombre</th>
                         <th className="text-left p-3 font-medium text-sm">Tipo</th>
                         <th className="text-left p-3 font-medium text-sm">Descripción</th>
-                        <th className="text-left p-3 font-medium text-sm">Activa</th>
                         <th className="text-left p-3 font-medium text-sm">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {certificaciones.map((cert) => (
                         <tr key={cert.id} className="border-b last:border-b-0">
+                          <td className="p-3 font-mono text-xs">{cert.id}</td>
                           <td className="p-3 text-sm font-medium">{cert.nombre}</td>
                           <td className="p-3">
                             <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
                           </td>
                           <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
                             {cert.descripcion || '-'}
-                          </td>
-                          <td className="p-3">
-                            <Switch 
-                              checked={cert.activo} 
-                              onCheckedChange={() => toggleCertificacionActivo(cert.id, cert.activo)}
-                            />
                           </td>
                           <td className="p-3">
                             <div className="flex items-center gap-2">
@@ -333,6 +321,21 @@ export default function AdminPage() {
           onOpenChange={(open) => {
             if (!open) {
               setEditingMaquinista(null);
+              setIsNewMaquinista(false);
+            }
+          }}
+          maquinista={editingMaquinista ? {
+            id: editingMaquinista.id,
+            matricula: editingMaquinista.matricula,
+            nombre_apellidos: editingMaquinista.nombre_apellidos,
+            base: editingMaquinista.base,
+            activo: editingMaquinista.activo,
+            observaciones: null,
+            bajo_pe_1603: false,
+            fecha_primer_servicio: null,
+          } : null}
+          onSave={handleSaveMaquinista}
+        />
               setIsNewMaquinista(false);
             }
           }}

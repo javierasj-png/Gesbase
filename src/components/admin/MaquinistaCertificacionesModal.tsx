@@ -43,7 +43,7 @@ export function MaquinistaCertificacionesModal({
   open,
   onOpenChange,
 }: MaquinistaCertificacionesModalProps) {
-  const { disponibles, loading, guardarCertificaciones } = useMaquinistaCertificaciones(
+  const { disponibles, loading, toggleObtenida, actualizarFechaServicio, refetch } = useMaquinistaCertificaciones(
     open ? maquinistaId : null,
     open ? baseName : null
   );
@@ -81,23 +81,24 @@ export function MaquinistaCertificacionesModal({
 
   const handleSave = async () => {
     setSaving(true);
-    const seleccionadas = configs
-      .filter(c => c.asignada)
-      .map(c => ({
-        certificacion_id: c.certificacion_id,
-        obligatoria: c.obligatoria,
-        vigilar_vencimiento: c.vigilar_vencimiento,
-        periodo_inactividad_meses: c.periodo_inactividad_meses,
-        aviso_dias: c.aviso_dias,
-        fecha_ultimo_servicio: c.fecha_ultimo_servicio,
-      }));
-
-    const success = await guardarCertificaciones(seleccionadas);
-    setSaving(false);
-
-    if (success) {
-      onOpenChange(false);
+    
+    // For each config, toggle obtenida or update fecha
+    for (const config of configs) {
+      const disp = disponibles.find(d => d.id === config.certificacion_id);
+      const wasAsignada = disp?.asignada ?? false;
+      
+      if (config.asignada !== wasAsignada) {
+        await toggleObtenida(config.certificacion_id, config.asignada);
+      }
+      
+      if (config.asignada && config.fecha_ultimo_servicio) {
+        await actualizarFechaServicio(config.certificacion_id, config.fecha_ultimo_servicio);
+      }
     }
+    
+    await refetch();
+    setSaving(false);
+    onOpenChange(false);
   };
 
   const vehiculos = configs.filter(c => c.tipo === 'vehiculo');

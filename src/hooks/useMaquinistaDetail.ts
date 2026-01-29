@@ -1,30 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { isBefore, isWithinInterval, isAfter } from 'date-fns';
+import { addYears, differenceInDays } from 'date-fns';
 
-export type EstadoBloque1603 = 'Pendiente' | 'En ventana' | 'Vencida' | 'Cumplida';
-export type TipoActuacion1603 = 'Acompañamiento' | 'Registro' | 'Alcohol' | 'Drogas';
+export type EstadoBloque1603 = 'pendiente' | 'programado' | 'realizado';
+export type TipoActuacion1603 = 'acompanamiento' | 'registro' | 'alcohol' | 'drogas';
 
 export interface MaquinistaDB {
   id: string;
   matricula: string;
-  nombre_apellidos: string;
+  nombre: string;
+  apellidos: string;
   base: string;
+  email: string | null;
+  telefono: string | null;
+  fecha_ingreso: string | null;
   activo: boolean;
-  bajo_pe_1603: boolean;
-  fecha_primer_servicio: string | null;
-  observaciones: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Expediente1603Detail {
   id: string;
   maquinista_id: string;
-  fecha_primer_servicio: string;
+  tipo: 'nuevo_acceso' | 'reincorporacion';
   fecha_inicio: string;
-  fecha_fin_prevista: string;
-  estado: 'Activo' | 'Cerrado';
+  fecha_primer_servicio: string | null;
+  estado: 'abierto' | 'cerrado';
   observaciones: string | null;
   cierre_manual: boolean | null;
   fecha_cierre: string | null;
@@ -34,41 +36,11 @@ export interface Expediente1603Detail {
 export interface PlanBloque1603 {
   id: string;
   expediente_id: string;
-  tipo: TipoActuacion1603;
-  etiqueta: string;
-  orden: number;
-  inicio_ventana: string;
-  fin_ventana: string;
-  estado: EstadoBloque1603;
   actuacion_id: string | null;
-  estadoCalculado: EstadoBloque1603;
-}
-
-function calcularEstadoBloque(
-  inicioVentana: Date, 
-  finVentana: Date, 
-  actuacionId: string | null
-): EstadoBloque1603 {
-  if (actuacionId) return 'Cumplida';
-  
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  
-  const inicio = new Date(inicioVentana);
-  inicio.setHours(0, 0, 0, 0);
-  
-  const fin = new Date(finVentana);
-  fin.setHours(23, 59, 59, 999);
-  
-  if (isBefore(hoy, inicio)) {
-    return 'Pendiente';
-  } else if (isWithinInterval(hoy, { start: inicio, end: fin })) {
-    return 'En ventana';
-  } else if (isAfter(hoy, fin)) {
-    return 'Vencida';
-  }
-  
-  return 'Pendiente';
+  tipo: TipoActuacion1603;
+  mes: number;
+  estado: EstadoBloque1603;
+  created_at: string;
 }
 
 export function useMaquinistaDetail(id: string | undefined) {
@@ -112,9 +84,9 @@ export function useMaquinistaDetail(id: string | undefined) {
         return;
       }
 
-      setMaquinista(maqData as MaquinistaDB);
+      setMaquinista(maqData);
 
-      // Fetch expediente 1603 with new fields
+      // Fetch expediente 1603
       const { data: expData, error: expError } = await supabase
         .from('expedientes_1603')
         .select('*')
@@ -129,14 +101,14 @@ export function useMaquinistaDetail(id: string | undefined) {
         setExpediente1603({
           id: expData.id,
           maquinista_id: expData.maquinista_id,
-          fecha_primer_servicio: expData.fecha_primer_servicio,
+          tipo: expData.tipo as 'nuevo_acceso' | 'reincorporacion',
           fecha_inicio: expData.fecha_inicio,
-          fecha_fin_prevista: expData.fecha_fin_prevista,
-          estado: expData.estado as 'Activo' | 'Cerrado',
+          fecha_primer_servicio: expData.fecha_primer_servicio,
+          estado: expData.estado as 'abierto' | 'cerrado',
           observaciones: expData.observaciones,
-          cierre_manual: (expData as any).cierre_manual ?? null,
-          fecha_cierre: (expData as any).fecha_cierre ?? null,
-          cerrado_por: (expData as any).cerrado_por ?? null,
+          cierre_manual: expData.cierre_manual,
+          fecha_cierre: expData.fecha_cierre,
+          cerrado_por: expData.cerrado_por,
         });
 
         // Fetch plan
@@ -145,24 +117,19 @@ export function useMaquinistaDetail(id: string | undefined) {
           .select('*')
           .eq('expediente_id', expData.id)
           .order('tipo')
-          .order('orden');
+          .order('mes');
 
         if (planError) {
           console.error('Error fetching plan:', planError);
         }
 
         if (planData) {
-          const planConEstado = planData.map(bloque => ({
+          const planTyped: PlanBloque1603[] = planData.map(bloque => ({
             ...bloque,
             tipo: bloque.tipo as TipoActuacion1603,
             estado: bloque.estado as EstadoBloque1603,
-            estadoCalculado: calcularEstadoBloque(
-              new Date(bloque.inicio_ventana),
-              new Date(bloque.fin_ventana),
-              bloque.actuacion_id
-            )
           }));
-          setPlan1603(planConEstado);
+          setPlan1603(planTyped);
         }
       } else {
         setExpediente1603(null);

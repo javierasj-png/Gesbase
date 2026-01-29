@@ -14,16 +14,435 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      actuaciones_1603: {
+        Row: {
+          created_at: string | null
+          expediente_id: string
+          fecha_programada: string | null
+          fecha_real: string | null
+          id: string
+          indice_prever: number | null
+          observaciones: string | null
+          registrado_por: string | null
+          resultado: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expediente_id: string
+          fecha_programada?: string | null
+          fecha_real?: string | null
+          id?: string
+          indice_prever?: number | null
+          observaciones?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expediente_id?: string
+          fecha_programada?: string | null
+          fecha_real?: string | null
+          id?: string
+          indice_prever?: number | null
+          observaciones?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuaciones_1603_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      base_assignments: {
+        Row: {
+          base_nombre: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          base_nombre: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          base_nombre?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      base_certificaciones: {
+        Row: {
+          aviso_dias: number | null
+          base_id: string
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at: string | null
+          id: string
+          obligatoria: boolean | null
+          periodo_inactividad_meses: number | null
+          updated_at: string | null
+          vigilar_vencimiento: boolean | null
+        }
+        Insert: {
+          aviso_dias?: number | null
+          base_id: string
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at?: string | null
+          id?: string
+          obligatoria?: boolean | null
+          periodo_inactividad_meses?: number | null
+          updated_at?: string | null
+          vigilar_vencimiento?: boolean | null
+        }
+        Update: {
+          aviso_dias?: number | null
+          base_id?: string
+          certificacion_id?: string
+          certificacion_nombre?: string
+          certificacion_tipo?: string
+          created_at?: string | null
+          id?: string
+          obligatoria?: boolean | null
+          periodo_inactividad_meses?: number | null
+          updated_at?: string | null
+          vigilar_vencimiento?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "base_certificaciones_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases_conduccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bases_conduccion: {
+        Row: {
+          activa: boolean | null
+          codigo: string | null
+          created_at: string | null
+          id: string
+          nombre: string
+          updated_at: string | null
+        }
+        Insert: {
+          activa?: boolean | null
+          codigo?: string | null
+          created_at?: string | null
+          id?: string
+          nombre: string
+          updated_at?: string | null
+        }
+        Update: {
+          activa?: boolean | null
+          codigo?: string | null
+          created_at?: string | null
+          id?: string
+          nombre?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      certificaciones: {
+        Row: {
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          nombre: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          descripcion?: string | null
+          id: string
+          nombre: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      expedientes_1603: {
+        Row: {
+          cerrado_por: string | null
+          cierre_manual: boolean | null
+          created_at: string | null
+          estado: string | null
+          fecha_cierre: string | null
+          fecha_inicio: string
+          fecha_primer_servicio: string | null
+          id: string
+          maquinista_id: string
+          observaciones: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
+          created_at?: string | null
+          estado?: string | null
+          fecha_cierre?: string | null
+          fecha_inicio: string
+          fecha_primer_servicio?: string | null
+          id?: string
+          maquinista_id: string
+          observaciones?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          cerrado_por?: string | null
+          cierre_manual?: boolean | null
+          created_at?: string | null
+          estado?: string | null
+          fecha_cierre?: string | null
+          fecha_inicio?: string
+          fecha_primer_servicio?: string | null
+          id?: string
+          maquinista_id?: string
+          observaciones?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expedientes_1603_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinista_certificaciones: {
+        Row: {
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at: string | null
+          fecha_obtencion: string | null
+          fecha_ultimo_servicio: string | null
+          id: string
+          maquinista_id: string
+          obtenida: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          certificacion_id: string
+          certificacion_nombre: string
+          certificacion_tipo: string
+          created_at?: string | null
+          fecha_obtencion?: string | null
+          fecha_ultimo_servicio?: string | null
+          id?: string
+          maquinista_id: string
+          obtenida?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          certificacion_id?: string
+          certificacion_nombre?: string
+          certificacion_tipo?: string
+          created_at?: string | null
+          fecha_obtencion?: string | null
+          fecha_ultimo_servicio?: string | null
+          id?: string
+          maquinista_id?: string
+          obtenida?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinista_certificaciones_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinistas: {
+        Row: {
+          activo: boolean | null
+          apellidos: string
+          base: string
+          created_at: string | null
+          email: string | null
+          fecha_ingreso: string | null
+          id: string
+          matricula: string
+          nombre: string
+          telefono: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          apellidos: string
+          base: string
+          created_at?: string | null
+          email?: string | null
+          fecha_ingreso?: string | null
+          id?: string
+          matricula: string
+          nombre: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          apellidos?: string
+          base?: string
+          created_at?: string | null
+          email?: string | null
+          fecha_ingreso?: string | null
+          id?: string
+          matricula?: string
+          nombre?: string
+          telefono?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      plan_1603: {
+        Row: {
+          actuacion_id: string | null
+          created_at: string | null
+          estado: string | null
+          expediente_id: string
+          id: string
+          mes: number
+          tipo: string
+        }
+        Insert: {
+          actuacion_id?: string | null
+          created_at?: string | null
+          estado?: string | null
+          expediente_id: string
+          id?: string
+          mes: number
+          tipo: string
+        }
+        Update: {
+          actuacion_id?: string | null
+          created_at?: string | null
+          estado?: string | null
+          expediente_id?: string
+          id?: string
+          mes?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_1603_actuacion_id_fkey"
+            columns: ["actuacion_id"]
+            isOneToOne: false
+            referencedRelation: "actuaciones_1603"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_1603_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          apellidos: string | null
+          created_at: string | null
+          email: string
+          id: string
+          nombre: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          apellidos?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          nombre?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          apellidos?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          nombre?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_base: {
+        Args: { _base_nombre: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "mando"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +569,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "mando"],
+    },
   },
 } as const

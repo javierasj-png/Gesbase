@@ -7,18 +7,14 @@ export interface CertificacionDB {
   tipo: 'vehiculo' | 'linea';
   nombre: string;
   descripcion: string | null;
-  activo: boolean;
   created_at: string;
-  created_by: string | null;
-  updated_at: string;
-  updated_by: string | null;
 }
 
 export interface CertificacionInput {
+  id: string;
   tipo: 'vehiculo' | 'linea';
   nombre: string;
   descripcion?: string | null;
-  activo?: boolean;
 }
 
 export function useCertificaciones() {
@@ -63,10 +59,10 @@ export function useCertificaciones() {
       const { error } = await supabase
         .from('certificaciones')
         .insert({
+          id: input.id,
           tipo: input.tipo,
           nombre: input.nombre,
           descripcion: input.descripcion || null,
-          activo: input.activo ?? true,
         });
 
       if (error) throw error;
@@ -83,7 +79,7 @@ export function useCertificaciones() {
         variant: 'destructive',
         title: 'Error',
         description: error.message?.includes('duplicate') 
-          ? 'Ya existe una certificación con ese nombre'
+          ? 'Ya existe una certificación con ese ID'
           : 'No se pudo crear la certificación',
       });
       return false;
@@ -95,8 +91,9 @@ export function useCertificaciones() {
       const { error } = await supabase
         .from('certificaciones')
         .update({
-          ...input,
-          updated_at: new Date().toISOString(),
+          tipo: input.tipo,
+          nombre: input.nombre,
+          descripcion: input.descripcion,
         })
         .eq('id', id);
 
@@ -116,31 +113,6 @@ export function useCertificaciones() {
         description: error.message?.includes('duplicate') 
           ? 'Ya existe una certificación con ese nombre'
           : 'No se pudo actualizar la certificación',
-      });
-      return false;
-    }
-  };
-
-  const toggleActivo = async (id: string, currentActivo: boolean): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('certificaciones')
-        .update({ activo: !currentActivo })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: currentActivo ? 'Certificación desactivada' : 'Certificación activada',
-      });
-      await fetchCertificaciones();
-      return true;
-    } catch (error) {
-      console.error('Error toggling certificacion:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo cambiar el estado',
       });
       return false;
     }
@@ -177,7 +149,6 @@ export function useCertificaciones() {
     refetch: fetchCertificaciones,
     createCertificacion,
     updateCertificacion,
-    toggleActivo,
     deleteCertificacion,
   };
 }

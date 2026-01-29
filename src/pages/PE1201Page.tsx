@@ -27,7 +27,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, differenceInDays } from 'date-fns';
-import { format, addDays, differenceInDays } from 'date-fns';
 
 // TODO: Cuando se implemente PE 12.01 con base de datos, reemplazar estos mock data
 import { 

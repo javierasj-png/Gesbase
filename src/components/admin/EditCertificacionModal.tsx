@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -37,36 +36,36 @@ export function EditCertificacionModal({
   onSave,
   isNew = false,
 }: EditCertificacionModalProps) {
+  const [id, setId] = useState('');
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<'vehiculo' | 'linea'>('vehiculo');
   const [descripcion, setDescripcion] = useState('');
-  const [activo, setActivo] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (certificacion && open) {
+      setId(certificacion.id);
       setNombre(certificacion.nombre);
       setTipo(certificacion.tipo);
       setDescripcion(certificacion.descripcion || '');
-      setActivo(certificacion.activo);
     } else if (!certificacion && open) {
       // Nueva certificación
+      setId('');
       setNombre('');
       setTipo('vehiculo');
       setDescripcion('');
-      setActivo(true);
     }
   }, [certificacion, open]);
 
   const handleSave = async () => {
-    if (!nombre.trim()) return;
+    if (!nombre.trim() || (!certificacion && !id.trim())) return;
 
     setSaving(true);
     const input: CertificacionInput = {
+      id: certificacion?.id || id.trim().toUpperCase(),
       nombre: nombre.trim(),
       tipo,
       descripcion: descripcion.trim() || null,
-      activo,
     };
 
     const success = await onSave(input, certificacion?.id);
@@ -93,6 +92,22 @@ export function EditCertificacionModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {isNew && (
+            <div className="space-y-2">
+              <Label htmlFor="id">ID (código único) *</Label>
+              <Input
+                id="id"
+                value={id}
+                onChange={(e) => setId(e.target.value.toUpperCase())}
+                placeholder="Ej: S100, LAV-MAD"
+                maxLength={50}
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador único. Se convertirá a mayúsculas.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="nombre">Nombre *</Label>
             <Input
@@ -128,22 +143,13 @@ export function EditCertificacionModal({
               maxLength={500}
             />
           </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="activo">Activa</Label>
-            <Switch
-              id="activo"
-              checked={activo}
-              onCheckedChange={setActivo}
-            />
-          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving || !nombre.trim()}>
+          <Button onClick={handleSave} disabled={saving || !nombre.trim() || (isNew && !id.trim())}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             <Save className="w-4 h-4 mr-2" />
             Guardar

@@ -7,20 +7,21 @@ export interface MaquinistaCertificacionDB {
   id: string;
   maquinista_id: string;
   certificacion_id: string;
-  obligatoria: boolean;
-  vigilar_vencimiento: boolean;
-  periodo_inactividad_meses: number;
-  aviso_dias: number;
+  certificacion_nombre: string;
+  certificacion_tipo: 'vehiculo' | 'linea';
+  obtenida: boolean;
+  fecha_obtencion: string | null;
   fecha_ultimo_servicio: string | null;
 }
 
 export interface CertificacionConEstado extends MaquinistaCertificacionDB {
-  certificacion_nombre: string;
-  certificacion_tipo: 'vehiculo' | 'linea';
+  obligatoria: boolean;
+  vigilar_vencimiento: boolean;
+  periodo_inactividad_meses: number;
+  aviso_dias: number;
   estado: 'Vigente' | 'Próxima a vencer' | 'Vencida' | 'No aplica' | 'Pendiente';
   dias_restantes: number | null;
   fecha_vencimiento: Date | null;
-  obtenida: boolean; // true si el maquinista tiene esta certificación obtenida
 }
 
 export interface CertificacionDisponible {
@@ -42,17 +43,14 @@ function calcularEstado(
   periodoInactividadMeses: number,
   avisoDias: number
 ): { estado: CertificacionConEstado['estado']; diasRestantes: number | null; fechaVencimiento: Date | null } {
-  // Si no está obtenida, no se vigila
   if (!obtenida) {
     return { estado: 'Pendiente', diasRestantes: null, fechaVencimiento: null };
   }
 
-  // Si está obtenida pero no requiere vigilancia
   if (!vigilarVencimiento) {
     return { estado: 'No aplica', diasRestantes: null, fechaVencimiento: null };
   }
 
-  // Obtenida con vigilancia pero sin fecha de servicio
   if (!fechaUltimoServicio) {
     return { estado: 'Vencida', diasRestantes: null, fechaVencimiento: null };
   }
@@ -85,7 +83,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
     setLoading(true);
     try {
-      // 1. Obtener la base
+      // 1. Get base ID
       const { data: baseData, error: errorBase } = await supabase
         .from('bases_conduccion')
         .select('id')
@@ -94,25 +92,22 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
       if (errorBase) throw errorBase;
       if (!baseData) {
-        console.log('Base no encontrada:', baseName);
         setCertificaciones([]);
         setDisponibles([]);
         setLoading(false);
         return;
       }
 
-      // 2. Obtener certificaciones configuradas para esta base
+      // 2. Get base_certificaciones config
       const { data: baseCerts, error: errorBaseCerts } = await supabase
         .from('base_certificaciones')
         .select('*')
         .eq('base_id', baseData.id);
 
       if (errorBaseCerts) throw errorBaseCerts;
-      
       const baseCertificaciones = baseCerts || [];
-      console.log('Certificaciones de la base:', baseCertificaciones);
 
-      // 3. Obtener certificaciones ya asignadas al maquinista
+      // 3. Get maquinista's assigned certificaciones
       const { data: asignadas, error: errorAsignadas } = await supabase
         .from('maquinista_certificaciones')
         .select('*')
@@ -120,17 +115,15 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
       if (errorAsignadas) throw errorAsignadas;
 
-      // 4. Construir lista de certificaciones con estado
-      // Usar las certificaciones de la base como fuente principal
+      // 4. Build certificaciones with state
       const certificacionesConEstado: CertificacionConEstado[] = baseCertificaciones.map(bc => {
-        // Buscar si ya está asignada al maquinista (significa que la tiene obtenida)
         const asignada = asignadas?.find(a => a.certificacion_id === bc.certificacion_id);
-        const obtenida = !!asignada;
+        const obtenida = asignada?.obtenida ?? false;
         
         const fechaServicio = asignada?.fecha_ultimo_servicio || null;
-        const vigilar = asignada?.vigilar_vencimiento ?? bc.vigilar_vencimiento;
-        const periodo = asignada?.periodo_inactividad_meses ?? bc.periodo_inactividad_meses;
-        const aviso = asignada?.aviso_dias ?? bc.aviso_dias;
+        const vigilar = bc.vigilar_vencimiento;
+        const periodo = bc.periodo_inactividad_meses;
+        const aviso = bc.aviso_dias;
 
         const { estado, diasRestantes, fechaVencimiento } = calcularEstado(
           obtenida,
@@ -144,21 +137,22 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           id: asignada?.id || bc.id,
           maquinista_id: maquinistaId,
           certificacion_id: bc.certificacion_id,
+          certificacion_nombre: bc.certificacion_nombre,
+          certificacion_tipo: bc.certificacion_tipo as 'vehiculo' | 'linea',
+          obtenida,
+          fecha_obtencion: asignada?.fecha_obtencion || null,
+          fecha_ultimo_servicio: fechaServicio,
           obligatoria: bc.obligatoria,
           vigilar_vencimiento: vigilar,
           periodo_inactividad_meses: periodo,
           aviso_dias: aviso,
-          fecha_ultimo_servicio: fechaServicio,
-          certificacion_nombre: bc.certificacion_nombre,
-          certificacion_tipo: bc.certificacion_tipo as 'vehiculo' | 'linea',
           estado,
           dias_restantes: diasRestantes,
           fecha_vencimiento: fechaVencimiento,
-          obtenida,
         };
       });
 
-      // 5. Construir lista de disponibles para el selector
+      // 5. Build disponibles list
       const disponiblesData: CertificacionDisponible[] = baseCertificaciones.map(bc => {
         const asignada = asignadas?.find(a => a.certificacion_id === bc.certificacion_id);
         
@@ -193,45 +187,6 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     fetchData();
   }, [fetchData]);
 
-  const asignarCertificacion = async (
-    certificacionId: string,
-    config: {
-      obligatoria: boolean;
-      vigilar_vencimiento: boolean;
-      periodo_inactividad_meses: number;
-      aviso_dias: number;
-      fecha_ultimo_servicio?: string | null;
-    }
-  ): Promise<boolean> => {
-    if (!maquinistaId) return false;
-
-    try {
-      const { error } = await supabase
-        .from('maquinista_certificaciones')
-        .insert({
-          maquinista_id: maquinistaId,
-          certificacion_id: certificacionId,
-          ...config,
-        });
-
-      if (error) throw error;
-
-      toast({ title: 'Certificación asignada' });
-      await fetchData();
-      return true;
-    } catch (error: any) {
-      console.error('Error asignando certificación:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message?.includes('duplicate') 
-          ? 'Esta certificación ya está asignada'
-          : 'No se pudo asignar la certificación',
-      });
-      return false;
-    }
-  };
-
   const actualizarFechaServicio = async (
     certificacionId: string,
     fechaServicio: string
@@ -239,10 +194,8 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     if (!maquinistaId) return false;
 
     try {
-      // Buscar la certificación en base_certificaciones para obtener la info
       const baseCert = disponibles.find(d => d.id === certificacionId);
       
-      // Buscar si ya existe un registro para este maquinista con esta certificación
       const { data: existente } = await supabase
         .from('maquinista_certificaciones')
         .select('id')
@@ -251,7 +204,6 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
         .maybeSingle();
 
       if (existente) {
-        // Si ya existe, actualizar
         const { error } = await supabase
           .from('maquinista_certificaciones')
           .update({ fecha_ultimo_servicio: fechaServicio })
@@ -259,18 +211,16 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
         if (error) throw error;
       } else if (baseCert) {
-        // Si no existe, insertar nuevo registro
         const { error } = await supabase
           .from('maquinista_certificaciones')
-          .insert({
+          .insert([{
             maquinista_id: maquinistaId,
             certificacion_id: certificacionId,
-            obligatoria: baseCert.obligatoria,
-            vigilar_vencimiento: baseCert.vigilar_vencimiento,
-            periodo_inactividad_meses: baseCert.periodo_inactividad_meses,
-            aviso_dias: baseCert.aviso_dias,
+            certificacion_nombre: baseCert.nombre,
+            certificacion_tipo: baseCert.tipo,
+            obtenida: true,
             fecha_ultimo_servicio: fechaServicio,
-          });
+          }]);
 
         if (error) throw error;
       } else {
@@ -317,84 +267,28 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     }
   };
 
-  const guardarCertificaciones = async (
-    seleccionadas: Array<{
-      certificacion_id: string;
-      obligatoria: boolean;
-      vigilar_vencimiento: boolean;
-      periodo_inactividad_meses: number;
-      aviso_dias: number;
-      fecha_ultimo_servicio: string | null;
-    }>
-  ): Promise<boolean> => {
-    if (!maquinistaId) return false;
-
-    try {
-      // Eliminar todas las existentes
-      const { error: deleteError } = await supabase
-        .from('maquinista_certificaciones')
-        .delete()
-        .eq('maquinista_id', maquinistaId);
-
-      if (deleteError) throw deleteError;
-
-      // Insertar las seleccionadas
-      if (seleccionadas.length > 0) {
-        const toInsert = seleccionadas.map(s => ({
-          maquinista_id: maquinistaId,
-          ...s,
-        }));
-
-        const { error: insertError } = await supabase
-          .from('maquinista_certificaciones')
-          .insert(toInsert);
-
-        if (insertError) throw insertError;
-      }
-
-      toast({
-        title: 'Certificaciones guardadas',
-        description: `${seleccionadas.length} certificación(es) asignada(s)`,
-      });
-      await fetchData();
-      return true;
-    } catch (error) {
-      console.error('Error guardando certificaciones:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron guardar las certificaciones',
-      });
-      return false;
-    }
-  };
-
-  // Toggle de certificación obtenida
   const toggleObtenida = async (certificacionId: string, obtenida: boolean): Promise<boolean> => {
     if (!maquinistaId) return false;
 
     try {
       if (obtenida) {
-        // Marcar como obtenida: insertar registro
         const baseCert = disponibles.find(d => d.id === certificacionId);
         if (!baseCert) throw new Error('Certificación no encontrada');
 
         const { error } = await supabase
           .from('maquinista_certificaciones')
-          .insert({
+          .insert([{
             maquinista_id: maquinistaId,
             certificacion_id: certificacionId,
-            obligatoria: baseCert.obligatoria,
-            vigilar_vencimiento: baseCert.vigilar_vencimiento,
-            periodo_inactividad_meses: baseCert.periodo_inactividad_meses,
-            aviso_dias: baseCert.aviso_dias,
+            certificacion_nombre: baseCert.nombre,
+            certificacion_tipo: baseCert.tipo,
+            obtenida: true,
             fecha_ultimo_servicio: null,
-          });
+          }]);
 
         if (error) throw error;
         toast({ title: 'Certificación marcada como obtenida' });
       } else {
-        // Quitar: eliminar registro
         const { error } = await supabase
           .from('maquinista_certificaciones')
           .delete()
@@ -418,51 +312,6 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     }
   };
 
-  // Toggle obligatoria - solo admin puede cambiar esto
-  const toggleObligatoria = async (certificacionId: string, obligatoria: boolean): Promise<boolean> => {
-    if (!maquinistaId) return false;
-
-    try {
-      // Solo se puede cambiar si la certificación está asignada (obtenida)
-      const cert = certificaciones.find(c => c.certificacion_id === certificacionId);
-      if (!cert || !cert.obtenida) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Solo se puede cambiar la obligatoriedad de certificaciones ya asignadas',
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from('maquinista_certificaciones')
-        .update({ 
-          obligatoria,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('maquinista_id', maquinistaId)
-        .eq('certificacion_id', certificacionId);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Actualizado',
-        description: `Certificación marcada como ${obligatoria ? 'obligatoria' : 'no obligatoria'}`,
-      });
-
-      await fetchData();
-      return true;
-    } catch (error) {
-      console.error('Error toggling obligatoria:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo actualizar la obligatoriedad',
-      });
-      return false;
-    }
-  };
-
   // KPIs
   const kpis = {
     total: certificaciones.length,
@@ -479,11 +328,8 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
     loading,
     kpis,
     refetch: fetchData,
-    asignarCertificacion,
     actualizarFechaServicio,
     quitarCertificacion,
-    guardarCertificaciones,
     toggleObtenida,
-    toggleObligatoria,
   };
 }
