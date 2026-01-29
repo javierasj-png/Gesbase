@@ -141,10 +141,11 @@ export default function AuditoriaPage() {
             .in('expediente_id', expIds);
           
           if (plan1201) {
-            const obligatorios = plan1201.filter(p => p.obligatorio);
-            const realizados = obligatorios.filter(p => p.actuacion_id || p.estado === 'no_procede').length;
-            if (obligatorios.length > 0) {
-              pe1201Cumplimiento = Math.round((realizados / obligatorios.length) * 100);
+            // % cumplimiento = acciones registradas / bloques que proceden (excluye no_procede)
+            const bloquesQueProceden = plan1201.filter(p => p.estado !== 'no_procede').length;
+            const accionesRegistradas = plan1201.filter(p => p.actuacion_id && p.estado !== 'no_procede').length;
+            if (bloquesQueProceden > 0) {
+              pe1201Cumplimiento = Math.round((accionesRegistradas / bloquesQueProceden) * 100);
             }
           }
         }
