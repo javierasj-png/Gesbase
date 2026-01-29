@@ -191,8 +191,10 @@ export type Database = {
           cerrado_por: string | null
           cierre_manual: boolean | null
           created_at: string | null
+          created_by: string | null
           estado: string | null
           fecha_cierre: string | null
+          fecha_fin_prevista: string | null
           fecha_inicio: string
           fecha_primer_servicio: string | null
           id: string
@@ -200,13 +202,16 @@ export type Database = {
           observaciones: string | null
           tipo: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           cerrado_por?: string | null
           cierre_manual?: boolean | null
           created_at?: string | null
+          created_by?: string | null
           estado?: string | null
           fecha_cierre?: string | null
+          fecha_fin_prevista?: string | null
           fecha_inicio: string
           fecha_primer_servicio?: string | null
           id?: string
@@ -214,13 +219,16 @@ export type Database = {
           observaciones?: string | null
           tipo: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           cerrado_por?: string | null
           cierre_manual?: boolean | null
           created_at?: string | null
+          created_by?: string | null
           estado?: string | null
           fecha_cierre?: string | null
+          fecha_fin_prevista?: string | null
           fecha_inicio?: string
           fecha_primer_servicio?: string | null
           id?: string
@@ -228,6 +236,7 @@ export type Database = {
           observaciones?: string | null
           tipo?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -290,10 +299,12 @@ export type Database = {
         Row: {
           activo: boolean | null
           apellidos: string
+          bajo_pe_1603: boolean | null
           base: string
           created_at: string | null
           email: string | null
           fecha_ingreso: string | null
+          fecha_primer_servicio: string | null
           id: string
           matricula: string
           nombre: string
@@ -303,10 +314,12 @@ export type Database = {
         Insert: {
           activo?: boolean | null
           apellidos: string
+          bajo_pe_1603?: boolean | null
           base: string
           created_at?: string | null
           email?: string | null
           fecha_ingreso?: string | null
+          fecha_primer_servicio?: string | null
           id?: string
           matricula: string
           nombre: string
@@ -316,10 +329,12 @@ export type Database = {
         Update: {
           activo?: boolean | null
           apellidos?: string
+          bajo_pe_1603?: boolean | null
           base?: string
           created_at?: string | null
           email?: string | null
           fecha_ingreso?: string | null
+          fecha_primer_servicio?: string | null
           id?: string
           matricula?: string
           nombre?: string
@@ -333,27 +348,39 @@ export type Database = {
           actuacion_id: string | null
           created_at: string | null
           estado: string | null
+          etiqueta: string | null
           expediente_id: string
+          fin_ventana: string | null
           id: string
+          inicio_ventana: string | null
           mes: number
+          orden: number | null
           tipo: string
         }
         Insert: {
           actuacion_id?: string | null
           created_at?: string | null
           estado?: string | null
+          etiqueta?: string | null
           expediente_id: string
+          fin_ventana?: string | null
           id?: string
+          inicio_ventana?: string | null
           mes: number
+          orden?: number | null
           tipo: string
         }
         Update: {
           actuacion_id?: string | null
           created_at?: string | null
           estado?: string | null
+          etiqueta?: string | null
           expediente_id?: string
+          fin_ventana?: string | null
           id?: string
+          inicio_ventana?: string | null
           mes?: number
+          orden?: number | null
           tipo?: string
         }
         Relationships: [

@@ -94,15 +94,21 @@ export function useMaquinistas() {
       const nombre = parts[0] || '';
       const apellidos = parts.slice(1).join(' ') || '';
 
+      const insertData = {
+        matricula: input.matricula,
+        nombre,
+        apellidos,
+        base: input.base,
+        activo: input.activo,
+        bajo_pe_1603: input.bajoPE1603 ?? false,
+        fecha_primer_servicio: input.fechaPrimerServicio 
+          ? input.fechaPrimerServicio.toISOString().split('T')[0] 
+          : null,
+      };
+
       const { error } = await supabase
         .from('maquinistas')
-        .insert([{
-          matricula: input.matricula,
-          nombre,
-          apellidos,
-          base: input.base,
-          activo: input.activo,
-        }]);
+        .insert([insertData]);
 
       if (error) {
         console.error('Error creating maquinista:', error);
@@ -147,10 +153,17 @@ export function useMaquinistas() {
       }
       if (input.base !== undefined) updateData.base = input.base;
       if (input.activo !== undefined) updateData.activo = input.activo;
+      if (input.bajoPE1603 !== undefined) updateData.bajo_pe_1603 = input.bajoPE1603;
+      if (input.fechaPrimerServicio !== undefined) {
+        updateData.fecha_primer_servicio = input.fechaPrimerServicio 
+          ? input.fechaPrimerServicio.toISOString().split('T')[0] 
+          : null;
+      }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await supabase
         .from('maquinistas')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', id);
 
       if (error) {
