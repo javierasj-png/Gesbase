@@ -144,21 +144,24 @@ export function useDashboardStats(baseFilter?: string) {
 
               if (planItems) {
                 const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalizar a medianoche
                 
                 for (const item of planItems) {
                   if (item.actuacion_id) continue; // ya realizada
                   
                   // Usar inicio_ventana y fin_ventana de la DB
-                  if (item.fin_ventana) {
+                  if (item.inicio_ventana && item.fin_ventana) {
+                    const inicioVentana = new Date(item.inicio_ventana);
                     const finVentana = new Date(item.fin_ventana);
+                    inicioVentana.setHours(0, 0, 0, 0);
+                    finVentana.setHours(23, 59, 59, 999);
+                    
                     if (today > finVentana) {
                       newStats.pe1603AccionesVencidas++;
-                    } else if (item.inicio_ventana) {
-                      const inicioVentana = new Date(item.inicio_ventana);
-                      if (today >= inicioVentana) {
-                        newStats.pe1603AccionesPendientes++;
-                      }
+                    } else if (today >= inicioVentana && today <= finVentana) {
+                      newStats.pe1603AccionesPendientes++; // En ventana = pendiente activa
                     }
+                    // Las que aún no abren (today < inicioVentana) no se cuentan
                   }
                 }
 
@@ -192,6 +195,7 @@ export function useDashboardStats(baseFilter?: string) {
 
               if (planItems1201) {
                 const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalizar a medianoche
                 
                 for (const item of planItems1201) {
                   if (item.actuacion_id || item.estado === 'no_procede') continue; // ya realizada o no procede
@@ -199,14 +203,20 @@ export function useDashboardStats(baseFilter?: string) {
                   if (item.fecha_objetivo) {
                     const fechaObjetivo = new Date(item.fecha_objetivo);
                     // Ventana PE 12.01 es ±2 días
+                    const inicioVentana = new Date(fechaObjetivo);
+                    inicioVentana.setDate(inicioVentana.getDate() - 2);
+                    inicioVentana.setHours(0, 0, 0, 0);
+                    
                     const finVentana = new Date(fechaObjetivo);
                     finVentana.setDate(finVentana.getDate() + 2);
+                    finVentana.setHours(23, 59, 59, 999);
                     
                     if (today > finVentana) {
                       newStats.pe1201AccionesVencidas++;
-                    } else {
-                      newStats.pe1201AccionesPendientes++;
+                    } else if (today >= inicioVentana && today <= finVentana) {
+                      newStats.pe1201AccionesPendientes++; // En ventana = pendiente activa
                     }
+                    // Las que aún no abren (today < inicioVentana) no se cuentan
                   }
                 }
 
