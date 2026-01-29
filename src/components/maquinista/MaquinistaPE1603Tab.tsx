@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Badge } from '@/components/ui/badge';
 import { 
   Dialog,
   DialogContent,
@@ -30,12 +31,15 @@ import {
   Loader2,
   AlertCircle,
   Printer,
-  Lock
+  Lock,
+  User,
+  CalendarClock
 } from 'lucide-react';
 import { format, isWithinInterval, parseISO, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Expediente1603Detail, 
   PlanBloque1603, 
@@ -66,6 +70,7 @@ export function MaquinistaPE1603Tab({
   onRefetch 
 }: MaquinistaPE1603TabProps) {
   const { toast } = useToast();
+  const { isAdmin, user } = useAuth();
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,7 +83,40 @@ export function MaquinistaPE1603Tab({
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
-  // Get blocks that are pending (En ventana or Vencida) for each type
+  // Check if expediente is closed
+  const expedienteCerrado = expediente1603?.estado === 'Cerrado';
+  
+  // Permissions: solo admin puede editar fichas cerradas
+  const puedeEditar = !expedienteCerrado || isAdmin;
+  
+  // Solo mandos pueden cerrar manualmente (admins también)
+  const puedeCerrarManual = !expedienteCerrado;
+
+  // Find matching block based on type and date - busca en TODOS los bloques del tipo
+  const bloqueCoincidente = useMemo(() => {
+    if (!selectedTipo || !fechaActuacion) return null;
+    
+    const fecha = parseISO(fechaActuacion);
+    const bloquesTipo = plan1603.filter(b => b.tipo === selectedTipo && !b.actuacion_id);
+    
+    // Buscar bloque donde la fecha esté dentro de la ventana
+    const bloqueEnVentana = bloquesTipo.find(b => {
+      const inicio = parseISO(b.inicio_ventana);
+      const fin = parseISO(b.fin_ventana);
+      return isWithinInterval(fecha, { start: inicio, end: fin });
+    });
+    
+    return bloqueEnVentana || null;
+  }, [selectedTipo, fechaActuacion, plan1603]);
+
+  // Check if expediente should be auto-closed (past end date)
+  const deberiaCerrarseAuto = useMemo(() => {
+    if (!expediente1603 || expediente1603.estado === 'Cerrado') return false;
+    const fechaFin = parseISO(expediente1603.fecha_fin_prevista);
+    return isAfter(new Date(), fechaFin);
+  }, [expediente1603]);
+
+  // Count pending blocks per type (for display)
   const bloquesPendientesPorTipo = useMemo(() => {
     const result: Record<TipoActuacion1603, PlanBloque1603[]> = {
       'Acompañamiento': [],
@@ -88,7 +126,7 @@ export function MaquinistaPE1603Tab({
     };
     
     plan1603.forEach(b => {
-      if (b.estadoCalculado === 'En ventana' || b.estadoCalculado === 'Vencida') {
+      if (!b.actuacion_id) {
         result[b.tipo].push(b);
       }
     });
@@ -96,47 +134,33 @@ export function MaquinistaPE1603Tab({
     return result;
   }, [plan1603]);
 
-  // Find matching block based on type and date
-  const bloqueCoincidente = useMemo(() => {
-    if (!selectedTipo || !fechaActuacion) return null;
-    
-    const fecha = parseISO(fechaActuacion);
-    const bloquesTipo = plan1603.filter(b => b.tipo === selectedTipo);
-    
-    // First, try to find a block where the date is within the window
-    const bloqueEnVentana = bloquesTipo.find(b => {
-      const inicio = parseISO(b.inicio_ventana);
-      const fin = parseISO(b.fin_ventana);
-      return isWithinInterval(fecha, { start: inicio, end: fin });
-    });
-    
-    if (bloqueEnVentana) return bloqueEnVentana;
-    
-    // If not in any window, find the first pending block (En ventana or Vencida)
-    const bloquePendiente = bloquesTipo.find(
-      b => b.estadoCalculado === 'En ventana' || b.estadoCalculado === 'Vencida'
-    );
-    
-    return bloquePendiente || null;
-  }, [selectedTipo, fechaActuacion, plan1603]);
-
-  // Check if there are any pending blocks at all
-  const hayBloquesPendientes = Object.values(bloquesPendientesPorTipo).some(arr => arr.length > 0);
-
-  // Check if all blocks are completed (can close)
+  // Check if all blocks are completed
   const todosCumplidos = useMemo(() => {
     return plan1603.length > 0 && plan1603.every(b => b.estadoCalculado === 'Cumplida');
   }, [plan1603]);
 
-  // Check if expediente should be auto-closed (past end date)
-  const deberiaCerrarseAuto = useMemo(() => {
-    if (!expediente1603 || expediente1603.estado === 'Cerrado') return false;
-    const fechaFin = parseISO(expediente1603.fecha_fin_prevista);
-    return isAfter(new Date(), fechaFin);
-  }, [expediente1603]);
-
   const handleRegistrar = async () => {
-    if (!selectedTipo || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
+    if (!selectedTipo || !fechaActuacion || !expediente1603) return;
+
+    // Validar que hay un bloque coincidente
+    if (!bloqueCoincidente) {
+      toast({
+        title: 'Error',
+        description: 'La fecha introducida no corresponde a ningún periodo del plan de vigilancia para este tipo de acción.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validar permisos si está cerrado
+    if (expedienteCerrado && !isAdmin) {
+      toast({
+        title: 'Sin permisos',
+        description: 'Solo un administrador puede modificar una ficha cerrada.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -203,14 +227,19 @@ export function MaquinistaPE1603Tab({
     try {
       const { error } = await supabase
         .from('expedientes_1603')
-        .update({ estado: 'Cerrado' })
+        .update({ 
+          estado: 'Cerrado',
+          cierre_manual: true,
+          fecha_cierre: new Date().toISOString(),
+          cerrado_por: user?.id,
+        } as any)
         .eq('id', expediente1603.id);
 
       if (error) throw error;
 
       toast({
         title: 'Expediente cerrado',
-        description: 'El expediente PE 16.03 ha sido cerrado correctamente',
+        description: 'El expediente PE 16.03 ha sido cerrado manualmente',
       });
 
       setCerrarOpen(false);
@@ -229,17 +258,17 @@ export function MaquinistaPE1603Tab({
 
   // Color map for action types
   const tipoColors: Record<TipoActuacion1603, { primary: [number, number, number]; light: [number, number, number] }> = {
-    'Acompañamiento': { primary: [59, 130, 246], light: [219, 234, 254] },   // Blue
-    'Registro': { primary: [34, 197, 94], light: [220, 252, 231] },          // Green
-    'Alcohol': { primary: [249, 115, 22], light: [255, 237, 213] },          // Orange
-    'Drogas': { primary: [168, 85, 247], light: [243, 232, 255] },           // Purple
+    'Acompañamiento': { primary: [59, 130, 246], light: [219, 234, 254] },
+    'Registro': { primary: [34, 197, 94], light: [220, 252, 231] },
+    'Alcohol': { primary: [249, 115, 22], light: [255, 237, 213] },
+    'Drogas': { primary: [168, 85, 247], light: [243, 232, 255] },
   };
 
   const estadoColors: Record<string, [number, number, number]> = {
-    'Cumplida': [34, 197, 94],    // Green
-    'En ventana': [249, 115, 22], // Orange  
-    'Vencida': [239, 68, 68],     // Red
-    'Pendiente': [156, 163, 175], // Gray
+    'Cumplida': [34, 197, 94],
+    'En ventana': [249, 115, 22],
+    'Vencida': [239, 68, 68],
+    'Pendiente': [156, 163, 175],
   };
 
   // Extract PREVER index from observaciones
@@ -273,7 +302,7 @@ export function MaquinistaPE1603Tab({
     const pageWidth = doc.internal.pageSize.getWidth();
     
     // Header with colored banner - Renfe corporate magenta
-    doc.setFillColor(130, 0, 94); // Renfe Magenta #82005E
+    doc.setFillColor(130, 0, 94);
     doc.rect(0, 0, pageWidth, 35, 'F');
     
     doc.setTextColor(255, 255, 255);
@@ -297,7 +326,7 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94); // Renfe Magenta
+    doc.setTextColor(130, 0, 94);
     doc.text('MAQUINISTA', 20, 52);
     
     doc.setFont('helvetica', 'normal');
@@ -307,13 +336,13 @@ export function MaquinistaPE1603Tab({
     doc.setTextColor(100, 116, 139);
     doc.text(`Matrícula: ${maquinista.matricula}  •  Base: ${maquinista.base}`, 20, 66);
 
-    // Expediente info card
+    // Expediente info card with closure info
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(14, 76, pageWidth - 28, 28, 3, 3, 'F');
+    doc.roundedRect(14, 76, pageWidth - 28, 32, 3, 3, 'F');
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94); // Renfe Magenta
+    doc.setTextColor(130, 0, 94);
     doc.text('EXPEDIENTE', 20, 86);
     
     doc.setFont('helvetica', 'normal');
@@ -331,6 +360,12 @@ export function MaquinistaPE1603Tab({
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(9);
     doc.text(`Primer servicio: ${format(parseISO(expediente1603.fecha_primer_servicio), 'dd/MM/yyyy')}`, 20, 100);
+    
+    // Show closure info if closed
+    if (expediente1603.estado === 'Cerrado' && expediente1603.fecha_cierre) {
+      const tipoCierre = expediente1603.cierre_manual ? 'Manual' : 'Automático';
+      doc.text(`Cierre: ${tipoCierre} - ${format(parseISO(expediente1603.fecha_cierre), 'dd/MM/yyyy HH:mm')}`, 20, 106);
+    }
 
     // Reset
     doc.setTextColor(0, 0, 0);
@@ -338,8 +373,8 @@ export function MaquinistaPE1603Tab({
     // Plan summary with colored rows
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94); // Renfe Magenta
-    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 116);
+    doc.setTextColor(130, 0, 94);
+    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 120);
 
     const planData = tiposActuacion.map(tipo => {
       const bloques = plan1603.filter(b => b.tipo === tipo);
@@ -351,11 +386,11 @@ export function MaquinistaPE1603Tab({
     });
 
     autoTable(doc, {
-      startY: 120,
+      startY: 124,
       head: [['Tipo de Acción', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
       body: planData,
       theme: 'grid',
-      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
+      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 9, cellPadding: 4 },
       bodyStyles: { textColor: [30, 41, 59] },
       willDrawCell: (data) => {
@@ -372,7 +407,6 @@ export function MaquinistaPE1603Tab({
           const tipo = data.cell.raw as TipoActuacion1603;
           const colors = tipoColors[tipo];
           if (colors) {
-            // Draw colored left border
             doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
             doc.setLineWidth(2);
             doc.line(data.cell.x, data.cell.y, data.cell.x, data.cell.y + data.cell.height);
@@ -386,7 +420,7 @@ export function MaquinistaPE1603Tab({
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94); // Renfe Magenta
+    doc.setTextColor(130, 0, 94);
     doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
 
     const bloquesData = plan1603
@@ -409,7 +443,7 @@ export function MaquinistaPE1603Tab({
       head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Índice PREVER']],
       body: bloquesData,
       theme: 'grid',
-      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
+      headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 8, cellPadding: 3 },
       bodyStyles: { textColor: [30, 41, 59] },
       columnStyles: {
@@ -418,7 +452,6 @@ export function MaquinistaPE1603Tab({
       },
       willDrawCell: (data) => {
         if (data.section === 'body') {
-          // Color the tipo column
           if (data.column.index === 0) {
             const tipo = data.cell.raw as TipoActuacion1603;
             const colors = tipoColors[tipo];
@@ -426,7 +459,6 @@ export function MaquinistaPE1603Tab({
               doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
             }
           }
-          // Color the estado column
           if (data.column.index === 3) {
             const estado = data.cell.raw as string;
             const color = estadoColors[estado];
@@ -456,8 +488,7 @@ export function MaquinistaPE1603Tab({
       let tableStartY = finalY2 + 18;
       if (finalY2 > 240) {
         doc.addPage();
-        // Header on new page
-        doc.setFillColor(130, 0, 94); // Renfe Magenta
+        doc.setFillColor(130, 0, 94);
         doc.rect(0, 0, pageWidth, 12, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
@@ -468,12 +499,11 @@ export function MaquinistaPE1603Tab({
       
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(130, 0, 94); // Renfe Magenta
+      doc.setTextColor(130, 0, 94);
       doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
       const actuacionesData = actuaciones.map(a => {
         const preverIndex = extractPreverIndex(a.observaciones);
-        // Clean observaciones removing PREVER index line
         const cleanObs = a.observaciones?.replace(/Índice PREVER:[^\n]*\n?/, '').trim() || '-';
         return [
           a.tipo,
@@ -488,7 +518,7 @@ export function MaquinistaPE1603Tab({
         head: [['Tipo', 'Fecha', 'Índice PREVER', 'Observaciones']],
         body: actuacionesData,
         theme: 'grid',
-        headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' }, // Renfe Magenta
+        headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
         styles: { fontSize: 8, cellPadding: 3 },
         bodyStyles: { textColor: [30, 41, 59] },
         columnStyles: {
@@ -523,7 +553,7 @@ export function MaquinistaPE1603Tab({
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
-      doc.setTextColor(152, 153, 155); // Renfe Cool Gray #98999b
+      doc.setTextColor(152, 153, 155);
       doc.text(`Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
@@ -559,8 +589,6 @@ export function MaquinistaPE1603Tab({
       </div>
     );
   }
-
-  const expedienteCerrado = expediente1603.estado === 'Cerrado';
 
   return (
     <div className="space-y-4">
@@ -609,8 +637,31 @@ export function MaquinistaPE1603Tab({
                 Fin previsto: {format(new Date(expediente1603.fecha_fin_prevista), 'dd/MM/yyyy')}
               </CardDescription>
             </div>
-            <StatusBadge estado={expediente1603.estado} />
+            <div className="flex items-center gap-2">
+              <StatusBadge estado={expediente1603.estado} />
+              {expedienteCerrado && (
+                <Badge variant="secondary" className="text-xs">
+                  {expediente1603.cierre_manual ? 'Manual' : 'Automático'}
+                </Badge>
+              )}
+            </div>
           </div>
+          
+          {/* Info de cierre si está cerrado */}
+          {expedienteCerrado && expediente1603.fecha_cierre && (
+            <div className="mt-2 p-2 rounded bg-muted/50 flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <CalendarClock className="w-3 h-3" />
+                Cerrado: {format(parseISO(expediente1603.fecha_cierre), 'dd/MM/yyyy HH:mm', { locale: es })}
+              </div>
+              {expediente1603.cierre_manual && (
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  Cierre manual
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Timeline por bandas */}
@@ -682,44 +733,47 @@ export function MaquinistaPE1603Tab({
           </div>
 
           {/* Action buttons */}
-          {!expedienteCerrado && (
+          {puedeEditar && (
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
                 className="flex-1"
                 onClick={() => setRegistrarOpen(true)}
-                disabled={!hayBloquesPendientes}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Registrar Actuación
               </Button>
               
-              {(todosCumplidos || deberiaCerrarseAuto) && (
+              {puedeCerrarManual && (
                 <Button 
                   variant="default"
                   onClick={() => setCerrarOpen(true)}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Cerrar Expediente
+                  Cerrar Ficha Manualmente
                 </Button>
               )}
             </div>
           )}
 
-          {expedienteCerrado && (
+          {expedienteCerrado && !isAdmin && (
             <div className="p-3 rounded-lg bg-muted/50 border text-center">
               <Lock className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm font-medium">Expediente Cerrado</p>
               <p className="text-xs text-muted-foreground">
-                Este expediente ha sido cerrado y no admite más actuaciones
+                Este expediente está cerrado y solo puede ser modificado por un administrador
               </p>
             </div>
           )}
 
-          {!hayBloquesPendientes && !expedienteCerrado && !todosCumplidos && (
-            <p className="text-xs text-muted-foreground text-center">
-              No hay bloques en ventana o vencidos para registrar
-            </p>
+          {expedienteCerrado && isAdmin && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-center">
+              <Lock className="w-5 h-5 text-primary mx-auto mb-2" />
+              <p className="text-sm font-medium text-primary">Modo Administrador</p>
+              <p className="text-xs text-muted-foreground">
+                Como administrador puedes registrar actuaciones en fichas cerradas
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -733,12 +787,12 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Selecciona el tipo de actuación y la fecha. El sistema determinará automáticamente el bloque correspondiente.
+              Introduce la fecha de la actuación. El sistema asignará automáticamente el periodo correspondiente.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Select tipo de actuación */}
+            {/* Select tipo de actuación - ya no limita por estado */}
             <div className="space-y-2">
               <Label>Tipo de acción de vigilancia</Label>
               <Select 
@@ -750,15 +804,13 @@ export function MaquinistaPE1603Tab({
                 </SelectTrigger>
                 <SelectContent>
                   {tiposActuacion.map(tipo => {
-                    const pendientes = bloquesPendientesPorTipo[tipo].length;
-                    const disabled = pendientes === 0;
+                    const sinCumplir = bloquesPendientesPorTipo[tipo].length;
                     return (
                       <SelectItem 
                         key={tipo} 
                         value={tipo}
-                        disabled={disabled}
                       >
-                        {tipo} {pendientes > 0 ? `(${pendientes} pendiente${pendientes > 1 ? 's' : ''})` : '(sin pendientes)'}
+                        {tipo} ({sinCumplir} sin cumplir)
                       </SelectItem>
                     );
                   })}
@@ -784,7 +836,7 @@ export function MaquinistaPE1603Tab({
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-status-ok mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">Bloque detectado:</p>
+                      <p className="text-sm font-medium">Periodo asignado automáticamente:</p>
                       <p className="text-sm text-muted-foreground">
                         {bloqueCoincidente.etiqueta} ({format(parseISO(bloqueCoincidente.inicio_ventana), 'dd/MM/yy')} - {format(parseISO(bloqueCoincidente.fin_ventana), 'dd/MM/yy')})
                       </p>
@@ -794,9 +846,9 @@ export function MaquinistaPE1603Tab({
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-destructive mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-destructive">Sin bloque coincidente</p>
+                      <p className="text-sm font-medium text-destructive">Fecha fuera de rango</p>
                       <p className="text-xs text-muted-foreground">
-                        No hay bloques pendientes para este tipo de actuación
+                        La fecha introducida no corresponde a ningún periodo sin cumplir para este tipo de acción.
                       </p>
                     </div>
                   </div>
@@ -864,10 +916,10 @@ export function MaquinistaPE1603Tab({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-primary" />
-              Cerrar Expediente
+              Cerrar Ficha Manualmente
             </DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de que deseas cerrar este expediente? Esta acción no se puede deshacer.
+              Al cerrar la ficha manualmente, quedará bloqueada y solo un administrador podrá modificarla.
             </DialogDescription>
           </DialogHeader>
 
@@ -889,7 +941,7 @@ export function MaquinistaPE1603Tab({
                 <div className="flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
                   <p className="text-sm text-amber-700">
-                    Hay bloques sin cumplir. Al cerrar el expediente quedarán marcados como incompletos.
+                    Hay bloques sin cumplir. Al cerrar la ficha quedarán marcados como incompletos.
                   </p>
                 </div>
               </div>
@@ -906,7 +958,7 @@ export function MaquinistaPE1603Tab({
               disabled={closing}
             >
               {closing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Cerrar Expediente
+              Cerrar Ficha
             </Button>
           </DialogFooter>
         </DialogContent>
