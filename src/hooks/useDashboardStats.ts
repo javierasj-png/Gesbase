@@ -82,20 +82,54 @@ export function useDashboardStats(baseFilter?: string) {
 
         // 2. CERTIFICACIONES
         if (maqIds.length > 0) {
+          // Obtener las bases de los maquinistas filtrados para buscar sus configuraciones
+          const basesDelFiltro = [...new Set(maqsFiltrados.map(m => m.base))];
+          
+          // Obtener IDs de las bases
+          const { data: basesData } = await supabase
+            .from('bases_conduccion')
+            .select('id, nombre')
+            .in('nombre', basesDelFiltro);
+          
+          const baseIdMap = new Map(basesData?.map(b => [b.nombre, b.id]) || []);
+          const baseIds = basesData?.map(b => b.id) || [];
+
           const { data: maqCerts } = await supabase
             .from('maquinista_certificaciones')
             .select('id, maquinista_id, certificacion_id, fecha_ultimo_servicio, obtenida')
             .in('maquinista_id', maqIds);
 
+          // Obtener configuraciones de base_certificaciones solo de las bases relevantes
           const { data: baseCerts } = await supabase
             .from('base_certificaciones')
-            .select('certificacion_id, vigilar_vencimiento, periodo_inactividad_meses, aviso_dias');
+            .select('base_id, certificacion_id, vigilar_vencimiento, periodo_inactividad_meses, aviso_dias')
+            .in('base_id', baseIds);
 
-          const configMap = new Map(baseCerts?.map(bc => [bc.certificacion_id, bc]) || []);
+          // Crear mapa base_id -> Map(certificacion_id -> config)
+          const baseConfigMap = new Map<string, Map<string, typeof baseCerts[0]>>();
+          for (const bc of baseCerts || []) {
+            if (!baseConfigMap.has(bc.base_id)) {
+              baseConfigMap.set(bc.base_id, new Map());
+            }
+            baseConfigMap.get(bc.base_id)!.set(bc.certificacion_id, bc);
+          }
+
+          // Crear mapa maquinista_id -> base
+          const maqBaseMap = new Map(maqsFiltrados.map(m => [m.id, m.base]));
 
           if (maqCerts) {
             for (const mc of maqCerts) {
-              const config = configMap.get(mc.certificacion_id);
+              // Obtener la base del maquinista
+              const maqBase = maqBaseMap.get(mc.maquinista_id);
+              if (!maqBase) continue;
+              
+              const maqBaseId = baseIdMap.get(maqBase);
+              if (!maqBaseId) continue;
+              
+              // Buscar configuración de esta certificación en la base del maquinista
+              const baseConfigs = baseConfigMap.get(maqBaseId);
+              const config = baseConfigs?.get(mc.certificacion_id);
+              
               if (!config?.vigilar_vencimiento || !mc.obtenida) continue;
 
               newStats.totalCertificacionesVigiladas++;
@@ -103,12 +137,13 @@ export function useDashboardStats(baseFilter?: string) {
               if (!mc.fecha_ultimo_servicio) {
                 newStats.certificacionesVencidas++;
               } else {
-                const fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), config.periodo_inactividad_meses);
+                const fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), config.periodo_inactividad_meses || 12);
                 const diasRestantes = differenceInDays(fechaVencimiento, new Date());
+                const diasAviso = config.aviso_dias || 90;
 
                 if (diasRestantes < 0) {
                   newStats.certificacionesVencidas++;
-                } else if (diasRestantes <= 90) { // 3 meses ≈ 90 días
+                } else if (diasRestantes <= diasAviso) {
                   newStats.certificacionesProximas++;
                 } else {
                   newStats.certificacionesVigentes++;
