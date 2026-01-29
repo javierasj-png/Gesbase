@@ -213,11 +213,11 @@ export function useDashboardStats(baseFilter?: string) {
                   }
                 }
 
-                // Porcentaje cumplimiento (solo obligatorios)
-                const totalObligatorios = planItems1201.filter(p => p.obligatorio).length;
-                const realizados = planItems1201.filter(p => p.obligatorio && (p.actuacion_id || p.estado === 'no_procede')).length;
-                if (totalObligatorios > 0) {
-                  newStats.pe1201PorcentajeCumplimiento = Math.round((realizados / totalObligatorios) * 100);
+                // Porcentaje cumplimiento: acciones registradas / bloques que proceden
+                const bloquesQueProceden = planItems1201.filter(p => p.estado !== 'no_procede').length;
+                const accionesRegistradas = planItems1201.filter(p => p.actuacion_id && p.estado !== 'no_procede').length;
+                if (bloquesQueProceden > 0) {
+                  newStats.pe1201PorcentajeCumplimiento = Math.round((accionesRegistradas / bloquesQueProceden) * 100);
                 }
               }
             }
