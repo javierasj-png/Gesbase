@@ -384,14 +384,16 @@ export const actuaciones1603Mock: Actuacion1603[] = [
 
 // ===== CATÁLOGO HITOS 12.01 =====
 export const catalogoHitos1201Mock: CatalogoHito1201[] = [
-  { id: 'h1', bloque: 'Acompañamientos', etiqueta: 'Día 1', orden: 1, offsetDias: 0 },
-  { id: 'h2', bloque: 'Acompañamientos', etiqueta: 'A los 7 días', orden: 2, offsetDias: 7 },
-  { id: 'h3', bloque: 'Acompañamientos', etiqueta: 'A los 23 días', orden: 3, offsetDias: 23 },
-  { id: 'h7', bloque: 'Acompañamientos', etiqueta: 'A los 30 días', orden: 4, offsetDias: 30 },
-  { id: 'h4', bloque: 'Registros', etiqueta: 'Día 1', orden: 1, offsetDias: 0 },
-  { id: 'h5', bloque: 'Registros', etiqueta: 'A los 7 días', orden: 2, offsetDias: 7 },
-  { id: 'h6', bloque: 'Registros', etiqueta: 'A los 23 días', orden: 3, offsetDias: 23 },
-  { id: 'h8', bloque: 'Registros', etiqueta: 'A los 30 días', orden: 4, offsetDias: 30 },
+  { id: 'h1', bloque: 'Acompañamientos', etiqueta: 'Día 1', orden: 1, offsetDias: 1 },
+  { id: 'h2', bloque: 'Acompañamientos', etiqueta: 'Día 7', orden: 2, offsetDias: 7 },
+  { id: 'h3', bloque: 'Acompañamientos', etiqueta: 'Día 23', orden: 3, offsetDias: 23 },
+  { id: 'h4', bloque: 'Acompañamientos', etiqueta: 'Día 30', orden: 4, offsetDias: 30 },
+  { id: 'h5', bloque: 'Acompañamientos', etiqueta: 'Día 40', orden: 5, offsetDias: 40 },
+  { id: 'h6', bloque: 'Registros', etiqueta: 'Día 1', orden: 1, offsetDias: 1 },
+  { id: 'h7', bloque: 'Registros', etiqueta: 'Día 7', orden: 2, offsetDias: 7 },
+  { id: 'h8', bloque: 'Registros', etiqueta: 'Día 23', orden: 3, offsetDias: 23 },
+  { id: 'h9', bloque: 'Registros', etiqueta: 'Día 30', orden: 4, offsetDias: 30 },
+  { id: 'h10', bloque: 'Registros', etiqueta: 'Día 40', orden: 5, offsetDias: 40 },
 ];
 
 // ===== EXPEDIENTES 12.01 MOCK =====
@@ -430,7 +432,7 @@ export const programacion1201Mock: Programacion1201[] = [
     id: 'prog1201-2',
     expediente1201Id: 'e1201-1',
     bloque: 'Acompañamientos',
-    etiqueta: 'A los 7 días',
+    etiqueta: 'Día 7',
     fechaObjetivo: addDays(fecha1erServicioTrasSuceso, 7),
     programadoPor: 'u1',
     programadoAt: new Date('2024-10-10'),
