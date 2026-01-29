@@ -22,6 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { useMaquinistas } from '@/hooks/useMaquinistas';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
+import { useExpedientes1201 } from '@/hooks/useExpedientes1201';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function MaquinistasPage() {
@@ -32,6 +33,7 @@ export default function MaquinistasPage() {
   
   const { maquinistas, loading } = useMaquinistas();
   const { expedientes } = useExpedientes1603();
+  const { expedientes: expedientes1201 } = useExpedientes1201();
   const { isAdmin } = useAuth();
 
   // Obtener bases únicas de los maquinistas
@@ -127,6 +129,7 @@ export default function MaquinistasPage() {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Base</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
+                  <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead>Estado General</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -134,13 +137,16 @@ export default function MaquinistasPage() {
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredMaquinistas.map((maquinista) => {
                     const exp1603 = expedientes.filter(e => 
+                      e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'abierto'
+                    ).length;
+                    const exp1201 = expedientes1201.filter(e => 
                       e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'abierto'
                     ).length;
                     const status = getMaquinistaStatus(maquinista.id);
@@ -164,6 +170,15 @@ export default function MaquinistasPage() {
                           {exp1603 > 0 ? (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-ok-bg text-status-ok text-xs font-medium">
                               {exp1603}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {exp1201 > 0 ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-proximo-bg text-status-proximo text-xs font-medium">
+                              {exp1201}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
