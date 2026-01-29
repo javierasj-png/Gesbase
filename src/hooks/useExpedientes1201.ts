@@ -133,11 +133,12 @@ export function useExpedientes1201() {
         const planExpediente = (planesData || []).filter(p => p.expediente_id === exp.id) as Plan1201DB[];
 
         // Calculate counts based on actuacion_id and estado
-        const pendientes = planExpediente.filter(b => !b.actuacion_id && b.estado !== 'no_procede').length;
-        const realizados = planExpediente.filter(b => b.actuacion_id || b.estado === 'realizado').length;
-        const totalObligatorios = planExpediente.filter(b => b.obligatorio).length;
-        const completados = planExpediente.filter(b => b.obligatorio && (b.actuacion_id || b.estado === 'no_procede')).length;
-        const porcentajeCumplimiento = totalObligatorios > 0 ? Math.round((completados / totalObligatorios) * 100) : 0;
+        // % cumplimiento = acciones registradas / bloques que proceden (excluye no_procede)
+        const bloquesQueProceden = planExpediente.filter(b => b.estado !== 'no_procede').length;
+        const accionesRegistradas = planExpediente.filter(b => b.actuacion_id && b.estado !== 'no_procede').length;
+        const pendientes = bloquesQueProceden - accionesRegistradas;
+        const realizados = accionesRegistradas;
+        const porcentajeCumplimiento = bloquesQueProceden > 0 ? Math.round((accionesRegistradas / bloquesQueProceden) * 100) : 0;
 
         // Calculate days until close (40 days from primer servicio)
         const fechaCierreRecomendada = exp.fecha_primer_servicio 
