@@ -26,8 +26,10 @@ import { MaquinistaCertificacionesModal } from '@/components/admin/MaquinistaCer
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { useMaquinistas, MaquinistaConNombre, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminPage() {
+  const { isAdmin, isGestor } = useAuth();
   // Hook para maquinistas con Supabase
   const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo } = useMaquinistas();
   const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaConNombre | null>(null);
@@ -98,39 +100,49 @@ export default function AdminPage() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="usuarios" className="space-y-6">
+        {/* Tabs - gestor only sees maquinistas and asignacion tabs */}
+        <Tabs defaultValue={isAdmin ? "usuarios" : "maquinistas"} className="space-y-6">
           <TabsList>
-            <TabsTrigger value="usuarios" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Mandos
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="usuarios" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Mandos
+              </TabsTrigger>
+            )}
             <TabsTrigger value="maquinistas" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Maquinistas
             </TabsTrigger>
-            <TabsTrigger value="certificaciones" className="flex items-center gap-2">
-              <Train className="w-4 h-4" />
-              Certificaciones
-            </TabsTrigger>
-            <TabsTrigger value="bases" className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Bases
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="certificaciones" className="flex items-center gap-2">
+                <Train className="w-4 h-4" />
+                Certificaciones
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="bases" className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Bases
+              </TabsTrigger>
+            )}
             <TabsTrigger value="asignacion" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
               Asignación por Base
             </TabsTrigger>
-            <TabsTrigger value="plantillas" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Plantillas SGS
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="plantillas" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Plantillas SGS
+              </TabsTrigger>
+            )}
           </TabsList>
 
-          {/* Usuarios */}
-          <TabsContent value="usuarios">
-            <UserManagement />
-          </TabsContent>
+          {/* Usuarios - Admin only */}
+          {isAdmin && (
+            <TabsContent value="usuarios">
+              <UserManagement />
+            </TabsContent>
+          )}
 
           {/* Maquinistas */}
           <TabsContent value="maquinistas">
@@ -218,86 +230,92 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          {/* Certificaciones */}
-          <TabsContent value="certificaciones">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Catálogo de Certificaciones</CardTitle>
-                  <CardDescription>Certificaciones de vehículos y líneas</CardDescription>
-                </div>
-                <Button onClick={handleNewCertificacion}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Certificación
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {loadingCertificaciones ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-muted-foreground">Cargando certificaciones...</span>
+          {/* Certificaciones - Admin only */}
+          {isAdmin && (
+            <TabsContent value="certificaciones">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Catálogo de Certificaciones</CardTitle>
+                    <CardDescription>Certificaciones de vehículos y líneas</CardDescription>
                   </div>
-                ) : certificaciones.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No hay certificaciones registradas
-                  </div>
-                ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left p-3 font-medium text-sm">ID</th>
-                        <th className="text-left p-3 font-medium text-sm">Nombre</th>
-                        <th className="text-left p-3 font-medium text-sm">Tipo</th>
-                        <th className="text-left p-3 font-medium text-sm">Descripción</th>
-                        <th className="text-left p-3 font-medium text-sm">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {certificaciones.map((cert) => (
-                        <tr key={cert.id} className="border-b last:border-b-0">
-                          <td className="p-3 font-mono text-xs">{cert.id}</td>
-                          <td className="p-3 text-sm font-medium">{cert.nombre}</td>
-                          <td className="p-3">
-                            <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
-                          </td>
-                          <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
-                            {cert.descripcion || '-'}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8"
-                                onClick={() => handleEditCertificacion(cert)}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
+                  <Button onClick={handleNewCertificacion}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nueva Certificación
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {loadingCertificaciones ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Cargando certificaciones...</span>
+                    </div>
+                  ) : certificaciones.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No hay certificaciones registradas
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left p-3 font-medium text-sm">ID</th>
+                          <th className="text-left p-3 font-medium text-sm">Nombre</th>
+                          <th className="text-left p-3 font-medium text-sm">Tipo</th>
+                          <th className="text-left p-3 font-medium text-sm">Descripción</th>
+                          <th className="text-left p-3 font-medium text-sm">Acciones</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                      </thead>
+                      <tbody>
+                        {certificaciones.map((cert) => (
+                          <tr key={cert.id} className="border-b last:border-b-0">
+                            <td className="p-3 font-mono text-xs">{cert.id}</td>
+                            <td className="p-3 text-sm font-medium">{cert.nombre}</td>
+                            <td className="p-3">
+                              <Badge variant="outline" className="capitalize">{cert.tipo}</Badge>
+                            </td>
+                            <td className="p-3 text-sm text-muted-foreground max-w-[200px] truncate">
+                              {cert.descripcion || '-'}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8"
+                                  onClick={() => handleEditCertificacion(cert)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
-          {/* Bases de Conducción */}
-          <TabsContent value="bases">
-            <BasesManagement />
-          </TabsContent>
+          {/* Bases de Conducción - Admin only */}
+          {isAdmin && (
+            <TabsContent value="bases">
+              <BasesManagement />
+            </TabsContent>
+          )}
 
-          {/* Asignación por Base */}
+          {/* Asignación por Base - accessible to gestor for their bases */}
           <TabsContent value="asignacion">
             <BaseAsignacionCertificaciones />
           </TabsContent>
 
-          {/* Plantillas SGS */}
-          <TabsContent value="plantillas">
-            <PlantillasSGS />
-          </TabsContent>
+          {/* Plantillas SGS - Admin only */}
+          {isAdmin && (
+            <TabsContent value="plantillas">
+              <PlantillasSGS />
+            </TabsContent>
+          )}
 
         </Tabs>
 

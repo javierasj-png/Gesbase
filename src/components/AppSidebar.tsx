@@ -31,13 +31,13 @@ const adminItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { userAccess, signOut, isAdmin } = useAuth();
+  const { userAccess, signOut, isAdmin, isGestor } = useAuth();
 
   const displayName = userAccess?.profile 
     ? `${userAccess.profile.nombre || ''} ${userAccess.profile.apellidos || ''}`.trim() || userAccess.profile.email
     : 'Usuario';
 
-  const displayRole = isAdmin ? 'Administrador' : 'Mando';
+  const displayRole = isAdmin ? 'Administrador' : isGestor ? 'Gestor de Base' : 'Mando';
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
@@ -79,7 +79,7 @@ export function AppSidebar() {
           );
         })}
 
-        {isAdmin && (
+        {(isAdmin || isGestor) && (
           <>
             <p className="text-xs uppercase tracking-wider text-sidebar-foreground/50 px-3 py-2 mt-4">
               Administración

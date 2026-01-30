@@ -15,6 +15,7 @@ import {
 import { Eye, EyeOff, Pencil, Loader2, Building2, Train } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCertificaciones, CertificacionDB } from '@/hooks/useCertificaciones';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BaseConduccion {
   id: string;
@@ -37,6 +38,7 @@ interface BaseCertificacionDB {
 
 export function BaseAsignacionCertificaciones() {
   const { toast } = useToast();
+  const { isAdmin, assignedBases } = useAuth();
   const [bases, setBases] = useState<BaseConduccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
@@ -45,8 +47,19 @@ export function BaseAsignacionCertificaciones() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      let basesQuery = supabase
+        .from('bases_conduccion')
+        .select('*')
+        .eq('activa', true)
+        .order('nombre');
+      
+      // If not admin (i.e., gestor), filter by assigned bases
+      if (!isAdmin && assignedBases.length > 0) {
+        basesQuery = basesQuery.in('nombre', assignedBases);
+      }
+      
       const [basesRes, certsRes] = await Promise.all([
-        supabase.from('bases_conduccion').select('*').eq('activa', true).order('nombre'),
+        basesQuery,
         supabase.from('base_certificaciones').select('*'),
       ]);
 
@@ -76,7 +89,7 @@ export function BaseAsignacionCertificaciones() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isAdmin, assignedBases]);
 
   if (loading) {
     return (

@@ -639,6 +639,10 @@ export type Database = {
         Args: { _base_nombre: string; _user_id: string }
         Returns: boolean
       }
+      can_admin_base: {
+        Args: { _base_nombre: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -646,6 +650,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_gestor: { Args: { _user_id: string }; Returns: boolean }
       recalcular_plan_1201: {
         Args: { _expediente_id: string; _fecha_origen: string }
         Returns: undefined
@@ -656,7 +661,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "mando"
+      app_role: "admin" | "mando" | "gestor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -784,7 +789,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "mando"],
+      app_role: ["admin", "mando", "gestor"],
     },
   },
 } as const

@@ -12,7 +12,7 @@ export type Bloque1201 = 'Acompañamientos' | 'Registros';
 export type Etiqueta1201 = 'Día 1' | 'Día 7' | 'Día 23' | 'Día 30' | 'Día 40';
 export type EstadoCelda1201 = 'No procede' | 'Pendiente' | 'Cumplida';
 export type Base = 'Madrid-Chamartín' | 'Barcelona-Sants' | 'Sevilla-Santa Justa' | 'Valencia-Joaquín Sorolla';
-export type AppRole = 'admin' | 'mando';
+export type AppRole = 'admin' | 'gestor' | 'mando';
 
 // Auditoría
 export interface Auditable {
@@ -208,4 +208,5 @@ export interface UserWithAccess {
   roles: AppRole[];
   assignedBases: Base[];
   isAdmin: boolean;
+  isGestor: boolean;
 }

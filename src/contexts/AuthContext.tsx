@@ -10,8 +10,10 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isGestor: boolean;
   assignedBases: Base[];
   canAccessBase: (base: Base) => boolean;
+  canAdminBase: (base: Base) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, nombre?: string, apellidos?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -63,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const roles = (rolesData || []).map(r => r.role as AppRole);
       const assignedBases = (basesData || []).map(b => b.base_nombre as Base);
       const isAdmin = roles.includes('admin');
+      const isGestor = roles.includes('gestor');
 
       const profile: UserProfile = {
         id: profileData?.id || userId,
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles,
         assignedBases,
         isAdmin,
+        isGestor,
       };
     } catch (error) {
       console.error('Error in fetchUserAccess:', error);
@@ -174,6 +178,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return userAccess.assignedBases.includes(base);
   };
 
+  // Check if user can admin a specific base (admin or gestor with that base assigned)
+  const canAdminBase = (base: Base): boolean => {
+    if (!userAccess) return false;
+    if (userAccess.isAdmin) return true;
+    if (userAccess.isGestor) {
+      return userAccess.assignedBases.includes(base);
+    }
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -183,8 +197,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         isAdmin: userAccess?.isAdmin ?? false,
+        isGestor: userAccess?.isGestor ?? false,
         assignedBases: userAccess?.assignedBases ?? [],
         canAccessBase,
+        canAdminBase,
         signIn,
         signUp,
         signOut,

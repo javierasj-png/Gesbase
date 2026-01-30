@@ -68,28 +68,40 @@ export default function AuditoriaPage() {
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [baseFilter, setBaseFilter] = useState<string>('all');
 
-  // Fetch bases for filter
+  // Fetch bases for filter - filtered by user's assigned bases if not admin
   const { data: bases } = useQuery({
-    queryKey: ['bases-auditoria'],
+    queryKey: ['bases-auditoria', isAdmin, assignedBases],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('bases_conduccion')
         .select('id, nombre')
         .eq('activa', true)
         .order('nombre');
+      
+      // If not admin, only show assigned bases
+      if (!isAdmin && assignedBases.length > 0) {
+        query = query.in('nombre', assignedBases);
+      }
+      
+      const { data } = await query;
       return data || [];
     }
   });
 
+  // Compute accessible bases for the report
+  const accessibleBases = isAdmin 
+    ? (bases?.map(b => b.nombre) || [])
+    : assignedBases;
+
   // Fetch cumplimiento data
   const { data: cumplimientoData, isLoading: loadingCumplimiento } = useQuery({
-    queryKey: ['auditoria-cumplimiento', baseFilter],
+    queryKey: ['auditoria-cumplimiento', baseFilter, accessibleBases],
     queryFn: async () => {
       const results: CumplimientoBase[] = [];
       
-      // Get all bases to report on
+      // Get bases to report on - respect user's accessible bases
       const basesToReport = baseFilter === 'all' 
-        ? (bases?.map(b => b.nombre) || [])
+        ? accessibleBases
         : [baseFilter];
 
       for (const baseNombre of basesToReport) {
@@ -173,7 +185,7 @@ export default function AuditoriaPage() {
 
       return results;
     },
-    enabled: !!bases
+    enabled: accessibleBases.length > 0
   });
 
   // Placeholder for partes summary - would need partes table
