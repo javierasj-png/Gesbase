@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isAdmin } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isGestor } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -26,7 +26,8 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && !isAdmin) {
+  // Admin page accessible to both admin and gestor roles
+  if (requireAdmin && !isAdmin && !isGestor) {
     return <Navigate to="/dashboard" replace />;
   }
 

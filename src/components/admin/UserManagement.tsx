@@ -251,9 +251,12 @@ export function UserManagement() {
                       </p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {user.roles.includes('admin') && (
                         <Badge className="bg-primary">Admin</Badge>
+                      )}
+                      {user.roles.includes('gestor') && (
+                        <Badge className="bg-amber-600">Gestor</Badge>
                       )}
                       {user.roles.includes('mando') && (
                         <Badge variant="secondary">Mando</Badge>
@@ -281,6 +284,14 @@ export function UserManagement() {
                           />
                         </div>
                         <div className="flex items-center justify-between">
+                          <span className="text-sm">Gestor de Base</span>
+                          <Switch
+                            checked={user.roles.includes('gestor')}
+                            onCheckedChange={() => handleToggleRole(user.user_id, 'gestor')}
+                            disabled={saving === user.user_id}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
                           <span className="text-sm">Mando</span>
                           <Switch
                             checked={user.roles.includes('mando')}
@@ -288,6 +299,9 @@ export function UserManagement() {
                             disabled={saving === user.user_id}
                           />
                         </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          <strong>Gestor de Base:</strong> Permisos de admin solo para sus bases asignadas
+                        </p>
                       </div>
                     </div>
 
