@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { addMonths, differenceInDays } from 'date-fns';
+import { addMonths, differenceInDays, endOfYear, addDays } from 'date-fns';
+
+export type GrupoAlerta = 'vencidas' | 'proximas_3_meses' | 'resto_anio';
 
 export interface AlertaCertificacion {
   tipo: 'certificacion';
@@ -14,6 +16,7 @@ export interface AlertaCertificacion {
   estado: 'Próxima a vencer' | 'Vencida';
   dias_restantes: number | null;
   fecha_vencimiento: Date | null;
+  grupo: GrupoAlerta;
 }
 
 export interface Alerta1603 {
@@ -28,6 +31,7 @@ export interface Alerta1603 {
   estado: 'En ventana' | 'Vencida';
   dias_restantes: number;
   fin_ventana: Date;
+  grupo: GrupoAlerta;
 }
 
 export interface Alerta1201 {
@@ -39,9 +43,37 @@ export interface Alerta1201 {
   hito: string;
   estado: 'Pendiente' | 'Vencida';
   dias_restantes: number;
+  fecha_objetivo: Date;
+  grupo: GrupoAlerta;
 }
 
 export type Alerta = AlertaCertificacion | Alerta1603 | Alerta1201;
+
+// Función para determinar el grupo de una alerta basándose en su fecha límite
+function calcularGrupoAlerta(fechaLimite: Date | null, hoy: Date): GrupoAlerta | null {
+  if (!fechaLimite) return 'vencidas'; // Sin fecha = vencida
+  
+  const finAnio = endOfYear(hoy);
+  const limiteTresMeses = addDays(hoy, 90); // ~3 meses desde hoy
+  
+  // Si la fecha límite ya pasó = vencida
+  if (fechaLimite < hoy) {
+    return 'vencidas';
+  }
+  
+  // Si la fecha límite está dentro de los próximos 3 meses
+  if (fechaLimite <= limiteTresMeses) {
+    return 'proximas_3_meses';
+  }
+  
+  // Si la fecha límite está antes del fin de año
+  if (fechaLimite <= finAnio) {
+    return 'resto_anio';
+  }
+  
+  // Después de fin de año = no mostrar
+  return null;
+}
 
 export function useDashboardAlertas(baseFilter?: string) {
   const { user, isAdmin, assignedBases } = useAuth();
@@ -57,11 +89,13 @@ export function useDashboardAlertas(baseFilter?: string) {
     setLoading(true);
     try {
       const allAlertas: Alerta[] = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       // 1. CERTIFICACIONES: Obtener maquinista_certificaciones con fecha_ultimo_servicio
       const { data: maqCerts, error: certError } = await supabase
         .from('maquinista_certificaciones')
-        .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio');
+        .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio, obtenida');
 
       if (!certError && maqCerts) {
         // Obtener base_certificaciones para config de vigilancia
@@ -83,6 +117,9 @@ export function useDashboardAlertas(baseFilter?: string) {
           const maqMap = new Map(maquinistas?.map(m => [m.id, m]) || []);
 
           for (const mc of maqCerts) {
+            // Solo certificaciones obtenidas con vigilancia activa
+            if (!mc.obtenida) continue;
+            
             const config = configMap.get(mc.certificacion_id);
             if (!config?.vigilar_vencimiento) continue;
 
@@ -93,24 +130,24 @@ export function useDashboardAlertas(baseFilter?: string) {
             if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
             if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
 
-            let estado: 'Próxima a vencer' | 'Vencida' | null = null;
-            let diasRestantes: number | null = null;
             let fechaVencimiento: Date | null = null;
+            let diasRestantes: number | null = null;
 
             if (!mc.fecha_ultimo_servicio) {
-              estado = 'Vencida';
+              // Sin registro = vencida
+              fechaVencimiento = null;
             } else {
-              fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), config.periodo_inactividad_meses);
-              diasRestantes = differenceInDays(fechaVencimiento, new Date());
-
-              if (diasRestantes < 0) {
-                estado = 'Vencida';
-              } else if (diasRestantes <= config.aviso_dias) {
-                estado = 'Próxima a vencer';
-              }
+              fechaVencimiento = addMonths(new Date(mc.fecha_ultimo_servicio), config.periodo_inactividad_meses || 12);
+              diasRestantes = differenceInDays(fechaVencimiento, today);
             }
 
-            if (estado) {
+            const grupo = calcularGrupoAlerta(fechaVencimiento, today);
+            
+            // Solo agregar si tiene grupo válido (hasta fin de año)
+            if (grupo) {
+              const estado: 'Próxima a vencer' | 'Vencida' = 
+                grupo === 'vencidas' ? 'Vencida' : 'Próxima a vencer';
+              
               allAlertas.push({
                 tipo: 'certificacion',
                 id: mc.id,
@@ -122,13 +159,14 @@ export function useDashboardAlertas(baseFilter?: string) {
                 estado,
                 dias_restantes: diasRestantes,
                 fecha_vencimiento: fechaVencimiento,
+                grupo,
               });
             }
           }
         }
       }
 
-      // 2. PE 16.03: Usar inicio_ventana y fin_ventana de la DB
+      // 2. PE 16.03: Usar fin_ventana como fecha límite
       const { data: expedientes1603, error: expError } = await supabase
         .from('expedientes_1603')
         .select('id, maquinista_id, fecha_primer_servicio, estado')
@@ -149,11 +187,10 @@ export function useDashboardAlertas(baseFilter?: string) {
           .from('plan_1603')
           .select('id, expediente_id, tipo, etiqueta, mes, estado, actuacion_id, inicio_ventana, fin_ventana')
           .in('expediente_id', expIds)
-          .is('actuacion_id', null);
+          .is('actuacion_id', null)
+          .neq('estado', 'no_procede');
 
         if (planItems) {
-          const today = new Date();
-          
           for (const item of planItems) {
             const exp = expedientes1603.find(e => e.id === item.expediente_id);
             if (!exp) continue;
@@ -165,14 +202,17 @@ export function useDashboardAlertas(baseFilter?: string) {
             if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
             if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
 
-            // Usar fechas de la DB
-            if (item.inicio_ventana && item.fin_ventana) {
-              const inicioVentana = new Date(item.inicio_ventana);
+            // Usar fin_ventana como fecha límite
+            if (item.fin_ventana) {
               const finVentana = new Date(item.fin_ventana);
-              const diasRestantes = differenceInDays(finVentana, today);
+              finVentana.setHours(0, 0, 0, 0);
               
-              // Solo alertar si está en ventana o vencida
-              if (today > finVentana) {
+              const grupo = calcularGrupoAlerta(finVentana, today);
+              
+              if (grupo) {
+                const diasRestantes = differenceInDays(finVentana, today);
+                const estado: 'En ventana' | 'Vencida' = grupo === 'vencidas' ? 'Vencida' : 'En ventana';
+                
                 allAlertas.push({
                   tipo: 'pe1603',
                   id: exp.id,
@@ -182,23 +222,10 @@ export function useDashboardAlertas(baseFilter?: string) {
                   maquinista_base: maq.base,
                   etiqueta: item.etiqueta || `${item.tipo} - Mes ${item.mes}`,
                   tipo_actuacion: item.tipo,
-                  estado: 'Vencida',
+                  estado,
                   dias_restantes: diasRestantes,
                   fin_ventana: finVentana,
-                });
-              } else if (today >= inicioVentana) {
-                allAlertas.push({
-                  tipo: 'pe1603',
-                  id: exp.id,
-                  bloque_id: item.id,
-                  maquinista_id: exp.maquinista_id,
-                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
-                  maquinista_base: maq.base,
-                  etiqueta: item.etiqueta || `${item.tipo} - Mes ${item.mes}`,
-                  tipo_actuacion: item.tipo,
-                  estado: 'En ventana',
-                  dias_restantes: diasRestantes,
-                  fin_ventana: finVentana,
+                  grupo,
                 });
               }
             }
@@ -206,7 +233,7 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
-      // 3. PE 12.01: Usar tabla correcta
+      // 3. PE 12.01: Usar fecha_objetivo como fecha límite
       const { data: expedientes1201, error: exp1201Error } = await supabase
         .from('expedientes_1201')
         .select('id, maquinista_id, fecha_primer_servicio, estado')
@@ -230,8 +257,6 @@ export function useDashboardAlertas(baseFilter?: string) {
           .neq('estado', 'no_procede');
 
         if (planItems1201) {
-          const today = new Date();
-          
           for (const item of planItems1201) {
             const exp = expedientes1201.find(e => e.id === item.expediente_id);
             if (!exp) continue;
@@ -246,12 +271,13 @@ export function useDashboardAlertas(baseFilter?: string) {
             if (item.fecha_objetivo) {
               const fechaObjetivo = new Date(item.fecha_objetivo);
               fechaObjetivo.setHours(0, 0, 0, 0);
-              const todayNorm = new Date(today);
-              todayNorm.setHours(0, 0, 0, 0);
-              const diasRestantes = differenceInDays(fechaObjetivo, todayNorm);
               
-              // PE 12.01 NO tiene ventana - solo fecha exacta
-              if (todayNorm > fechaObjetivo) {
+              const grupo = calcularGrupoAlerta(fechaObjetivo, today);
+              
+              if (grupo) {
+                const diasRestantes = differenceInDays(fechaObjetivo, today);
+                const estado: 'Pendiente' | 'Vencida' = grupo === 'vencidas' ? 'Vencida' : 'Pendiente';
+                
                 allAlertas.push({
                   tipo: 'pe1201',
                   id: exp.id,
@@ -259,20 +285,10 @@ export function useDashboardAlertas(baseFilter?: string) {
                   maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
                   maquinista_base: maq.base,
                   hito: `${item.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'} ${item.etiqueta}`,
-                  estado: 'Vencida',
+                  estado,
                   dias_restantes: diasRestantes,
-                });
-              } else if (diasRestantes <= 3) {
-                // Alertar si faltan 3 días o menos para la fecha objetivo
-                allAlertas.push({
-                  tipo: 'pe1201',
-                  id: exp.id,
-                  maquinista_id: exp.maquinista_id,
-                  maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
-                  maquinista_base: maq.base,
-                  hito: `${item.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'} ${item.etiqueta}`,
-                  estado: 'Pendiente',
-                  dias_restantes: diasRestantes,
+                  fecha_objetivo: fechaObjetivo,
+                  grupo,
                 });
               }
             }
@@ -280,11 +296,18 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
-      // Ordenar: primero vencidas, luego por días restantes
+      // Ordenar: primero vencidas, luego próximas 3 meses, luego resto año
+      // Dentro de cada grupo, ordenar por días restantes
+      const ordenGrupo: Record<GrupoAlerta, number> = {
+        'vencidas': 0,
+        'proximas_3_meses': 1,
+        'resto_anio': 2,
+      };
+
       allAlertas.sort((a, b) => {
-        const esVencidaA = a.estado === 'Vencida';
-        const esVencidaB = b.estado === 'Vencida';
-        if (esVencidaA !== esVencidaB) return esVencidaA ? -1 : 1;
+        const ordenA = ordenGrupo[a.grupo];
+        const ordenB = ordenGrupo[b.grupo];
+        if (ordenA !== ordenB) return ordenA - ordenB;
         
         const diasA = a.dias_restantes ?? -999;
         const diasB = b.dias_restantes ?? -999;
@@ -303,10 +326,16 @@ export function useDashboardAlertas(baseFilter?: string) {
     fetchAlertas();
   }, [fetchAlertas]);
 
+  // Agrupar alertas por categoría
+  const alertasVencidas = alertas.filter(a => a.grupo === 'vencidas');
+  const alertasProximas3Meses = alertas.filter(a => a.grupo === 'proximas_3_meses');
+  const alertasRestoAnio = alertas.filter(a => a.grupo === 'resto_anio');
+
   const kpis = {
     totalAlertas: alertas.length,
-    vencidas: alertas.filter(a => a.estado === 'Vencida').length,
-    proximasOEnVentana: alertas.filter(a => a.estado !== 'Vencida').length,
+    vencidas: alertasVencidas.length,
+    proximas3Meses: alertasProximas3Meses.length,
+    restoAnio: alertasRestoAnio.length,
     certificaciones: alertas.filter(a => a.tipo === 'certificacion').length,
     pe1603: alertas.filter(a => a.tipo === 'pe1603').length,
     pe1201: alertas.filter(a => a.tipo === 'pe1201').length,
@@ -314,6 +343,9 @@ export function useDashboardAlertas(baseFilter?: string) {
 
   return {
     alertas,
+    alertasVencidas,
+    alertasProximas3Meses,
+    alertasRestoAnio,
     loading,
     kpis,
     refetch: fetchAlertas,
