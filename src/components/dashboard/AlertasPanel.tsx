@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/StatusBadge';
 import { 
   AlertTriangle, 
   Train, 
@@ -9,10 +8,13 @@ import {
   AlertCircle,
   Loader2,
   Bell,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  Calendar,
+  CalendarDays
 } from 'lucide-react';
-import { useDashboardAlertas, Alerta } from '@/hooks/useDashboardAlertas';
-import { format } from 'date-fns';
+import { useDashboardAlertas, Alerta, GrupoAlerta } from '@/hooks/useDashboardAlertas';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface AlertasPanelProps {
   baseFilter?: string;
@@ -28,11 +30,6 @@ function getAlertaIcon(alerta: Alerta) {
     case 'pe1201':
       return <AlertCircle className="w-4 h-4" />;
   }
-}
-
-function getAlertaBadgeVariant(alerta: Alerta): 'default' | 'secondary' | 'destructive' | 'outline' {
-  if (alerta.estado === 'Vencida') return 'destructive';
-  return 'secondary';
 }
 
 function getAlertaLabel(alerta: Alerta): string {
@@ -65,11 +62,147 @@ function getDiasText(alerta: Alerta): string {
   return `${dias}d`;
 }
 
-export function AlertasPanel({ baseFilter, maxItems = 10 }: AlertasPanelProps) {
-  const navigate = useNavigate();
-  const { alertas, loading, kpis } = useDashboardAlertas(baseFilter);
+function getGrupoIcon(grupo: GrupoAlerta) {
+  switch (grupo) {
+    case 'vencidas':
+      return <AlertTriangle className="w-4 h-4" />;
+    case 'proximas_3_meses':
+      return <Clock className="w-4 h-4" />;
+    case 'resto_anio':
+      return <CalendarDays className="w-4 h-4" />;
+  }
+}
 
+function getGrupoLabel(grupo: GrupoAlerta): string {
+  switch (grupo) {
+    case 'vencidas':
+      return 'Vencidas';
+    case 'proximas_3_meses':
+      return 'Próximas 3 meses';
+    case 'resto_anio':
+      return 'Resto del año';
+  }
+}
+
+function getGrupoStyles(grupo: GrupoAlerta) {
+  switch (grupo) {
+    case 'vencidas':
+      return {
+        badge: 'bg-destructive text-destructive-foreground',
+        iconBg: 'bg-status-vencido-bg text-status-vencido',
+        text: 'text-status-vencido',
+      };
+    case 'proximas_3_meses':
+      return {
+        badge: 'bg-status-proximo text-white',
+        iconBg: 'bg-status-proximo-bg text-status-proximo',
+        text: 'text-status-proximo',
+      };
+    case 'resto_anio':
+      return {
+        badge: 'bg-muted text-muted-foreground',
+        iconBg: 'bg-muted text-muted-foreground',
+        text: 'text-muted-foreground',
+      };
+  }
+}
+
+interface AlertaItemProps {
+  alerta: Alerta;
+  onClick: () => void;
+}
+
+function AlertaItem({ alerta, onClick }: AlertaItemProps) {
+  const styles = getGrupoStyles(alerta.grupo);
+  
+  return (
+    <div
+      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer group"
+      onClick={onClick}
+    >
+      {/* Icono */}
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${styles.iconBg}`}>
+        {getAlertaIcon(alerta)}
+      </div>
+
+      {/* Contenido */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm truncate">
+            {alerta.maquinista_nombre}
+          </p>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+            {getAlertaLabel(alerta)}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground truncate">
+          {getAlertaDescription(alerta)}
+        </p>
+      </div>
+
+      {/* Estado y días */}
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <p className={`text-sm font-medium ${styles.text}`}>
+            {getDiasText(alerta)}
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    </div>
+  );
+}
+
+interface AlertasGrupoProps {
+  grupo: GrupoAlerta;
+  alertas: Alerta[];
+  onAlertaClick: (alerta: Alerta) => void;
+  maxItems?: number;
+}
+
+function AlertasGrupo({ grupo, alertas, onAlertaClick, maxItems = 5 }: AlertasGrupoProps) {
+  const styles = getGrupoStyles(grupo);
   const alertasMostradas = alertas.slice(0, maxItems);
+  const hayMas = alertas.length > maxItems;
+
+  if (alertas.length === 0) return null;
+
+  return (
+    <AccordionItem value={grupo} className="border-b-0">
+      <AccordionTrigger className="py-2 hover:no-underline">
+        <div className="flex items-center gap-2">
+          <div className={`w-6 h-6 rounded flex items-center justify-center ${styles.iconBg}`}>
+            {getGrupoIcon(grupo)}
+          </div>
+          <span className="font-medium text-sm">{getGrupoLabel(grupo)}</span>
+          <Badge className={`ml-1 ${styles.badge}`}>
+            {alertas.length}
+          </Badge>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="pb-2">
+        <div className="space-y-2">
+          {alertasMostradas.map((alerta, idx) => (
+            <AlertaItem
+              key={`${alerta.tipo}-${alerta.id}-${idx}`}
+              alerta={alerta}
+              onClick={() => onAlertaClick(alerta)}
+            />
+          ))}
+          {hayMas && (
+            <p className="text-xs text-center text-muted-foreground pt-1">
+              +{alertas.length - maxItems} más
+            </p>
+          )}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
+  const navigate = useNavigate();
+  const { alertasVencidas, alertasProximas3Meses, alertasRestoAnio, loading, kpis } = useDashboardAlertas(baseFilter);
 
   const handleAlertaClick = (alerta: Alerta) => {
     switch (alerta.tipo) {
@@ -103,14 +236,21 @@ export function AlertasPanel({ baseFilter, maxItems = 10 }: AlertasPanelProps) {
     );
   }
 
+  const tieneAlertas = kpis.totalAlertas > 0;
+
+  // Determinar qué grupos abrir por defecto
+  const defaultOpen: string[] = [];
+  if (alertasVencidas.length > 0) defaultOpen.push('vencidas');
+  if (alertasProximas3Meses.length > 0) defaultOpen.push('proximas_3_meses');
+
   return (
-    <Card className="border-destructive/20">
+    <Card className={tieneAlertas ? 'border-destructive/20' : ''}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Bell className="w-4 h-4 text-destructive" />
             Alertas
-            {kpis.totalAlertas > 0 && (
+            {tieneAlertas && (
               <Badge variant="destructive" className="ml-2">
                 {kpis.totalAlertas}
               </Badge>
@@ -139,58 +279,27 @@ export function AlertasPanel({ baseFilter, maxItems = 10 }: AlertasPanelProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {alertasMostradas.length > 0 ? (
-          <div className="space-y-2">
-            {alertasMostradas.map((alerta, idx) => (
-              <div
-                key={`${alerta.tipo}-${alerta.id}-${idx}`}
-                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer group"
-                onClick={() => handleAlertaClick(alerta)}
-              >
-                {/* Icono */}
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  alerta.estado === 'Vencida' 
-                    ? 'bg-status-vencido-bg text-status-vencido' 
-                    : 'bg-status-proximo-bg text-status-proximo'
-                }`}>
-                  {getAlertaIcon(alerta)}
-                </div>
-
-                {/* Contenido */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">
-                      {alerta.maquinista_nombre}
-                    </p>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                      {getAlertaLabel(alerta)}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {getAlertaDescription(alerta)}
-                  </p>
-                </div>
-
-                {/* Estado y días */}
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${
-                      alerta.estado === 'Vencida' ? 'text-status-vencido' : 'text-status-proximo'
-                    }`}>
-                      {getDiasText(alerta)}
-                    </p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-            ))}
-
-            {alertas.length > maxItems && (
-              <p className="text-xs text-center text-muted-foreground pt-2">
-                +{alertas.length - maxItems} alertas más
-              </p>
-            )}
-          </div>
+        {tieneAlertas ? (
+          <Accordion type="multiple" defaultValue={defaultOpen} className="w-full">
+            <AlertasGrupo 
+              grupo="vencidas" 
+              alertas={alertasVencidas} 
+              onAlertaClick={handleAlertaClick}
+              maxItems={maxItems}
+            />
+            <AlertasGrupo 
+              grupo="proximas_3_meses" 
+              alertas={alertasProximas3Meses} 
+              onAlertaClick={handleAlertaClick}
+              maxItems={maxItems}
+            />
+            <AlertasGrupo 
+              grupo="resto_anio" 
+              alertas={alertasRestoAnio} 
+              onAlertaClick={handleAlertaClick}
+              maxItems={maxItems}
+            />
+          </Accordion>
         ) : (
           <div className="text-center py-8">
             <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
