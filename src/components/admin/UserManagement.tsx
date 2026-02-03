@@ -68,7 +68,10 @@ export function UserManagement() {
         .from('base_assignments')
         .select('*');
 
-      if (basesError) throw basesError;
+      // Si falla, no bloqueamos la carga de usuarios/roles (permite al menos ver los mandos)
+      if (basesError) {
+        console.error('Error fetching base assignments:', basesError);
+      }
 
       // Combine data
       const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => ({
