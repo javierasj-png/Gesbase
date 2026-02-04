@@ -30,16 +30,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user profile, roles and base assignments
   const fetchUserAccess = async (userId: string): Promise<UserWithAccess | null> => {
     try {
-      // Fetch profile - use user_id column, not id
+      // Fetch profile - profiles.id = auth.users.id (user_id)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .maybeSingle();
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
-        return null;
+        // Don't return null - user might not have profile yet
       }
 
       // Fetch roles
@@ -52,10 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching roles:', rolesError);
       }
 
-      // Fetch base assignments - column is base_nombre, not base
+      // Fetch base assignments - handle both 'base' and 'base_nombre' column names
       const { data: basesData, error: basesError } = await supabase
         .from('base_assignments')
-        .select('base_nombre')
+        .select('*')
         .eq('user_id', userId);
 
       if (basesError) {
@@ -63,7 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const roles = (rolesData || []).map(r => r.role as AppRole);
-      const assignedBases = (basesData || []).map(b => b.base_nombre as Base);
+      // Support both 'base' and 'base_nombre' column names
+      const assignedBases = (basesData || []).map(b => ((b as any).base_nombre || (b as any).base) as Base);
       const isAdmin = roles.includes('admin');
       const isGestor = roles.includes('gestor');
 
@@ -145,20 +146,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Ensure profile exists (avoid relying on DB triggers)
     // Works when auto-confirm is enabled and session is created immediately.
     if (!error && data.user && data.session) {
-      const { error: profileUpsertError } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            user_id: data.user.id,
-            email: emailTrimmed,
-            nombre: nombre || null,
-            apellidos: apellidos || null,
-          },
-          { onConflict: 'user_id' }
-        );
-
-      if (profileUpsertError) {
-        console.error('Error creating/updating profile after signup:', profileUpsertError);
+      try {
+        // Try upsert with the schema that exists (id = user_id)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: data.user.id,
+              email: emailTrimmed,
+              nombre: nombre || null,
+              apellidos: apellidos || null,
+            } as any,
+            { onConflict: 'id' }
+          );
+        
+        if (profileError) {
+          console.error('Error creating/updating profile after signup:', profileError);
+        }
+      } catch (e) {
+        console.error('Error in profile upsert:', e);
       }
     }
 

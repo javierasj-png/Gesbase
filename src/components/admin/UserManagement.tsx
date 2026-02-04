@@ -63,7 +63,7 @@ export function UserManagement() {
 
       if (rolesError) throw rolesError;
 
-      // Fetch base assignments - column is base_nombre
+      // Fetch base assignments - handle both 'base' and 'base_nombre' column names
       const { data: bases, error: basesError } = await supabase
         .from('base_assignments')
         .select('*');
@@ -73,20 +73,23 @@ export function UserManagement() {
         console.error('Error fetching base assignments:', basesError);
       }
 
-      // Combine data
-      const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => ({
-        id: profile.id,
-        user_id: profile.user_id,
-        email: profile.email,
-        nombre: profile.nombre || undefined,
-        apellidos: profile.apellidos || undefined,
-        roles: (roles || [])
-          .filter(r => r.user_id === profile.user_id)
-          .map(r => r.role as AppRole),
-        bases: (bases || [])
-          .filter(b => b.user_id === profile.user_id)
-          .map(b => b.base_nombre as string),
-      }));
+      // Combine data - profiles.id is the user_id in this schema
+      const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => {
+        const profileUserId = (profile as any).user_id || profile.id;
+        return {
+          id: profile.id,
+          user_id: profileUserId,
+          email: profile.email,
+          nombre: profile.nombre || undefined,
+          apellidos: profile.apellidos || undefined,
+          roles: (roles || [])
+            .filter(r => r.user_id === profileUserId)
+            .map(r => r.role as AppRole),
+          bases: (bases || [])
+            .filter(b => b.user_id === profileUserId)
+            .map(b => ((b as any).base_nombre || (b as any).base) as string),
+        };
+      });
 
       setUsers(usersWithDetails);
     } catch (error) {
@@ -165,19 +168,19 @@ export function UserManagement() {
 
     try {
       if (hasBase) {
-        // Remove base
+        // Remove base - handle both column names
         const { error } = await supabase
           .from('base_assignments')
           .delete()
           .eq('user_id', userId)
-          .eq('base_nombre', baseName);
+          .or(`base.eq.${baseName},base_nombre.eq.${baseName}`);
 
         if (error) throw error;
       } else {
-        // Add base
+        // Add base - use the column name that exists
         const { error } = await supabase
           .from('base_assignments')
-          .insert([{ user_id: userId, base_nombre: baseName }]);
+          .insert([{ user_id: userId, base: baseName } as any]);
 
         if (error) throw error;
       }

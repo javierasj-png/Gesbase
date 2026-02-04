@@ -582,29 +582,29 @@ export type Database = {
       profiles: {
         Row: {
           apellidos: string | null
-          created_at: string | null
+          created_at: string
           email: string
           id: string
           nombre: string | null
-          updated_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           apellidos?: string | null
-          created_at?: string | null
+          created_at?: string
           email: string
           id?: string
           nombre?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           apellidos?: string | null
-          created_at?: string | null
+          created_at?: string
           email?: string
           id?: string
           nombre?: string | null
-          updated_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
