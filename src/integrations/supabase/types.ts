@@ -635,21 +635,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_access_base: {
-        Args: { _base_nombre: string; _user_id: string }
-        Returns: boolean
-      }
-      can_admin_base: {
-        Args: { _base_nombre: string; _user_id: string }
-        Returns: boolean
-      }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      can_access_base:
+        | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+        | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+      can_admin_base:
+        | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+        | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
       is_gestor: { Args: { _user_id: string }; Returns: boolean }
       recalcular_plan_1201: {
         Args: { _expediente_id: string; _fecha_origen: string }
