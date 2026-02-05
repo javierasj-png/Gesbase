@@ -168,12 +168,12 @@ export function UserManagement() {
 
     try {
       if (hasBase) {
-        // Remove base - handle both column names
+        // Remove base - use base_nombre column
         const { error } = await supabase
           .from('base_assignments')
           .delete()
           .eq('user_id', userId)
-          .or(`base.eq.${baseName},base_nombre.eq.${baseName}`);
+          .eq('base_nombre', baseName);
 
         if (error) throw error;
       } else {
