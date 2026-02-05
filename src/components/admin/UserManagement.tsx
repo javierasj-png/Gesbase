@@ -177,10 +177,10 @@ export function UserManagement() {
 
         if (error) throw error;
       } else {
-        // Add base - use the column name that exists
+        // Add base - use base_nombre column
         const { error } = await supabase
           .from('base_assignments')
-          .insert([{ user_id: userId, base: baseName } as any]);
+          .insert([{ user_id: userId, base_nombre: baseName }]);
 
         if (error) throw error;
       }
