@@ -7,37 +7,37 @@
 
 @layer base {
   :root {
-    /* Colores base - Tema Industrial Ferroviario */
-    --background: 220 20% 97%;
-    --foreground: 220 30% 15%;
+    /* Colores corporativos Renfe - Magenta #82005E / Cool Gray #98999b */
+    --background: 0 0% 96%;
+    --foreground: 320 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 15%;
+    --card-foreground: 320 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 15%;
+    --popover-foreground: 320 20% 15%;
 
-    /* Azul marino profesional */
-    --primary: 220 60% 25%;
+    /* Magenta Renfe corporativo */
+    --primary: 320 100% 25%;
     --primary-foreground: 0 0% 100%;
 
-    /* Gris acero */
-    --secondary: 220 15% 92%;
-    --secondary-foreground: 220 30% 25%;
+    /* Cool Gray Renfe */
+    --secondary: 240 1% 92%;
+    --secondary-foreground: 240 1% 35%;
 
-    --muted: 220 15% 95%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 240 1% 95%;
+    --muted-foreground: 240 1% 45%;
 
-    /* Azul claro accent */
-    --accent: 210 80% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Magenta claro como accent */
+    --accent: 320 60% 92%;
+    --accent-foreground: 320 100% 25%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 220 60% 35%;
+    --border: 240 1% 87%;
+    --input: 240 1% 87%;
+    --ring: 320 100% 30%;
 
     --radius: 0.5rem;
 
@@ -48,73 +48,73 @@
     --status-proximo-bg: 38 92% 95%;
     --status-vencido: 0 72% 51%;
     --status-vencido-bg: 0 72% 95%;
-    --status-sin-evidencia: 220 15% 55%;
-    --status-sin-evidencia-bg: 220 15% 95%;
-    --status-pendiente: 210 80% 55%;
-    --status-pendiente-bg: 210 80% 95%;
-    --status-no-procede: 220 10% 75%;
-    --status-no-procede-bg: 220 10% 96%;
+    --status-sin-evidencia: 240 1% 55%;
+    --status-sin-evidencia-bg: 240 1% 95%;
+    --status-pendiente: 320 60% 45%;
+    --status-pendiente-bg: 320 60% 95%;
+    --status-no-procede: 240 1% 75%;
+    --status-no-procede-bg: 240 1% 96%;
     --status-cumplida: 142 76% 36%;
     --status-cumplida-bg: 142 76% 95%;
 
-    /* Sidebar */
-    --sidebar-background: 220 30% 18%;
-    --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 210 80% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 25%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border: 220 25% 25%;
-    --sidebar-ring: 210 80% 55%;
+    /* Sidebar - Magenta oscuro */
+    --sidebar-background: 320 100% 18%;
+    --sidebar-foreground: 320 10% 92%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 320 100% 18%;
+    --sidebar-accent: 320 80% 24%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 320 60% 25%;
+    --sidebar-ring: 320 80% 40%;
 
     /* Gradientes */
-    --gradient-header: linear-gradient(135deg, hsl(220 60% 25%) 0%, hsl(220 50% 35%) 100%);
-    --gradient-card-hover: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
+    --gradient-header: linear-gradient(135deg, hsl(320 100% 25%) 0%, hsl(320 80% 35%) 100%);
+    --gradient-card-hover: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(320 10% 98%) 100%);
 
     /* Sombras */
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 30% 15% / 0.08), 0 2px 4px -2px hsl(220 30% 15% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(220 30% 15% / 0.1), 0 4px 6px -4px hsl(220 30% 15% / 0.05);
-    --shadow-card: 0 1px 3px 0 hsl(220 30% 15% / 0.06), 0 1px 2px -1px hsl(220 30% 15% / 0.06);
+    --shadow-sm: 0 1px 2px 0 hsl(320 20% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(320 20% 15% / 0.08), 0 2px 4px -2px hsl(320 20% 15% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(320 20% 15% / 0.1), 0 4px 6px -4px hsl(320 20% 15% / 0.05);
+    --shadow-card: 0 1px 3px 0 hsl(320 20% 15% / 0.06), 0 1px 2px -1px hsl(320 20% 15% / 0.06);
   }
 
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 220 15% 95%;
+    --background: 320 15% 8%;
+    --foreground: 320 5% 95%;
 
-    --card: 220 25% 14%;
-    --card-foreground: 220 15% 95%;
+    --card: 320 15% 12%;
+    --card-foreground: 320 5% 95%;
 
-    --popover: 220 25% 14%;
-    --popover-foreground: 220 15% 95%;
+    --popover: 320 15% 12%;
+    --popover-foreground: 320 5% 95%;
 
-    --primary: 210 80% 60%;
-    --primary-foreground: 220 30% 10%;
+    --primary: 320 80% 55%;
+    --primary-foreground: 320 20% 8%;
 
-    --secondary: 220 20% 20%;
-    --secondary-foreground: 220 15% 90%;
+    --secondary: 320 10% 18%;
+    --secondary-foreground: 320 5% 90%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 15% 60%;
+    --muted: 320 10% 16%;
+    --muted-foreground: 320 5% 60%;
 
-    --accent: 210 80% 55%;
+    --accent: 320 60% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
-    --ring: 210 80% 55%;
+    --border: 320 10% 20%;
+    --input: 320 10% 20%;
+    --ring: 320 80% 50%;
 
-    --sidebar-background: 220 30% 8%;
-    --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 210 80% 60%;
+    --sidebar-background: 320 100% 10%;
+    --sidebar-foreground: 320 5% 90%;
+    --sidebar-primary: 320 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 15%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 210 80% 55%;
+    --sidebar-accent: 320 60% 18%;
+    --sidebar-accent-foreground: 320 5% 90%;
+    --sidebar-border: 320 40% 16%;
+    --sidebar-ring: 320 80% 50%;
   }
 }
 
