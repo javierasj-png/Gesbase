@@ -97,7 +97,7 @@ export function PlantillasSGS() {
                         <p className="font-medium text-sm">{hito.etiqueta}</p>
                         <div className="flex items-center justify-center gap-1 mt-2 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          <span>±2 días</span>
+                          <span>Día exacto</span>
                         </div>
                       </div>
                     ))}
@@ -110,7 +110,7 @@ export function PlantillasSGS() {
           <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
             <p className="text-sm text-amber-700 dark:text-amber-400">
               <strong>Nota:</strong> La ficha PE 12.01 tiene un período de vigilancia de 40 días desde el primer servicio tras el suceso.
-              Cada hito tiene una ventana de cumplimiento de ±2 días. El cierre manual está disponible según criterio del mando (PREVER).
+              El cierre manual está disponible según criterio del mando (PREVER).
             </p>
           </div>
         </CardContent>
