@@ -586,6 +586,7 @@ export type Database = {
           email: string
           id: string
           nombre: string | null
+          status: string
           updated_at: string
           user_id: string
         }
@@ -595,6 +596,7 @@ export type Database = {
           email: string
           id?: string
           nombre?: string | null
+          status?: string
           updated_at?: string
           user_id: string
         }
@@ -604,6 +606,7 @@ export type Database = {
           email?: string
           id?: string
           nombre?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -641,6 +644,10 @@ export type Database = {
       can_admin_base:
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+      gestor_can_manage_user: {
+        Args: { _gestor_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {

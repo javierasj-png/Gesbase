@@ -72,9 +72,9 @@ export default function LoginPage() {
     } else {
       toast({
         title: 'Cuenta creada',
-        description: 'Tu cuenta ha sido creada. Contacta con un administrador para asignar tu rol y bases.',
+        description: 'Tu cuenta ha sido creada. Un administrador debe activarla antes de que puedas acceder.',
       });
-      navigate('/dashboard');
+      // Don't navigate - user needs to be activated first
     }
     
     setIsLoading(false);
