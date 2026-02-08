@@ -209,4 +209,5 @@ export interface UserWithAccess {
   assignedBases: Base[];
   isAdmin: boolean;
   isGestor: boolean;
+  status: 'pending' | 'active';
 }

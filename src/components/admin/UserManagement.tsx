@@ -5,8 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Users, Shield, Building2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, Shield, Building2, Loader2, CheckCircle, Clock, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { AppRole } from '@/types';
 
 interface UserWithDetails {
@@ -17,6 +20,7 @@ interface UserWithDetails {
   apellidos?: string;
   roles: AppRole[];
   bases: string[];
+  status: 'pending' | 'active';
 }
 
 interface BaseConduccion {
@@ -27,6 +31,7 @@ interface BaseConduccion {
 
 export function UserManagement() {
   const { toast } = useToast();
+  const { isAdmin, isGestor, assignedBases } = useAuth();
   const [users, setUsers] = useState<UserWithDetails[]>([]);
   const [allBases, setAllBases] = useState<BaseConduccion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +44,6 @@ export function UserManagement() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch bases de conducción
       const { data: basesConduccion, error: basesConduccionError } = await supabase
         .from('bases_conduccion')
         .select('id, nombre, activa')
@@ -49,31 +53,26 @@ export function UserManagement() {
       if (basesConduccionError) throw basesConduccionError;
       setAllBases(basesConduccion || []);
 
-      // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
 
       if (profilesError) throw profilesError;
 
-      // Fetch roles
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
 
       if (rolesError) throw rolesError;
 
-      // Fetch base assignments - handle both 'base' and 'base_nombre' column names
       const { data: bases, error: basesError } = await supabase
         .from('base_assignments')
         .select('*');
 
-      // Si falla, no bloqueamos la carga de usuarios/roles (permite al menos ver los mandos)
       if (basesError) {
         console.error('Error fetching base assignments:', basesError);
       }
 
-      // Combine data - profiles.id is the user_id in this schema
       const usersWithDetails: UserWithDetails[] = (profiles || []).map(profile => {
         const profileUserId = (profile as any).user_id || profile.id;
         return {
@@ -82,6 +81,7 @@ export function UserManagement() {
           email: profile.email,
           nombre: profile.nombre || undefined,
           apellidos: profile.apellidos || undefined,
+          status: ((profile as any).status as 'pending' | 'active') || 'pending',
           roles: (roles || [])
             .filter(r => r.user_id === profileUserId)
             .map(r => r.role as AppRole),
@@ -104,33 +104,89 @@ export function UserManagement() {
     }
   };
 
+  const handleActivateUser = async (userId: string) => {
+    setSaving(userId);
+    const user = users.find(u => u.user_id === userId);
+    if (!user) return;
+
+    try {
+      // Update profile status
+      const { error: statusError } = await supabase
+        .from('profiles')
+        .update({ status: 'active' } as any)
+        .eq('user_id', userId);
+
+      if (statusError) throw statusError;
+
+      // Auto-assign mando role if no roles
+      if (user.roles.length === 0) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert([{ user_id: userId, role: 'mando' as any }]);
+
+        if (roleError) throw roleError;
+      }
+
+      setUsers(prev => prev.map(u => {
+        if (u.user_id === userId) {
+          return {
+            ...u,
+            status: 'active' as const,
+            roles: u.roles.length === 0 ? ['mando' as AppRole] : u.roles,
+          };
+        }
+        return u;
+      }));
+
+      toast({
+        title: 'Usuario activado',
+        description: `${user.email} puede acceder al sistema`,
+      });
+    } catch (error) {
+      console.error('Error activating user:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo activar el usuario',
+      });
+    } finally {
+      setSaving(null);
+    }
+  };
+
   const handleToggleRole = async (userId: string, role: AppRole) => {
     setSaving(userId);
     const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
+    // Gestor can only toggle mando role
+    if (isGestor && !isAdmin && role !== 'mando') {
+      toast({
+        variant: 'destructive',
+        title: 'Sin permisos',
+        description: 'Solo puedes asignar el rol Mando',
+      });
+      setSaving(null);
+      return;
+    }
+
     const hasRole = user.roles.includes(role);
 
     try {
       if (hasRole) {
-        // Remove role
         const { error } = await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
           .eq('role', role);
-
         if (error) throw error;
       } else {
-        // Add role
         const { error } = await supabase
           .from('user_roles')
           .insert([{ user_id: userId, role }]);
-
         if (error) throw error;
       }
 
-      // Update local state
       setUsers(prev => prev.map(u => {
         if (u.user_id === userId) {
           return {
@@ -164,28 +220,34 @@ export function UserManagement() {
     const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
+    // Gestor can only assign their own bases
+    if (isGestor && !isAdmin && !assignedBases.includes(baseName as any)) {
+      toast({
+        variant: 'destructive',
+        title: 'Sin permisos',
+        description: 'Solo puedes asignar tus propias bases',
+      });
+      setSaving(null);
+      return;
+    }
+
     const hasBase = user.bases.includes(baseName);
 
     try {
       if (hasBase) {
-        // Remove base - use base_nombre column
         const { error } = await supabase
           .from('base_assignments')
           .delete()
           .eq('user_id', userId)
           .eq('base_nombre', baseName);
-
         if (error) throw error;
       } else {
-        // Add base - use base_nombre column
         const { error } = await supabase
           .from('base_assignments')
           .insert([{ user_id: userId, base_nombre: baseName }]);
-
         if (error) throw error;
       }
 
-      // Update local state
       setUsers(prev => prev.map(u => {
         if (u.user_id === userId) {
           return {
@@ -214,6 +276,14 @@ export function UserManagement() {
     }
   };
 
+  // Filter users based on role visibility
+  const visibleBases = isAdmin 
+    ? allBases.map(b => b.nombre)
+    : assignedBases as string[];
+
+  const pendingUsers = users.filter(u => u.status === 'pending');
+  const activeUsers = users.filter(u => u.status === 'active');
+
   if (loading) {
     return (
       <Card>
@@ -224,121 +294,198 @@ export function UserManagement() {
     );
   }
 
+  const renderUserCard = (user: UserWithDetails) => (
+    <div 
+      key={user.id} 
+      className="p-4 rounded-lg border bg-card"
+    >
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <p className="font-medium">
+            {user.nombre || user.apellidos 
+              ? `${user.nombre || ''} ${user.apellidos || ''}`.trim()
+              : user.email}
+          </p>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+        </div>
+        <div className="flex gap-2 flex-wrap items-center">
+          {user.status === 'pending' ? (
+            <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300">
+              <Clock className="w-3 h-3 mr-1" />
+              Pendiente
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Activo
+            </Badge>
+          )}
+          {user.roles.includes('admin') && (
+            <Badge className="bg-primary">Admin</Badge>
+          )}
+          {user.roles.includes('gestor') && (
+            <Badge className="bg-amber-600">Gestor</Badge>
+          )}
+          {user.roles.includes('mando') && (
+            <Badge variant="secondary">Mando</Badge>
+          )}
+          {user.roles.length === 0 && (
+            <Badge variant="outline">Sin rol</Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Activate button for pending users */}
+      {user.status === 'pending' && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between">
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            Este usuario necesita ser activado para poder operar
+          </p>
+          <Button
+            size="sm"
+            onClick={() => handleActivateUser(user.user_id)}
+            disabled={saving === user.user_id}
+            className="gap-1"
+          >
+            {saving === user.user_id ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <UserCheck className="w-3 h-3" />
+            )}
+            Activar
+          </Button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Roles */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Roles
+          </Label>
+          <div className="space-y-2">
+            {isAdmin && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Administrador</span>
+                  <Switch
+                    checked={user.roles.includes('admin')}
+                    onCheckedChange={() => handleToggleRole(user.user_id, 'admin')}
+                    disabled={saving === user.user_id}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Gestor de Base</span>
+                  <Switch
+                    checked={user.roles.includes('gestor')}
+                    onCheckedChange={() => handleToggleRole(user.user_id, 'gestor')}
+                    disabled={saving === user.user_id}
+                  />
+                </div>
+              </>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Mando</span>
+              <Switch
+                checked={user.roles.includes('mando')}
+                onCheckedChange={() => handleToggleRole(user.user_id, 'mando')}
+                disabled={saving === user.user_id}
+              />
+            </div>
+            {isGestor && !isAdmin && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Como Gestor, solo puedes asignar el rol <strong>Mando</strong>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Bases */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Bases Asignadas
+            {user.roles.includes('admin') && (
+              <span className="text-xs text-muted-foreground">(Admin tiene acceso global)</span>
+            )}
+          </Label>
+          <div className="space-y-2">
+            {allBases
+              .filter(base => isAdmin || visibleBases.includes(base.nombre))
+              .map(base => (
+                <div key={base.id} className="flex items-center justify-between">
+                  <span className="text-sm">{base.nombre}</span>
+                  <Switch
+                    checked={user.bases.includes(base.nombre) || user.roles.includes('admin')}
+                    onCheckedChange={() => handleToggleBase(user.user_id, base.nombre)}
+                    disabled={saving === user.user_id || user.roles.includes('admin')}
+                  />
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />
-          <CardTitle>Gestión de Mandos</CardTitle>
+          <CardTitle>Gestión de Usuarios</CardTitle>
         </div>
         <CardDescription>
-          Asigna roles y bases a los mandos del sistema
+          Valida usuarios pendientes y asigna roles y bases
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {users.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No hay usuarios registrados
-          </p>
-        ) : (
-          <ScrollArea className="max-h-[500px]">
-            <div className="space-y-4">
-              {users.map(user => (
-                <div 
-                  key={user.id} 
-                  className="p-4 rounded-lg border bg-card"
-                >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <p className="font-medium">
-                        {user.nombre || user.apellidos 
-                          ? `${user.nombre || ''} ${user.apellidos || ''}`.trim()
-                          : user.email}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {user.roles.includes('admin') && (
-                        <Badge className="bg-primary">Admin</Badge>
-                      )}
-                      {user.roles.includes('gestor') && (
-                        <Badge className="bg-amber-600">Gestor</Badge>
-                      )}
-                      {user.roles.includes('mando') && (
-                        <Badge variant="secondary">Mando</Badge>
-                      )}
-                      {user.roles.length === 0 && (
-                        <Badge variant="outline">Sin rol</Badge>
-                      )}
-                    </div>
-                  </div>
+        <Tabs defaultValue={pendingUsers.length > 0 ? "pending" : "active"}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="pending" className="gap-2">
+              <Clock className="w-4 h-4" />
+              Pendientes
+              {pendingUsers.length > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                  {pendingUsers.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="active" className="gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Activos ({activeUsers.length})
+            </TabsTrigger>
+          </TabsList>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Roles */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Shield className="w-4 h-4" />
-                        Roles
-                      </Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Administrador</span>
-                          <Switch
-                            checked={user.roles.includes('admin')}
-                            onCheckedChange={() => handleToggleRole(user.user_id, 'admin')}
-                            disabled={saving === user.user_id}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Gestor de Base</span>
-                          <Switch
-                            checked={user.roles.includes('gestor')}
-                            onCheckedChange={() => handleToggleRole(user.user_id, 'gestor')}
-                            disabled={saving === user.user_id}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Mando</span>
-                          <Switch
-                            checked={user.roles.includes('mando')}
-                            onCheckedChange={() => handleToggleRole(user.user_id, 'mando')}
-                            disabled={saving === user.user_id}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          <strong>Gestor de Base:</strong> Permisos de admin solo para sus bases asignadas
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Bases */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        Bases Asignadas
-                        {user.roles.includes('admin') && (
-                          <span className="text-xs text-muted-foreground">(Admin tiene acceso global)</span>
-                        )}
-                      </Label>
-                      <div className="space-y-2">
-                        {allBases.map(base => (
-                          <div key={base.id} className="flex items-center justify-between">
-                            <span className="text-sm">{base.nombre}</span>
-                            <Switch
-                              checked={user.bases.includes(base.nombre) || user.roles.includes('admin')}
-                              onCheckedChange={() => handleToggleBase(user.user_id, base.nombre)}
-                              disabled={saving === user.user_id || user.roles.includes('admin')}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+          <TabsContent value="pending">
+            {pendingUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No hay usuarios pendientes de activación
+              </p>
+            ) : (
+              <ScrollArea className="max-h-[500px]">
+                <div className="space-y-4">
+                  {pendingUsers.map(renderUserCard)}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        )}
+              </ScrollArea>
+            )}
+          </TabsContent>
+
+          <TabsContent value="active">
+            {activeUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No hay usuarios activos
+              </p>
+            ) : (
+              <ScrollArea className="max-h-[500px]">
+                <div className="space-y-4">
+                  {activeUsers.map(renderUserCard)}
+                </div>
+              </ScrollArea>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

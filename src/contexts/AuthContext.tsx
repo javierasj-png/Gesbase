@@ -3,14 +3,18 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, Base, UserProfile, UserWithAccess } from '@/types';
 
+export type UserStatus = 'pending' | 'active';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   userAccess: UserWithAccess | null;
+  userStatus: UserStatus;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isGestor: boolean;
+  isPending: boolean;
   assignedBases: Base[];
   canAccessBase: (base: Base) => boolean;
   canAdminBase: (base: Base) => boolean;
@@ -25,16 +29,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userAccess, setUserAccess] = useState<UserWithAccess | null>(null);
+  const [userStatus, setUserStatus] = useState<UserStatus>('pending');
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile, roles and base assignments
   const fetchUserAccess = async (userId: string): Promise<UserWithAccess | null> => {
     try {
-      // Fetch profile - profiles.id = auth.users.id (user_id)
+      // Fetch profile - profiles.user_id = auth.users.id
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (profileError) {
@@ -75,12 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         apellidos: profileData?.apellidos || undefined,
       };
 
+      const status: UserStatus = ((profileData as any)?.status as UserStatus) || 'pending';
+
       return {
         profile,
         roles,
         assignedBases,
         isAdmin,
         isGestor,
+        status,
       };
     } catch (error) {
       console.error('Error in fetchUserAccess:', error);
@@ -100,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(async () => {
             const access = await fetchUserAccess(session.user.id);
             setUserAccess(access);
+            setUserStatus((access as any)?.status || 'pending');
             setIsLoading(false);
           }, 0);
         } else {
@@ -117,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchUserAccess(session.user.id).then(access => {
           setUserAccess(access);
+          setUserStatus((access as any)?.status || 'pending');
           setIsLoading(false);
         });
       } else {
@@ -176,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setUserAccess(null);
+    setUserStatus('pending');
   };
 
   const canAccessBase = (base: Base): boolean => {
@@ -200,10 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         userAccess,
+        userStatus,
         isLoading,
         isAuthenticated: !!user,
         isAdmin: userAccess?.isAdmin ?? false,
         isGestor: userAccess?.isGestor ?? false,
+        isPending: userStatus === 'pending',
         assignedBases: userAccess?.assignedBases ?? [],
         canAccessBase,
         canAdminBase,

@@ -101,14 +101,12 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs - gestor only sees maquinistas and asignacion tabs */}
-        <Tabs defaultValue={isAdmin ? "usuarios" : "maquinistas"} className="space-y-6">
+        <Tabs defaultValue="usuarios" className="space-y-6">
           <TabsList>
-            {isAdmin && (
-              <TabsTrigger value="usuarios" className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Mandos
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="usuarios" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Usuarios
+            </TabsTrigger>
             <TabsTrigger value="maquinistas" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Maquinistas
@@ -137,12 +135,10 @@ export default function AdminPage() {
             )}
           </TabsList>
 
-          {/* Usuarios - Admin only */}
-          {isAdmin && (
-            <TabsContent value="usuarios">
-              <UserManagement />
-            </TabsContent>
-          )}
+          {/* Usuarios - Admin and Gestor */}
+          <TabsContent value="usuarios">
+            <UserManagement />
+          </TabsContent>
 
           {/* Maquinistas */}
           <TabsContent value="maquinistas">
