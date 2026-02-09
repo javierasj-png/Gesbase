@@ -11,12 +11,15 @@ import {
   Train, 
   FileCheck, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  FileDown
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
 import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
+import { generateDossierPDF } from '@/utils/generateDossierPDF';
+import { useToast } from '@/hooks/use-toast';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +27,8 @@ export default function MaquinistaDetailPage() {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'certificaciones';
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, loading, error, refetch } = useMaquinistaDetail(id);
 
@@ -87,6 +92,26 @@ export default function MaquinistaDetailPage() {
               </div>
             </div>
           </div>
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={generatingPDF}
+            onClick={async () => {
+              setGeneratingPDF(true);
+              try {
+                await generateDossierPDF(maquinista.id);
+                toast({ title: 'Dossier generado', description: 'El PDF se ha descargado correctamente' });
+              } catch (e) {
+                console.error(e);
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo generar el dossier' });
+              } finally {
+                setGeneratingPDF(false);
+              }
+            }}
+          >
+            {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            Dossier PDF
+          </Button>
         </div>
 
         {/* Tabs */}
