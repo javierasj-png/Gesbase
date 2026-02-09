@@ -2,12 +2,30 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Shield, Building2, Loader2, CheckCircle, Clock, UserCheck } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Users, Shield, Building2, Loader2, CheckCircle, Clock, UserCheck, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppRole } from '@/types';
@@ -36,6 +54,16 @@ export function UserManagement() {
   const [allBases, setAllBases] = useState<BaseConduccion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Edit dialog state
+  const [editUser, setEditUser] = useState<UserWithDetails | null>(null);
+  const [editNombre, setEditNombre] = useState('');
+  const [editApellidos, setEditApellidos] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  // Delete dialog state
+  const [deleteUser, setDeleteUser] = useState<UserWithDetails | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -110,7 +138,6 @@ export function UserManagement() {
     if (!user) return;
 
     try {
-      // Update profile status
       const { error: statusError } = await supabase
         .from('profiles')
         .update({ status: 'active' } as any)
@@ -118,7 +145,6 @@ export function UserManagement() {
 
       if (statusError) throw statusError;
 
-      // Auto-assign mando role if no roles
       if (user.roles.length === 0) {
         const { error: roleError } = await supabase
           .from('user_roles')
@@ -159,7 +185,6 @@ export function UserManagement() {
     const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
-    // Gestor can only toggle mando role
     if (isGestor && !isAdmin && role !== 'mando') {
       toast({
         variant: 'destructive',
@@ -220,7 +245,6 @@ export function UserManagement() {
     const user = users.find(u => u.user_id === userId);
     if (!user) return;
 
-    // Gestor can only assign their own bases
     if (isGestor && !isAdmin && !assignedBases.includes(baseName as any)) {
       toast({
         variant: 'destructive',
@@ -276,7 +300,62 @@ export function UserManagement() {
     }
   };
 
-  // Filter users based on role visibility
+  // ── Edit user ──
+  const openEditDialog = (user: UserWithDetails) => {
+    setEditUser(user);
+    setEditNombre(user.nombre || '');
+    setEditApellidos(user.apellidos || '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editUser) return;
+    setEditSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ nombre: editNombre.trim(), apellidos: editApellidos.trim() } as any)
+        .eq('user_id', editUser.user_id);
+
+      if (error) throw error;
+
+      setUsers(prev => prev.map(u =>
+        u.user_id === editUser.user_id
+          ? { ...u, nombre: editNombre.trim() || undefined, apellidos: editApellidos.trim() || undefined }
+          : u
+      ));
+
+      toast({ title: 'Usuario actualizado' });
+      setEditUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el usuario' });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // ── Delete user ──
+  const handleDeleteUser = async () => {
+    if (!deleteUser) return;
+    setDeleteSaving(true);
+    try {
+      // Delete base_assignments, user_roles, then profile (cascade)
+      await supabase.from('base_assignments').delete().eq('user_id', deleteUser.user_id);
+      await supabase.from('user_roles').delete().eq('user_id', deleteUser.user_id);
+      const { error } = await supabase.from('profiles').delete().eq('user_id', deleteUser.user_id);
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(u => u.user_id !== deleteUser.user_id));
+      toast({ title: 'Usuario eliminado', description: `${deleteUser.email} ha sido eliminado del sistema` });
+      setDeleteUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el usuario' });
+    } finally {
+      setDeleteSaving(false);
+    }
+  };
+
   const visibleBases = isAdmin 
     ? allBases.map(b => b.nombre)
     : assignedBases as string[];
@@ -309,6 +388,29 @@ export function UserManagement() {
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
+          {/* Admin-only edit & delete buttons */}
+          {isAdmin && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="Editar usuario"
+                onClick={() => openEditDialog(user)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                title="Eliminar usuario"
+                onClick={() => setDeleteUser(user)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          )}
           {user.status === 'pending' ? (
             <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300">
               <Clock className="w-3 h-3 mr-1" />
@@ -335,7 +437,6 @@ export function UserManagement() {
         </div>
       </div>
 
-      {/* Activate button for pending users */}
       {user.status === 'pending' && (
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between">
           <p className="text-sm text-amber-700 dark:text-amber-400">
@@ -358,7 +459,6 @@ export function UserManagement() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Roles */}
         <div className="space-y-3">
           <Label className="text-sm font-medium flex items-center gap-2">
             <Shield className="w-4 h-4" />
@@ -401,7 +501,6 @@ export function UserManagement() {
           </div>
         </div>
 
-        {/* Bases */}
         <div className="space-y-3">
           <Label className="text-sm font-medium flex items-center gap-2">
             <Building2 className="w-4 h-4" />
@@ -430,59 +529,111 @@ export function UserManagement() {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-primary" />
-          <CardTitle>Gestión de Usuarios</CardTitle>
-        </div>
-        <CardDescription>
-          Valida usuarios pendientes y asigna roles y bases
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue={pendingUsers.length > 0 ? "pending" : "active"}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="pending" className="gap-2">
-              <Clock className="w-4 h-4" />
-              Pendientes
-              {pendingUsers.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
-                  {pendingUsers.length}
-                </Badge>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            <CardTitle>Gestión de Usuarios</CardTitle>
+          </div>
+          <CardDescription>
+            Valida usuarios pendientes y asigna roles y bases
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue={pendingUsers.length > 0 ? "pending" : "active"}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="pending" className="gap-2">
+                <Clock className="w-4 h-4" />
+                Pendientes
+                {pendingUsers.length > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                    {pendingUsers.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="active" className="gap-2">
+                <CheckCircle className="w-4 h-4" />
+                Activos ({activeUsers.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pending">
+              {pendingUsers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No hay usuarios pendientes de activación
+                </p>
+              ) : (
+                <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
+                  {pendingUsers.map(renderUserCard)}
+                </div>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="active" className="gap-2">
-              <CheckCircle className="w-4 h-4" />
-              Activos ({activeUsers.length})
-            </TabsTrigger>
-          </TabsList>
+            </TabsContent>
 
-          <TabsContent value="pending">
-            {pendingUsers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No hay usuarios pendientes de activación
-              </p>
-            ) : (
-              <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
-                {pendingUsers.map(renderUserCard)}
-              </div>
-            )}
-          </TabsContent>
+            <TabsContent value="active">
+              {activeUsers.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No hay usuarios activos
+                </p>
+              ) : (
+                <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
+                  {activeUsers.map(renderUserCard)}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="active">
-            {activeUsers.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No hay usuarios activos
-              </p>
-            ) : (
-              <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
-                {activeUsers.map(renderUserCard)}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+      {/* Edit User Dialog */}
+      <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>{editUser?.email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nombre">Nombre</Label>
+              <Input id="edit-nombre" value={editNombre} onChange={e => setEditNombre(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-apellidos">Apellidos</Label>
+              <Input id="edit-apellidos" value={editApellidos} onChange={e => setEditApellidos(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)}>Cancelar</Button>
+            <Button onClick={handleEditSave} disabled={editSaving}>
+              {editSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>{deleteUser?.email}</strong> del sistema, incluyendo sus roles y bases asignadas. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={deleteSaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
