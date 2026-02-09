@@ -464,11 +464,9 @@ export function UserManagement() {
                 No hay usuarios pendientes de activación
               </p>
             ) : (
-              <ScrollArea className="max-h-[500px]">
-                <div className="space-y-4">
-                  {pendingUsers.map(renderUserCard)}
-                </div>
-              </ScrollArea>
+              <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
+                {pendingUsers.map(renderUserCard)}
+              </div>
             )}
           </TabsContent>
 
@@ -478,11 +476,9 @@ export function UserManagement() {
                 No hay usuarios activos
               </p>
             ) : (
-              <ScrollArea className="max-h-[500px]">
-                <div className="space-y-4">
-                  {activeUsers.map(renderUserCard)}
-                </div>
-              </ScrollArea>
+              <div className="max-h-[600px] overflow-y-auto space-y-4 pr-1">
+                {activeUsers.map(renderUserCard)}
+              </div>
             )}
           </TabsContent>
         </Tabs>
