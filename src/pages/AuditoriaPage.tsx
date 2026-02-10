@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,8 +34,9 @@ import {
   XCircle,
   FileText,
   Filter,
-  Printer
+  Loader2
 } from 'lucide-react';
+import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
 import { format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,7 @@ export default function AuditoriaPage() {
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // Fetch bases for filter - filtered by user's assigned bases if not admin
   const { data: bases } = useQuery({
@@ -211,13 +213,23 @@ export default function AuditoriaPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Printer className="w-4 h-4 mr-2" />
-              Imprimir
-            </Button>
-            <Button variant="default" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
+            <Button
+              variant="default"
+              size="sm"
+              disabled={generatingPDF || accessibleBases.length === 0}
+              onClick={async () => {
+                setGeneratingPDF(true);
+                try {
+                  await generateAuditoriaPDF({ bases: accessibleBases, baseFilter });
+                } catch (e) {
+                  console.error('Error generating audit PDF:', e);
+                } finally {
+                  setGeneratingPDF(false);
+                }
+              }}
+            >
+              {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              {generatingPDF ? 'Generando...' : 'Exportar PDF'}
             </Button>
           </div>
         </div>
