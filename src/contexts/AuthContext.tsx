@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isAdmin: userAccess?.isAdmin ?? false,
         isGestor: userAccess?.isGestor ?? false,
-        isPending: userStatus === 'pending',
+        isPending: userAccess !== null && userStatus === 'pending',
         assignedBases: userAccess?.assignedBases ?? [],
         canAccessBase,
         canAdminBase,
