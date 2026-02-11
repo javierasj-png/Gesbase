@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   FileBarChart, 
   ClipboardCheck, 
   Download, 
@@ -34,8 +34,10 @@ import {
   XCircle,
   FileText,
   Filter,
-  Loader2
+  Loader2,
+  Building2
 } from 'lucide-react';
+import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
 import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
 import { format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -236,10 +238,14 @@ export default function AuditoriaPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="cumplimiento" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Estado de Cumplimiento
+            </TabsTrigger>
+            <TabsTrigger value="visitas" className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Visitas a la Base
             </TabsTrigger>
             <TabsTrigger value="partes" className="flex items-center gap-2">
               <ClipboardCheck className="w-4 h-4" />
@@ -406,6 +412,11 @@ export default function AuditoriaPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Visitas Tab */}
+          <TabsContent value="visitas" className="space-y-6">
+            <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} />
           </TabsContent>
 
           {/* Partes Tab */}
