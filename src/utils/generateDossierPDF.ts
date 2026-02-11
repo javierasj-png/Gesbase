@@ -14,6 +14,8 @@ const GREEN: [number, number, number] = [34, 197, 94];
 const YELLOW: [number, number, number] = [234, 179, 8];
 const RED: [number, number, number] = [239, 68, 68];
 
+const PAGE_HEADER_H = 14;
+
 const tipoLabels1603: Record<string, string> = {
   acompanamiento: 'Acompañamiento',
   registro: 'Registro',
@@ -48,10 +50,10 @@ function estadoColor(estado: string): [number, number, number] {
 function addPageHeader(doc: jsPDF, text: string) {
   const pw = doc.internal.pageSize.getWidth();
   doc.setFillColor(...MAGENTA);
-  doc.rect(0, 0, pw, 12, 'F');
+  doc.rect(0, 0, pw, PAGE_HEADER_H, 'F');
   doc.setTextColor(...WHITE);
-  doc.setFontSize(10);
-  doc.text(text, pw / 2, 8, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(text, pw / 2, 9, { align: 'center' });
   doc.setTextColor(0, 0, 0);
 }
 
@@ -68,13 +70,16 @@ function addFooters(doc: jsPDF) {
   }
 }
 
-function ensureSpace(doc: jsPDF, needed: number, continueLabel: string): number {
+function tableEndY(doc: jsPDF, fallback: number): number {
+  return (doc as any).lastAutoTable?.finalY ?? fallback;
+}
+
+function needSpace(doc: jsPDF, currentY: number, needed: number, headerLabel: string): number {
   const ph = doc.internal.pageSize.getHeight();
-  const currentY = (doc as any).lastAutoTable?.finalY || 20;
   if (currentY + needed > ph - 20) {
     doc.addPage();
-    addPageHeader(doc, continueLabel);
-    return 20;
+    addPageHeader(doc, headerLabel);
+    return PAGE_HEADER_H + 4;
   }
   return currentY;
 }
@@ -97,13 +102,11 @@ export async function generateDossierPDF(maquinistaId: string) {
 
   if (!maq) throw new Error('Maquinista no encontrado');
 
-  // Get base certificaciones config
   const baseRecord = baseData?.find(b => b.nombre === maq.base);
   const { data: baseCertsConfig } = baseRecord
     ? await supabase.from('base_certificaciones').select('*').eq('base_id', baseRecord.id)
     : { data: [] };
 
-  // Fetch plans and actuaciones for all expedientes
   const exp1603Ids = (exps1603 || []).map(e => e.id);
   const exp1201Ids = (exps1201 || []).map(e => e.id);
 
@@ -134,47 +137,49 @@ export async function generateDossierPDF(maquinistaId: string) {
 
   // ── Cover / Header ──
   doc.setFillColor(...MAGENTA);
-  doc.rect(0, 0, pw, 40, 'F');
+  doc.rect(0, 0, pw, 36, 'F');
   doc.setTextColor(...WHITE);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('DOSSIER DEL MAQUINISTA', pw / 2, 18, { align: 'center' });
-  doc.setFontSize(12);
+  doc.text('DOSSIER DEL MAQUINISTA', pw / 2, 16, { align: 'center' });
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text(nombreCompleto, pw / 2, 28, { align: 'center' });
-  doc.setFontSize(9);
-  doc.text(`Emitido: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}`, pw / 2, 36, { align: 'center' });
+  doc.text(nombreCompleto, pw / 2, 24, { align: 'center' });
+  doc.setFontSize(8);
+  doc.text(`Emitido: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: es })}`, pw / 2, 32, { align: 'center' });
 
   // ── Ficha del maquinista ──
-  doc.setTextColor(0, 0, 0);
+  let y = 42;
   doc.setFillColor(...CARD_BG);
-  doc.roundedRect(14, 48, pw - 28, 30, 3, 3, 'F');
+  const fichaH = maq.fecha_ingreso || maq.email ? 24 : 16;
+  doc.roundedRect(14, y, pw - 28, fichaH, 2, 2, 'F');
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...MAGENTA);
-  doc.text('DATOS DEL MAQUINISTA', 20, 58);
+  doc.text('DATOS DEL MAQUINISTA', 18, y + 6);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...DARK);
-  doc.setFontSize(9);
-  doc.text(`Matrícula: ${maq.matricula}`, 20, 65);
-  doc.text(`Base: ${maq.base}`, 80, 65);
-  doc.text(`Estado: ${maq.activo ? 'Activo' : 'Inactivo'}`, 140, 65);
+  doc.setFontSize(8);
+  doc.text(`Matrícula: ${maq.matricula}`, 18, y + 12);
+  doc.text(`Base: ${maq.base}`, 75, y + 12);
+  doc.text(`Estado: ${maq.activo ? 'Activo' : 'Inactivo'}`, 130, y + 12);
   if (maq.fecha_ingreso) {
-    doc.text(`Ingreso: ${format(parseISO(maq.fecha_ingreso), 'dd/MM/yyyy')}`, 20, 72);
+    doc.text(`Ingreso: ${format(parseISO(maq.fecha_ingreso), 'dd/MM/yyyy')}`, 18, y + 18);
   }
-  if (maq.email) doc.text(`Email: ${maq.email}`, 80, 72);
+  if (maq.email) doc.text(`Email: ${maq.email}`, 75, y + 18);
+
+  y += fichaH + 4;
 
   // ═══════════════════════════════════════
   // SECCIÓN 1: CERTIFICACIONES
   // ═══════════════════════════════════════
-  let y = 88;
-  doc.setFontSize(13);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...MAGENTA);
   doc.text('1. CERTIFICACIONES', 14, y);
-  y += 6;
+  y += 4;
 
   const certRows = (baseCertsConfig || []).map(bc => {
     const asignada = (maqCerts || []).find(mc => mc.certificacion_id === bc.certificacion_id);
@@ -201,14 +206,14 @@ export async function generateDossierPDF(maquinistaId: string) {
   if (certRows.length > 0) {
     autoTable(doc, {
       startY: y,
-      head: [['Certificación', 'Tipo', 'Obligatoria', 'Estado', 'Último Servicio', 'Días Restantes']],
+      head: [['Certificación', 'Tipo', 'Oblig.', 'Estado', 'Últ. Servicio', 'Días Rest.']],
       body: certRows,
       theme: 'grid',
-      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
-      styles: { fontSize: 8, cellPadding: 3, lineColor: COOL_GRAY, lineWidth: 0.5 },
+      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+      styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
       bodyStyles: { textColor: DARK },
       tableLineColor: MAGENTA,
-      tableLineWidth: 0.75,
+      tableLineWidth: 0.5,
       didParseCell: (data: any) => {
         if (data.section === 'body' && data.column.index === 3) {
           const val = data.cell.raw as string;
@@ -219,62 +224,63 @@ export async function generateDossierPDF(maquinistaId: string) {
         }
       },
     });
+    y = tableEndY(doc, y) + 6;
   } else {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COOL_GRAY);
-    doc.text('No hay certificaciones configuradas para esta base.', 20, y + 6);
+    doc.text('No hay certificaciones configuradas para esta base.', 18, y + 4);
+    y += 8;
   }
 
   // ═══════════════════════════════════════
   // SECCIÓN 2: PE 16.03
   // ═══════════════════════════════════════
   const allExps1603 = exps1603 || [];
-  doc.addPage();
-  addPageHeader(doc, 'Dossier Maquinista — PE 16.03');
+  const LABEL_1603 = 'Dossier — PE 16.03';
 
-  y = 22;
-  doc.setFontSize(13);
+  y = needSpace(doc, y, 30, LABEL_1603);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...MAGENTA);
   doc.text('2. PE 16.03 — VIGILANCIA NUEVO ACCESO', 14, y);
   y += 4;
 
   if (allExps1603.length === 0) {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COOL_GRAY);
-    doc.text('No hay expedientes PE 16.03 para este maquinista.', 20, y + 6);
+    doc.text('No hay expedientes PE 16.03 para este maquinista.', 18, y + 3);
+    y += 8;
   }
 
   for (const exp of allExps1603) {
-    y = ensureSpace(doc, 60, 'Dossier Maquinista — PE 16.03');
-    y = (doc as any).lastAutoTable?.finalY || y;
-    y += 8;
+    y = needSpace(doc, y, 40, LABEL_1603);
 
-    // Expediente header
+    // Expediente header card
+    const cardH = 18;
     doc.setFillColor(...CARD_BG);
-    doc.roundedRect(14, y, pw - 28, 20, 3, 3, 'F');
-    doc.setFontSize(10);
+    doc.roundedRect(14, y, pw - 28, cardH, 2, 2, 'F');
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...MAGENTA);
-    doc.text(`Expediente: ${exp.tipo === 'nuevo_acceso' ? 'Nuevo Acceso' : 'Reincorporación'}`, 20, y + 8);
-    
+    doc.text(`Expediente: ${exp.tipo === 'nuevo_acceso' ? 'Nuevo Acceso' : 'Reincorporación'}`, 18, y + 6);
+
     const estadoExp = exp.estado === 'abierto' ? 'Abierto' : 'Cerrado';
     doc.setFillColor(...(exp.estado === 'abierto' ? GREEN : COOL_GRAY));
-    doc.roundedRect(pw - 50, y + 2, 36, 8, 2, 2, 'F');
+    doc.roundedRect(pw - 48, y + 2, 32, 6, 2, 2, 'F');
     doc.setTextColor(...WHITE);
-    doc.setFontSize(8);
-    doc.text(estadoExp, pw - 32, y + 7.5, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text(estadoExp, pw - 32, y + 6.5, { align: 'center' });
 
     doc.setTextColor(...DARK);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     const fechaIni = format(parseISO(exp.fecha_inicio), 'dd/MM/yyyy');
     const fechaFin = exp.fecha_fin_prevista ? format(parseISO(exp.fecha_fin_prevista), 'dd/MM/yyyy') : 'N/A';
-    doc.text(`Período: ${fechaIni} — ${fechaFin}`, 20, y + 15);
+    doc.text(`Período: ${fechaIni} — ${fechaFin}`, 18, y + 13);
 
-    y += 24;
+    y += cardH + 2;
 
-    // Plan blocks
+    // Plan table
     const expPlan = (plans1603 || []).filter(p => p.expediente_id === exp.id);
     const expActs = (acts1603 || []).filter(a => a.expediente_id === exp.id);
 
@@ -298,18 +304,17 @@ export async function generateDossierPDF(maquinistaId: string) {
         head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real']],
         body: planRows,
         theme: 'grid',
-        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
-        styles: { fontSize: 7, cellPadding: 2.5, lineColor: COOL_GRAY, lineWidth: 0.5 },
+        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
         bodyStyles: { textColor: DARK },
-        columnStyles: { 2: { cellWidth: 36 } },
+        columnStyles: { 2: { cellWidth: 34 } },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 3) {
             data.cell.styles.textColor = data.cell.raw === 'Cumplida' ? GREEN : RED;
           }
         },
       });
-
-      y = (doc as any).lastAutoTable?.finalY || y;
+      y = tableEndY(doc, y) + 6;
     }
   }
 
@@ -317,55 +322,56 @@ export async function generateDossierPDF(maquinistaId: string) {
   // SECCIÓN 3: PE 12.01
   // ═══════════════════════════════════════
   const allExps1201 = exps1201 || [];
-  doc.addPage();
-  addPageHeader(doc, 'Dossier Maquinista — PE 12.01');
+  const LABEL_1201 = 'Dossier — PE 12.01';
 
-  y = 22;
-  doc.setFontSize(13);
+  y = needSpace(doc, y, 30, LABEL_1201);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...MAGENTA);
   doc.text('3. PE 12.01 — FACTOR HUMANO', 14, y);
   y += 4;
 
   if (allExps1201.length === 0) {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COOL_GRAY);
-    doc.text('No hay expedientes PE 12.01 para este maquinista.', 20, y + 6);
+    doc.text('No hay expedientes PE 12.01 para este maquinista.', 18, y + 3);
+    y += 8;
   }
 
   for (const exp of allExps1201) {
-    y = ensureSpace(doc, 60, 'Dossier Maquinista — PE 12.01');
-    y = (doc as any).lastAutoTable?.finalY || y;
-    y += 8;
+    y = needSpace(doc, y, 40, LABEL_1201);
 
-    // Expediente header
+    // Expediente header card
+    const hasDesc = !!exp.descripcion_suceso;
+    const cardH = hasDesc ? 22 : 16;
     doc.setFillColor(...CARD_BG);
-    doc.roundedRect(14, y, pw - 28, 24, 3, 3, 'F');
-    doc.setFontSize(10);
+    doc.roundedRect(14, y, pw - 28, cardH, 2, 2, 'F');
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...MAGENTA);
-    doc.text(`Suceso: ${exp.id_suceso}`, 20, y + 8);
+    doc.text(`Suceso: ${exp.id_suceso}`, 18, y + 6);
 
     const estadoExp = exp.estado === 'abierto' ? 'Abierto' : 'Cerrado';
     doc.setFillColor(...(exp.estado === 'abierto' ? GREEN : COOL_GRAY));
-    doc.roundedRect(pw - 50, y + 2, 36, 8, 2, 2, 'F');
+    doc.roundedRect(pw - 48, y + 2, 32, 6, 2, 2, 'F');
     doc.setTextColor(...WHITE);
-    doc.setFontSize(8);
-    doc.text(estadoExp, pw - 32, y + 7.5, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text(estadoExp, pw - 32, y + 6.5, { align: 'center' });
 
     doc.setTextColor(...DARK);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     const primerServ = format(parseISO(exp.fecha_primer_servicio), 'dd/MM/yyyy');
     const finPrev = exp.fecha_fin_prevista ? format(parseISO(exp.fecha_fin_prevista), 'dd/MM/yyyy') : 'N/A';
-    doc.text(`Primer servicio: ${primerServ}   •   Fin previsto: ${finPrev}`, 20, y + 15);
-    if (exp.descripcion_suceso) {
-      doc.text(`Descripción: ${exp.descripcion_suceso.substring(0, 80)}`, 20, y + 21);
+    doc.text(`Primer servicio: ${primerServ}  •  Fin previsto: ${finPrev}`, 18, y + 12);
+    if (hasDesc) {
+      doc.setFontSize(7);
+      doc.text(`Descripción: ${exp.descripcion_suceso!.substring(0, 90)}`, 18, y + 18);
     }
 
-    y += 28;
+    y += cardH + 2;
 
-    // Plan blocks
+    // Plan table
     const expPlan = (plans1201 || []).filter(p => p.expediente_id === exp.id);
     const expActs = (acts1201 || []).filter(a => a.expediente_id === exp.id);
 
@@ -389,11 +395,11 @@ export async function generateDossierPDF(maquinistaId: string) {
 
       autoTable(doc, {
         startY: y,
-        head: [['Tipo', 'Hito', 'Fecha Objetivo', 'Estado', 'Fecha Real', 'Resultado']],
+        head: [['Tipo', 'Hito', 'F. Objetivo', 'Estado', 'F. Real', 'Resultado']],
         body: planRows,
         theme: 'grid',
-        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 8 },
-        styles: { fontSize: 7, cellPadding: 2.5, lineColor: COOL_GRAY, lineWidth: 0.5 },
+        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
         bodyStyles: { textColor: DARK },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 3) {
@@ -404,8 +410,7 @@ export async function generateDossierPDF(maquinistaId: string) {
           }
         },
       });
-
-      y = (doc as any).lastAutoTable?.finalY || y;
+      y = tableEndY(doc, y) + 6;
     }
   }
 
