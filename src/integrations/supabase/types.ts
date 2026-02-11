@@ -633,6 +633,77 @@ export type Database = {
         }
         Relationships: []
       }
+      visitas_base: {
+        Row: {
+          acta_completa: string | null
+          archivo_nombre: string | null
+          archivo_url: string | null
+          base_id: string
+          base_nombre: string
+          created_at: string
+          created_by: string | null
+          estado_analisis: string
+          fecha_visita: string
+          id: string
+          no_conformidades: Json | null
+          puntos_fuertes: Json | null
+          puntos_mejora: Json | null
+          resumen: string | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acta_completa?: string | null
+          archivo_nombre?: string | null
+          archivo_url?: string | null
+          base_id: string
+          base_nombre: string
+          created_at?: string
+          created_by?: string | null
+          estado_analisis?: string
+          fecha_visita?: string
+          id?: string
+          no_conformidades?: Json | null
+          puntos_fuertes?: Json | null
+          puntos_mejora?: Json | null
+          resumen?: string | null
+          tipo?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acta_completa?: string | null
+          archivo_nombre?: string | null
+          archivo_url?: string | null
+          base_id?: string
+          base_nombre?: string
+          created_at?: string
+          created_by?: string | null
+          estado_analisis?: string
+          fecha_visita?: string
+          id?: string
+          no_conformidades?: Json | null
+          puntos_fuertes?: Json | null
+          puntos_mejora?: Json | null
+          resumen?: string | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitas_base_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases_conduccion"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
