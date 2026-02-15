@@ -21,11 +21,30 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { useMaquinistas } from '@/hooks/useMaquinistas';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
 import { useExpedientes1201 } from '@/hooks/useExpedientes1201';
 import { useAuth } from '@/contexts/AuthContext';
+import { addYears, addMonths, differenceInDays, isBefore } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+function getLicenciaStatus(fechaObtencion: string | null) {
+  if (!fechaObtencion) return { label: 'Sin dato', variant: 'default' as const, warn: false };
+  const obtencion = new Date(fechaObtencion);
+  const caducidad = addYears(obtencion, 10);
+  const avisoDesde = addMonths(caducidad, -6);
+  const hoy = new Date();
+  const diasRestantes = differenceInDays(caducidad, hoy);
+
+  if (isBefore(caducidad, hoy)) {
+    return { label: 'Caducada', variant: 'destructive' as const, warn: true, dias: diasRestantes, caducidad };
+  }
+  if (isBefore(avisoDesde, hoy)) {
+    return { label: `Caduca en ${diasRestantes}d`, variant: 'warning' as const, warn: true, dias: diasRestantes, caducidad };
+  }
+  return { label: 'Vigente', variant: 'success' as const, warn: false, dias: diasRestantes, caducidad };
+}
 
 export default function MaquinistasPage() {
   const navigate = useNavigate();
@@ -131,6 +150,7 @@ export default function MaquinistasPage() {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Base</TableHead>
                   <TableHead>1er Servicio</TableHead>
+                  <TableHead>Licencia</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead>Estado General</TableHead>
@@ -140,7 +160,7 @@ export default function MaquinistasPage() {
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
@@ -153,6 +173,7 @@ export default function MaquinistasPage() {
                       e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'abierto'
                     ).length;
                     const status = getMaquinistaStatus(maquinista.id);
+                    const licencia = getLicenciaStatus(maquinista.fecha_licencia_conduccion ?? null);
 
                     return (
                       <TableRow 
@@ -173,6 +194,28 @@ export default function MaquinistasPage() {
                           {maquinista.fecha_primer_servicio 
                             ? format(new Date(maquinista.fecha_primer_servicio), 'dd/MM/yyyy', { locale: es })
                             : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                                  licencia.variant === 'destructive' ? 'bg-destructive/10 text-destructive' :
+                                  licencia.variant === 'warning' ? 'bg-status-proximo-bg text-status-proximo' :
+                                  licencia.variant === 'success' ? 'bg-status-ok-bg text-status-ok' :
+                                  'bg-muted text-muted-foreground'
+                                }`}>
+                                  {licencia.warn && <AlertTriangle className="w-3 h-3" />}
+                                  {licencia.label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {licencia.caducidad 
+                                  ? `Caduca: ${format(licencia.caducidad, 'dd/MM/yyyy', { locale: es })}`
+                                  : 'Sin fecha de licencia registrada'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </TableCell>
                         <TableCell className="text-center">
                           {exp1603 > 0 ? (
