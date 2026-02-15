@@ -34,6 +34,7 @@ export interface MaquinistaInput {
   observaciones?: string;
   bajoPE1603?: boolean;
   fechaPrimerServicio?: Date;
+  fechaLicencia?: Date;
 }
 
 export function useMaquinistas() {
@@ -106,6 +107,9 @@ export function useMaquinistas() {
         fecha_primer_servicio: input.fechaPrimerServicio 
           ? input.fechaPrimerServicio.toISOString().split('T')[0] 
           : null,
+        fecha_licencia_conduccion: input.fechaLicencia
+          ? input.fechaLicencia.toISOString().split('T')[0]
+          : null,
       };
 
       const { error } = await supabase
@@ -159,6 +163,11 @@ export function useMaquinistas() {
       if (input.fechaPrimerServicio !== undefined) {
         updateData.fecha_primer_servicio = input.fechaPrimerServicio 
           ? input.fechaPrimerServicio.toISOString().split('T')[0] 
+          : null;
+      }
+      if (input.fechaLicencia !== undefined) {
+        updateData.fecha_licencia_conduccion = input.fechaLicencia
+          ? input.fechaLicencia.toISOString().split('T')[0]
           : null;
       }
 

@@ -17,7 +17,7 @@ import { MaquinistaInput } from '@/hooks/useMaquinistas';
 interface MaquinistaFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  maquinista?: { id: string; matricula: string; nombre_apellidos: string; base: string; activo: boolean; observaciones: string | null; bajo_pe_1603: boolean; fecha_primer_servicio: string | null } | null;
+  maquinista?: { id: string; matricula: string; nombre_apellidos: string; base: string; activo: boolean; observaciones: string | null; bajo_pe_1603: boolean; fecha_primer_servicio: string | null; fecha_licencia_conduccion: string | null } | null;
   onSave: (input: MaquinistaInput) => void;
 }
 
@@ -40,6 +40,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
     observaciones: '',
     bajoPE1603: false,
     fechaPrimerServicio: '',
+    fechaLicencia: '',
   });
 
   // Filtrar bases según permisos del usuario
@@ -59,6 +60,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
           observaciones: maquinista.observaciones || '',
           bajoPE1603: maquinista.bajo_pe_1603,
           fechaPrimerServicio: maquinista.fecha_primer_servicio || '',
+          fechaLicencia: maquinista.fecha_licencia_conduccion || '',
         });
       } else {
         // Si el mando solo tiene una base asignada, preseleccionarla
@@ -71,6 +73,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
           observaciones: '',
           bajoPE1603: false,
           fechaPrimerServicio: '',
+          fechaLicencia: '',
         });
       }
     }
@@ -119,6 +122,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
         observaciones: formData.observaciones.trim() || undefined,
         bajoPE1603: formData.bajoPE1603,
         fechaPrimerServicio: formData.fechaPrimerServicio ? new Date(formData.fechaPrimerServicio) : undefined,
+        fechaLicencia: formData.fechaLicencia ? new Date(formData.fechaLicencia) : undefined,
       });
       onOpenChange(false);
     } catch (error) {
@@ -200,6 +204,21 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
               checked={formData.activo}
               onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
             />
+          </div>
+
+          {/* Licencia de conducción */}
+          <div className="border-t pt-4 space-y-2">
+            <Label htmlFor="fechaLicencia">Fecha obtención Licencia de conducción</Label>
+            <Input
+              id="fechaLicencia"
+              type="date"
+              value={formData.fechaLicencia}
+              onChange={(e) => setFormData({ ...formData, fechaLicencia: e.target.value })}
+              max={format(new Date(), 'yyyy-MM-dd')}
+            />
+            <p className="text-xs text-muted-foreground">
+              Caduca a los 10 años. Aviso 6 meses antes del vencimiento.
+            </p>
           </div>
 
           {/* PE 16.03 */}

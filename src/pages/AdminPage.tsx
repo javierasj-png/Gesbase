@@ -345,8 +345,9 @@ export default function AdminPage() {
             base: editingMaquinista.base,
             activo: editingMaquinista.activo,
             observaciones: null,
-            bajo_pe_1603: false,
-            fecha_primer_servicio: null,
+            bajo_pe_1603: editingMaquinista.bajo_pe_1603 ?? false,
+            fecha_primer_servicio: editingMaquinista.fecha_primer_servicio ?? null,
+            fecha_licencia_conduccion: editingMaquinista.fecha_licencia_conduccion ?? null,
           } : null}
           onSave={handleSaveMaquinista}
         />
