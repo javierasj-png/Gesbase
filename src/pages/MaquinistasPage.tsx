@@ -149,10 +149,10 @@ export default function MaquinistasPage() {
                   <TableHead className="w-[120px]">Matrícula</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Base</TableHead>
-                  <TableHead>1er Servicio</TableHead>
                   <TableHead>Licencia</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
+                  <TableHead>1er Servicio</TableHead>
                   <TableHead>Estado General</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -189,11 +189,6 @@ export default function MaquinistasPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {maquinista.base}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {maquinista.fecha_primer_servicio 
-                            ? format(new Date(maquinista.fecha_primer_servicio), 'dd/MM/yyyy', { locale: es })
-                            : '-'}
                         </TableCell>
                         <TableCell>
                           <TooltipProvider>
@@ -234,6 +229,11 @@ export default function MaquinistasPage() {
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {maquinista.fecha_primer_servicio 
+                            ? format(new Date(maquinista.fecha_primer_servicio), 'dd/MM/yyyy', { locale: es })
+                            : '-'}
                         </TableCell>
                         <TableCell>
                           <StatusBadge 
