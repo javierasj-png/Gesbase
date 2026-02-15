@@ -243,13 +243,13 @@ export default function AuditoriaPage() {
               <TrendingUp className="w-4 h-4" />
               Estado de Cumplimiento
             </TabsTrigger>
-            <TabsTrigger value="visitas" className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Visitas a la Base
-            </TabsTrigger>
             <TabsTrigger value="partes" className="flex items-center gap-2">
               <ClipboardCheck className="w-4 h-4" />
               Control de Partes
+            </TabsTrigger>
+            <TabsTrigger value="visitas" className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Visitas a la Base
             </TabsTrigger>
           </TabsList>
 
