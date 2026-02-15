@@ -429,6 +429,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           fecha_ingreso: string | null
+          fecha_licencia_conduccion: string | null
           fecha_primer_servicio: string | null
           id: string
           matricula: string
@@ -444,6 +445,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           fecha_ingreso?: string | null
+          fecha_licencia_conduccion?: string | null
           fecha_primer_servicio?: string | null
           id?: string
           matricula: string
@@ -459,6 +461,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           fecha_ingreso?: string | null
+          fecha_licencia_conduccion?: string | null
           fecha_primer_servicio?: string | null
           id?: string
           matricula?: string
