@@ -28,7 +28,7 @@ interface VisitasBaseTabProps {
 export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  const [titulo, setTitulo] = useState('');
+  
   const [tipo, setTipo] = useState<string>('visita_seguridad');
   const [fechaVisita, setFechaVisita] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedBase, setSelectedBase] = useState<string>(baseFilter !== 'all' ? baseFilter : (bases[0]?.nombre || ''));
@@ -78,7 +78,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
     const fileInput = document.getElementById('visita-file') as HTMLInputElement;
     const file = fileInput?.files?.[0];
 
-    if (!file || !titulo || !selectedBase) {
+    if (!file || !selectedBase) {
       toast.error('Completa todos los campos y selecciona un archivo');
       return;
     }
@@ -105,7 +105,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
         .insert({
           base_id: baseObj.id,
           base_nombre: selectedBase,
-          titulo,
+          titulo: `${tipo === 'auditoria' ? 'Auditoría' : 'Visita Seguridad'} ${format(new Date(fechaVisita), 'dd/MM/yyyy')}`,
           tipo,
           fecha_visita: fechaVisita,
           archivo_url: filePath,
@@ -118,7 +118,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
       if (insertError) throw insertError;
 
       toast.success('Documento subido. Iniciando análisis con IA...');
-      setTitulo('');
+      
       fileInput.value = '';
       queryClient.invalidateQueries({ queryKey: ['visitas-base'] });
 
@@ -184,10 +184,6 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Título</Label>
-              <Input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Visita seguridad Ene 2026" />
-            </div>
-            <div className="space-y-2">
               <Label>Tipo</Label>
               <Select value={tipo} onValueChange={setTipo}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -229,7 +225,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
-                  <TableHead>Título</TableHead>
+                  
                   <TableHead>Base</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
@@ -240,7 +236,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
                 {visitas.map((v: any) => (
                   <TableRow key={v.id}>
                     <TableCell>{format(new Date(v.fecha_visita), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell className="font-medium">{v.titulo}</TableCell>
+                    
                     <TableCell>{v.base_nombre}</TableCell>
                     <TableCell>{v.tipo === 'auditoria' ? 'Auditoría' : 'Visita Seguridad'}</TableCell>
                     <TableCell className="text-center">{estadoBadge(v.estado_analisis)}</TableCell>
