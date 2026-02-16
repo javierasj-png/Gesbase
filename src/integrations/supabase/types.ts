@@ -471,6 +471,102 @@ export type Database = {
         }
         Relationships: []
       }
+      partes: {
+        Row: {
+          acciones_tomadas: string | null
+          archivo_url: string | null
+          base: string | null
+          causa: string | null
+          confianza_global: number
+          created_at: string
+          created_by: string | null
+          datos_extraidos: Json | null
+          descripcion_hechos: string | null
+          dudas_conflictos: Json | null
+          estado: string
+          fecha_parte: string | null
+          firmante: string | null
+          fuente_archivo: string | null
+          hora_fin: string | null
+          hora_inicio: string | null
+          hora_parte: string | null
+          id: string
+          linea_tramo: string | null
+          maquinista_id: string | null
+          maquinista_texto: string | null
+          minutos_retraso: number
+          numero_parte: string | null
+          observaciones: string | null
+          responsable: string | null
+          tipo_parte: string
+          tren_servicio: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acciones_tomadas?: string | null
+          archivo_url?: string | null
+          base?: string | null
+          causa?: string | null
+          confianza_global?: number
+          created_at?: string
+          created_by?: string | null
+          datos_extraidos?: Json | null
+          descripcion_hechos?: string | null
+          dudas_conflictos?: Json | null
+          estado?: string
+          fecha_parte?: string | null
+          firmante?: string | null
+          fuente_archivo?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          hora_parte?: string | null
+          id?: string
+          linea_tramo?: string | null
+          maquinista_id?: string | null
+          maquinista_texto?: string | null
+          minutos_retraso?: number
+          numero_parte?: string | null
+          observaciones?: string | null
+          responsable?: string | null
+          tipo_parte?: string
+          tren_servicio?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acciones_tomadas?: string | null
+          archivo_url?: string | null
+          base?: string | null
+          causa?: string | null
+          confianza_global?: number
+          created_at?: string
+          created_by?: string | null
+          datos_extraidos?: Json | null
+          descripcion_hechos?: string | null
+          dudas_conflictos?: Json | null
+          estado?: string
+          fecha_parte?: string | null
+          firmante?: string | null
+          fuente_archivo?: string | null
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          hora_parte?: string | null
+          id?: string
+          linea_tramo?: string | null
+          maquinista_id?: string | null
+          maquinista_texto?: string | null
+          minutos_retraso?: number
+          numero_parte?: string | null
+          observaciones?: string | null
+          responsable?: string | null
+          tipo_parte?: string
+          tren_servicio?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       plan_1201: {
         Row: {
           actuacion_id: string | null
