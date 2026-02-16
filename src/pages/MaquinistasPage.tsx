@@ -152,7 +152,6 @@ export default function MaquinistasPage() {
                   <TableHead>Licencia</TableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
-                  <TableHead>1er Servicio</TableHead>
                   <TableHead>Estado General</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -160,7 +159,7 @@ export default function MaquinistasPage() {
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
@@ -229,11 +228,6 @@ export default function MaquinistasPage() {
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {maquinista.fecha_primer_servicio 
-                            ? format(new Date(maquinista.fecha_primer_servicio), 'dd/MM/yyyy', { locale: es })
-                            : '-'}
                         </TableCell>
                         <TableCell>
                           <StatusBadge 
