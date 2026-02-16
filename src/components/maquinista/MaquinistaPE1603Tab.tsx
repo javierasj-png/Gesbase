@@ -189,13 +189,13 @@ export function MaquinistaPE1603Tab({
     if (!fecha || !tipo) return null;
     
     const fechaDate = parseISO(fecha);
-    const bloquesPendientes = plan1603.filter(b => b.tipo === tipo && !b.actuacion_id);
+    // Allow all blocks of this type (including already fulfilled ones - multiple actuaciones per block allowed)
+    const bloquesDelTipo = plan1603.filter(b => b.tipo === tipo);
     
-    // Find block where fecha is within window
-    for (const bloque of bloquesPendientes) {
+    // Find block where fecha is within window (strict match only)
+    for (const bloque of bloquesDelTipo) {
       const window = getBlockWindow(bloque);
       if (window) {
-        // Allow some flexibility: check if date is in window or slightly before/after
         if ((isAfter(fechaDate, window.inicio) || fechaDate.getTime() === window.inicio.getTime()) && 
             (isBefore(fechaDate, window.fin) || fechaDate.getTime() === window.fin.getTime())) {
           return bloque;
@@ -203,20 +203,8 @@ export function MaquinistaPE1603Tab({
       }
     }
     
-    // If no exact match, find the closest pending block
-    const sortedBloques = bloquesPendientes.sort((a, b) => a.mes - b.mes);
-    for (const bloque of sortedBloques) {
-      const window = getBlockWindow(bloque);
-      if (window) {
-        // Find first block whose window hasn't ended or the closest upcoming one
-        if (isAfter(window.fin, fechaDate) || window.fin.getTime() === fechaDate.getTime()) {
-          return bloque;
-        }
-      }
-    }
-    
-    // Return first pending block as last resort
-    return sortedBloques[0] || null;
+    // No fallback - only assign if date falls within a window
+    return null;
   };
 
   // Count pending blocks per type (for display)
@@ -245,15 +233,15 @@ export function MaquinistaPE1603Tab({
   // Find matching block for registration - now uses detectBlockForDate
   const bloqueCoincidente = useMemo(() => {
     if (!selectedTipo || !fechaActuacion) return null;
-    // If selectedMes is set (manual override), use it; otherwise auto-detect
+    // If selectedMes is set (manual override), use it
     if (selectedMes) {
-      return plan1603.find(b => b.tipo === selectedTipo && b.mes === selectedMes && !b.actuacion_id) || null;
+      return plan1603.find(b => b.tipo === selectedTipo && b.mes === selectedMes) || null;
     }
     return detectBlockForDate(fechaActuacion, selectedTipo);
   }, [selectedTipo, selectedMes, fechaActuacion, plan1603]);
 
   const handleRegistrar = async () => {
-    if (!selectedTipo || !selectedMes || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
+    if (!selectedTipo || !fechaActuacion || !expediente1603 || !bloqueCoincidente) return;
 
     // Validar permisos si está cerrado
     if (expedienteCerrado && !isAdmin) {
@@ -294,16 +282,18 @@ export function MaquinistaPE1603Tab({
 
       if (actError) throw actError;
 
-      // 2. Update plan block with actuacion_id and estado
-      const { error: planError } = await supabase
-        .from('plan_1603')
-        .update({
-          actuacion_id: actuacion.id,
-          estado: 'realizado',
-        })
-        .eq('id', bloqueCoincidente.id);
+      // 2. Update plan block only if not already fulfilled
+      if (!bloqueCoincidente.actuacion_id) {
+        const { error: planError } = await supabase
+          .from('plan_1603')
+          .update({
+            actuacion_id: actuacion.id,
+            estado: 'realizado',
+          })
+          .eq('id', bloqueCoincidente.id);
 
-      if (planError) throw planError;
+        if (planError) throw planError;
+      }
 
       toast({
         title: 'Actuación registrada',
@@ -1131,11 +1121,11 @@ export function MaquinistaPE1603Tab({
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-status-vencido" />
                       <span className="font-medium text-sm text-status-vencido">
-                        No hay bloque pendiente para esta fecha
+                        No hay bloque para este tipo y fecha
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      La fecha no coincide con ninguna ventana pendiente. Selecciona manualmente:
+                      La fecha no coincide con ninguna ventana. Selecciona manualmente:
                     </p>
                     <Select 
                       value={selectedMes?.toString() || ''} 
@@ -1145,7 +1135,7 @@ export function MaquinistaPE1603Tab({
                         <SelectValue placeholder="Seleccionar bloque manualmente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {bloquesPendientesPorTipo[selectedTipo].map(bloque => {
+                        {plan1603.filter(b => b.tipo === selectedTipo).map(bloque => {
                           const window = getBlockWindow(bloque);
                           return (
                             <SelectItem 
