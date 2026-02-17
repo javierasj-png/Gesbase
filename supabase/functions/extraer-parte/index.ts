@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import pdf from "npm:pdf-parse@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,22 +34,48 @@ REGLAS:
 3. Para cada campo, indica un nivel de confianza (0-100)
 4. Si hay datos ambiguos o conflictivos, anótalos en "dudas"
 
-RESPONDE EN FORMATO JSON con esta estructura exacta:
+RESPONDE ÚNICAMENTE con JSON válido (sin comentarios, sin markdown) con esta estructura:
 {
   "parteExtraido": {
     "numeroParte": { "valor": "...", "confianza": 95 },
     "fechaParte": { "valor": "2024-01-15", "confianza": 90 },
     "horaParte": { "valor": "14:30", "confianza": 85 },
-    ... (todos los campos)
+    "horaInicio": { "valor": null, "confianza": 0 },
+    "horaFin": { "valor": null, "confianza": 0 },
+    "base": { "valor": "...", "confianza": 80 },
+    "maquinista": { "valor": "...", "confianza": 85 },
+    "maquinistaId": { "valor": null, "confianza": 0 },
+    "trenServicio": { "valor": "...", "confianza": 80 },
+    "lineaTramo": { "valor": "...", "confianza": 80 },
+    "tipoParte": { "valor": "Incidencia", "confianza": 90 },
+    "descripcionHechos": { "valor": "...", "confianza": 85 },
+    "minutosRetraso": { "valor": 0, "confianza": 70 },
+    "causa": { "valor": "...", "confianza": 75 },
+    "accionesTomadas": { "valor": "...", "confianza": 70 },
+    "firmante": { "valor": "...", "confianza": 80 },
+    "observaciones": { "valor": null, "confianza": 0 }
   },
   "confianzaGlobal": 85,
-  "dudas": [
-    { "campo": "maquinista", "motivo": "Nombre parcialmente legible", "necesito": "Confirmar nombre completo" }
-  ],
+  "dudas": [],
   "registroListo": {
     "numero_parte": "...",
     "fecha_parte": "2024-01-15",
-    ... (campos normalizados para insertar en BD)
+    "hora_parte": "14:30",
+    "hora_inicio": null,
+    "hora_fin": null,
+    "base": "...",
+    "maquinista_texto": "...",
+    "maquinista_id": null,
+    "tren_servicio": "...",
+    "linea_tramo": "...",
+    "tipo_parte": "Incidencia",
+    "descripcion_hechos": "...",
+    "minutos_retraso": 0,
+    "causa": "...",
+    "acciones_tomadas": "...",
+    "firmante": "...",
+    "observaciones": null,
+    "fuente_archivo": null
   }
 }`;
 
@@ -68,35 +95,69 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY no configurada");
     }
 
-    let imageContent: { type: string; image_url?: { url: string }; text?: string }[] = [];
+    let messageContent: any[] = [];
 
     if (imageBase64) {
       // Imagen ya viene en base64
-      imageContent = [
+      console.log("Procesando imagen base64...");
+      messageContent = [
         { type: "text", text: EXTRACTION_PROMPT },
-        { 
-          type: "image_url", 
-          image_url: { url: imageBase64 }
-        }
+        { type: "image_url", image_url: { url: imageBase64 } }
       ];
     } else if (file) {
-      // Convertir archivo a base64
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      let binary = "";
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      const base64 = btoa(binary);
-      const mimeType = file.type || "image/jpeg";
-      
-      imageContent = [
-        { type: "text", text: EXTRACTION_PROMPT },
-        { 
-          type: "image_url", 
-          image_url: { url: `data:${mimeType};base64,${base64}` }
+      const mimeType = file.type || "application/octet-stream";
+      const isPdf = mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf");
+
+      if (isPdf) {
+        // Intentar extraer texto del PDF
+        console.log("Procesando PDF, extrayendo texto...");
+        let pdfText = "";
+        try {
+          const buffer = Buffer.from(uint8Array);
+          const pdfData = await pdf(buffer);
+          pdfText = (pdfData.text || "").trim();
+          console.log(`Texto extraído del PDF: ${pdfText.length} caracteres, ${pdfData.numpages} páginas`);
+        } catch (pdfError) {
+          console.warn("No se pudo extraer texto del PDF:", pdfError);
         }
-      ];
+
+        if (pdfText.length > 50) {
+          // PDF con texto suficiente: enviar como texto
+          console.log("PDF con texto legible, enviando como texto al modelo");
+          messageContent = [
+            { 
+              type: "text", 
+              text: `${EXTRACTION_PROMPT}\n\n--- CONTENIDO DEL DOCUMENTO (extraído del PDF "${fileName}") ---\n\n${pdfText}` 
+            }
+          ];
+        } else {
+          // PDF sin texto (escaneado): enviar como imagen para OCR
+          console.log("PDF sin texto legible (escaneado), enviando como imagen para OCR");
+          let binary = "";
+          for (let i = 0; i < uint8Array.length; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+          }
+          const base64 = btoa(binary);
+          messageContent = [
+            { type: "text", text: EXTRACTION_PROMPT },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+          ];
+        }
+      } else {
+        // Imagen: enviar como base64
+        console.log("Procesando imagen...");
+        let binary = "";
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        const base64 = btoa(binary);
+        messageContent = [
+          { type: "text", text: EXTRACTION_PROMPT },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
+        ];
+      }
     } else {
       return new Response(
         JSON.stringify({ error: "No se proporcionó archivo o imagen" }),
@@ -113,11 +174,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "user",
-            content: imageContent
+            content: messageContent
           }
         ],
         max_tokens: 4000,
@@ -157,15 +218,13 @@ serve(async (req) => {
     try {
       // Limpiar markdown code fences y buscar JSON
       let cleanContent = content.trim();
-      // Eliminar ```json ... ``` wrappers
       cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
       
       // Buscar el objeto JSON principal
       const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        // Limpiar posibles comentarios inline que rompen JSON
         let jsonStr = jsonMatch[0];
-        // Eliminar comentarios // dentro del JSON
+        // Eliminar comentarios // dentro del JSON (no dentro de strings)
         jsonStr = jsonStr.replace(/\/\/[^\n"]*(?=\n)/g, '');
         extractedData = JSON.parse(jsonStr);
       } else {
@@ -173,6 +232,7 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error("Error parseando respuesta:", parseError);
+      console.error("Contenido raw:", content.substring(0, 500));
       extractedData = {
         parteExtraido: {},
         confianzaGlobal: 0,
