@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { FileUploader } from '@/components/partes/FileUploader';
 import { ExtractionResult } from '@/components/partes/ExtractionResult';
+import { EditableExtractionForm } from '@/components/partes/EditableExtractionForm';
 import { PartesTable } from '@/components/partes/PartesTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +28,7 @@ export default function PartesPage() {
   // Upload & extraction state
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractionResult, setExtractionResult] = useState<ExtraccionResult | null>(null);
+  const [editedRegistro, setEditedRegistro] = useState<ExtraccionResult['registroListo'] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
 
@@ -74,7 +76,9 @@ export default function PartesPage() {
       if (error) throw error;
 
       if (data?.success) {
-        setExtractionResult(data as ExtraccionResult);
+        const result = data as ExtraccionResult;
+        setExtractionResult(result);
+        setEditedRegistro(result.registroListo ? { ...result.registroListo } : null);
         toast({
           title: 'Extracción completada',
           description: `Confianza global: ${data.confianzaGlobal}%`,
@@ -96,11 +100,11 @@ export default function PartesPage() {
 
   // Save extracted parte to DB
   const handleSave = async () => {
-    if (!extractionResult?.registroListo) return;
+    if (!editedRegistro) return;
 
     setIsSaving(true);
     try {
-      const reg = extractionResult.registroListo;
+      const reg = editedRegistro;
 
       // Upload file to storage if available
       let archivoUrl: string | null = null;
@@ -152,6 +156,7 @@ export default function PartesPage() {
 
       // Reset
       setExtractionResult(null);
+      setEditedRegistro(null);
       setCurrentFile(null);
       queryClient.invalidateQueries({ queryKey: ['partes'] });
     } catch (err: any) {
@@ -233,10 +238,18 @@ export default function PartesPage() {
               dudas={extractionResult.dudas || []}
               registroListo={extractionResult.registroListo!}
             />
+
+            {editedRegistro && (
+              <EditableExtractionForm
+                registroListo={editedRegistro}
+                onChange={setEditedRegistro}
+              />
+            )}
+
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                onClick={() => { setExtractionResult(null); setCurrentFile(null); }}
+                onClick={() => { setExtractionResult(null); setEditedRegistro(null); setCurrentFile(null); }}
               >
                 <X className="w-4 h-4 mr-2" />
                 Descartar
