@@ -155,10 +155,19 @@ serve(async (req) => {
     // Extraer JSON de la respuesta
     let extractedData;
     try {
-      // Buscar JSON en la respuesta
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      // Limpiar markdown code fences y buscar JSON
+      let cleanContent = content.trim();
+      // Eliminar ```json ... ``` wrappers
+      cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+      
+      // Buscar el objeto JSON principal
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        extractedData = JSON.parse(jsonMatch[0]);
+        // Limpiar posibles comentarios inline que rompen JSON
+        let jsonStr = jsonMatch[0];
+        // Eliminar comentarios // dentro del JSON
+        jsonStr = jsonStr.replace(/\/\/[^\n"]*(?=\n)/g, '');
+        extractedData = JSON.parse(jsonStr);
       } else {
         throw new Error("No se encontró JSON en la respuesta");
       }
