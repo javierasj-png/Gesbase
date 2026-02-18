@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Parte, TipoParte, EstadoParte } from '@/types/partes';
+import type { Parte, TipoParte, EstadoParte, TipoInforme } from '@/types/partes';
 
 interface PartesTableProps {
   partes: Parte[];
@@ -34,6 +34,11 @@ const estadoColors: Record<EstadoParte, string> = {
   'Cerrado': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
 };
 
+const informeColors: Record<TipoInforme, string> = {
+  'PAI': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  'Informe Conducción': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+};
+
 export function PartesTable({ partes, onView, onDelete }: PartesTableProps) {
   if (partes.length === 0) {
     return (
@@ -50,7 +55,7 @@ export function PartesTable({ partes, onView, onDelete }: PartesTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="w-[120px]">Nº Parte</TableHead>
+            <TableHead className="w-[160px]">Tipo Informe</TableHead>
             <TableHead className="w-[100px]">Fecha</TableHead>
             <TableHead>Base</TableHead>
             <TableHead>Maquinista</TableHead>
@@ -64,7 +69,13 @@ export function PartesTable({ partes, onView, onDelete }: PartesTableProps) {
           {partes.map((parte) => (
             <TableRow key={parte.id} className="hover:bg-muted/30">
               <TableCell className="font-medium">
-                {parte.numero_parte || '-'}
+                {parte.tipo_informe ? (
+                  <Badge variant="outline" className={cn("text-xs", informeColors[parte.tipo_informe as TipoInforme])}>
+                    {parte.tipo_informe}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-xs">-</span>
+                )}
               </TableCell>
               <TableCell>
                 {parte.fecha_parte 

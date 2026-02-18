@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RegistroListo, TipoParte } from '@/types/partes';
+import type { RegistroListo, TipoParte, TipoInforme } from '@/types/partes';
 
 interface EditableExtractionFormProps {
   registroListo: RegistroListo;
@@ -15,6 +14,7 @@ interface EditableExtractionFormProps {
 }
 
 const TIPOS_PARTE: TipoParte[] = ['Incidencia', 'Retraso', 'Avería', 'Seguridad', 'Otro'];
+const TIPOS_INFORME: TipoInforme[] = ['PAI', 'Informe Conducción'];
 
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -41,6 +41,22 @@ export function EditableExtractionForm({ registroListo, onChange }: EditableExtr
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Field label="Tipo de Informe">
+            <Select
+              value={registroListo.tipo_informe || ''}
+              onValueChange={v => update('tipo_informe', v as TipoInforme)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar tipo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {TIPOS_INFORME.map(t => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
           <Field label="Número de Parte">
             <Input
               value={registroListo.numero_parte || ''}
