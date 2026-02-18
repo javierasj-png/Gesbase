@@ -122,6 +122,7 @@ export default function PartesPage() {
 
       const { error } = await supabase.from('partes').insert({
         numero_parte: reg.numero_parte,
+        tipo_informe: reg.tipo_informe,
         fecha_parte: reg.fecha_parte,
         hora_parte: reg.hora_parte,
         hora_inicio: reg.hora_inicio,

@@ -498,6 +498,7 @@ export type Database = {
           numero_parte: string | null
           observaciones: string | null
           responsable: string | null
+          tipo_informe: string | null
           tipo_parte: string
           tren_servicio: string | null
           updated_at: string
@@ -529,6 +530,7 @@ export type Database = {
           numero_parte?: string | null
           observaciones?: string | null
           responsable?: string | null
+          tipo_informe?: string | null
           tipo_parte?: string
           tren_servicio?: string | null
           updated_at?: string
@@ -560,6 +562,7 @@ export type Database = {
           numero_parte?: string | null
           observaciones?: string | null
           responsable?: string | null
+          tipo_informe?: string | null
           tipo_parte?: string
           tren_servicio?: string | null
           updated_at?: string

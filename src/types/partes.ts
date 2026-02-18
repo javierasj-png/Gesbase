@@ -1,6 +1,7 @@
 // Tipos para el módulo de Control de Partes
 
 export type TipoParte = 'Incidencia' | 'Retraso' | 'Avería' | 'Seguridad' | 'Otro';
+export type TipoInforme = 'PAI' | 'Informe Conducción';
 export type EstadoParte = 'Nuevo' | 'En revisión' | 'Cerrado';
 
 export interface CampoExtraido<T = string | number | null> {
@@ -10,6 +11,7 @@ export interface CampoExtraido<T = string | number | null> {
 
 export interface ParteExtraido {
   numeroParte: CampoExtraido<string | null>;
+  tipoInforme: CampoExtraido<TipoInforme | null>;
   fechaParte: CampoExtraido<string | null>;
   horaParte: CampoExtraido<string | null>;
   horaInicio: CampoExtraido<string | null>;
@@ -36,6 +38,7 @@ export interface DudaConflicto {
 
 export interface RegistroListo {
   numero_parte: string | null;
+  tipo_informe: TipoInforme | null;
   fecha_parte: string | null;
   hora_parte: string | null;
   hora_inicio: string | null;
@@ -68,6 +71,7 @@ export interface ExtraccionResult {
 export interface Parte {
   id: string;
   numero_parte: string | null;
+  tipo_informe: TipoInforme | null;
   fecha_parte: string | null;
   hora_parte: string | null;
   hora_inicio: string | null;

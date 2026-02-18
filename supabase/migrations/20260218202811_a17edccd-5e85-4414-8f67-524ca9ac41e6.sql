@@ -1,0 +1,1 @@
+ALTER TABLE public.partes ADD COLUMN IF NOT EXISTS tipo_informe text NULL;
