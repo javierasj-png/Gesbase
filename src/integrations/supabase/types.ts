@@ -434,6 +434,7 @@ export type Database = {
           id: string
           matricula: string
           nombre: string
+          observaciones: string | null
           telefono: string | null
           updated_at: string | null
         }
@@ -450,6 +451,7 @@ export type Database = {
           id?: string
           matricula: string
           nombre: string
+          observaciones?: string | null
           telefono?: string | null
           updated_at?: string | null
         }
@@ -466,6 +468,7 @@ export type Database = {
           id?: string
           matricula?: string
           nombre?: string
+          observaciones?: string | null
           telefono?: string | null
           updated_at?: string | null
         }

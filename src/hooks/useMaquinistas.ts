@@ -15,6 +15,7 @@ export interface MaquinistaDB {
   fecha_ingreso: string | null;
   fecha_primer_servicio: string | null;
   fecha_licencia_conduccion: string | null;
+  observaciones: string | null;
   activo: boolean;
   created_at: string;
   updated_at: string;
@@ -103,6 +104,7 @@ export function useMaquinistas() {
         apellidos,
         base: input.base,
         activo: input.activo,
+        observaciones: input.observaciones || null,
         bajo_pe_1603: input.bajoPE1603 ?? false,
         fecha_primer_servicio: input.fechaPrimerServicio 
           ? input.fechaPrimerServicio.toISOString().split('T')[0] 
@@ -159,6 +161,7 @@ export function useMaquinistas() {
       }
       if (input.base !== undefined) updateData.base = input.base;
       if (input.activo !== undefined) updateData.activo = input.activo;
+      if (input.observaciones !== undefined) updateData.observaciones = input.observaciones || null;
       if (input.bajoPE1603 !== undefined) updateData.bajo_pe_1603 = input.bajoPE1603;
       if (input.fechaPrimerServicio !== undefined) {
         updateData.fecha_primer_servicio = input.fechaPrimerServicio 
