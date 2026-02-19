@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, FileText, Trash2 } from 'lucide-react';
+import { Eye, FileText, Pencil, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,6 +17,7 @@ import type { Parte, TipoParte, EstadoParte, TipoInforme } from '@/types/partes'
 interface PartesTableProps {
   partes: Parte[];
   onView: (parte: Parte) => void;
+  onEdit?: (parte: Parte) => void;
   onDelete: (id: string) => void;
 }
 
@@ -39,7 +40,7 @@ const informeColors: Record<TipoInforme, string> = {
   'Informe Conducción': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
 };
 
-export function PartesTable({ partes, onView, onDelete }: PartesTableProps) {
+export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTableProps) {
   if (partes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -113,6 +114,16 @@ export function PartesTable({ partes, onView, onDelete }: PartesTableProps) {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {onEdit && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => onEdit(parte)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
                     size="icon" 
