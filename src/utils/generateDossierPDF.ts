@@ -172,6 +172,23 @@ export async function generateDossierPDF(maquinistaId: string) {
 
   y += fichaH + 4;
 
+  // ── Observaciones ──
+  if (maq.observaciones) {
+    doc.setFillColor(...CARD_BG);
+    const obsLines = doc.splitTextToSize(maq.observaciones, pw - 36);
+    const obsH = 10 + obsLines.length * 4;
+    doc.roundedRect(14, y, pw - 28, obsH, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...MAGENTA);
+    doc.text('OBSERVACIONES', 18, y + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...DARK);
+    doc.setFontSize(8);
+    doc.text(obsLines, 18, y + 12);
+    y += obsH + 4;
+  }
+
   // ═══════════════════════════════════════
   // SECCIÓN 1: CERTIFICACIONES
   // ═══════════════════════════════════════

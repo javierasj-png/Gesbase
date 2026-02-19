@@ -1,0 +1,1 @@
+ALTER TABLE public.maquinistas ADD COLUMN observaciones text DEFAULT NULL;
