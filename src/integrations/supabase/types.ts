@@ -384,6 +384,7 @@ export type Database = {
           id: string
           maquinista_id: string
           obtenida: boolean | null
+          tipo_renovacion: string | null
           updated_at: string | null
         }
         Insert: {
@@ -396,6 +397,7 @@ export type Database = {
           id?: string
           maquinista_id: string
           obtenida?: boolean | null
+          tipo_renovacion?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -408,6 +410,7 @@ export type Database = {
           id?: string
           maquinista_id?: string
           obtenida?: boolean | null
+          tipo_renovacion?: string | null
           updated_at?: string | null
         }
         Relationships: [

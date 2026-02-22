@@ -208,6 +208,9 @@ export async function generateDossierPDF(maquinistaId: string) {
       bc.periodo_inactividad_meses ?? 6,
       bc.aviso_dias ?? 30
     );
+    const tipoRenov = asignada?.tipo_renovacion
+      ? (asignada.tipo_renovacion === 'servicio' ? 'Servicio' : 'Asesoramiento')
+      : '-';
     return [
       bc.certificacion_nombre,
       bc.certificacion_tipo === 'vehiculo' ? 'Vehículo' : 'Línea',
@@ -216,6 +219,7 @@ export async function generateDossierPDF(maquinistaId: string) {
       asignada?.fecha_ultimo_servicio
         ? format(parseISO(asignada.fecha_ultimo_servicio), 'dd/MM/yyyy')
         : '-',
+      tipoRenov,
       diasRestantes !== null ? `${diasRestantes} días` : '-',
     ];
   });
@@ -223,7 +227,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   if (certRows.length > 0) {
     autoTable(doc, {
       startY: y,
-      head: [['Certificación', 'Tipo', 'Oblig.', 'Estado', 'Últ. Servicio', 'Días Rest.']],
+      head: [['Certificación', 'Tipo', 'Oblig.', 'Estado', 'Últ. Renovación', 'Vía', 'Días Rest.']],
       body: certRows,
       theme: 'grid',
       headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
