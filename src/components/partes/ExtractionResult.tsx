@@ -1,13 +1,10 @@
-import { CheckCircle2, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
+import { HelpCircle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import type { ParteExtraido, DudaConflicto, RegistroListo } from '@/types/partes';
 
 interface ExtractionResultProps {
   parteExtraido: ParteExtraido;
-  confianzaGlobal: number;
+  confianzaGlobal?: number;
   dudas: DudaConflicto[];
   registroListo: RegistroListo;
 }
@@ -32,21 +29,7 @@ const fieldLabels: Record<string, string> = {
   observaciones: 'Observaciones',
 };
 
-function ConfidenceBadge({ value }: { value: number }) {
-  const getColor = () => {
-    if (value >= 80) return 'bg-green-500/10 text-green-600 border-green-500/20';
-    if (value >= 50) return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-    return 'bg-red-500/10 text-red-600 border-red-500/20';
-  };
-
-  return (
-    <Badge variant="outline" className={cn("text-xs", getColor())}>
-      {value}%
-    </Badge>
-  );
-}
-
-function FieldRow({ label, value, confianza }: { label: string; value: string | number | null; confianza: number }) {
+function FieldRow({ label, value }: { label: string; value: string | number | null }) {
   if (value === null || value === undefined || value === '') {
     return (
       <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
@@ -59,47 +42,20 @@ function FieldRow({ label, value, confianza }: { label: string; value: string | 
   return (
     <div className="flex items-start justify-between py-2 border-b border-border/50 last:border-0 gap-4">
       <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      <div className="flex items-center gap-2 text-right">
-        <span className="text-sm font-medium">{String(value)}</span>
-        <ConfidenceBadge value={confianza} />
-      </div>
+      <span className="text-sm font-medium text-right">{String(value)}</span>
     </div>
   );
 }
 
-export function ExtractionResult({ parteExtraido, confianzaGlobal, dudas, registroListo }: ExtractionResultProps) {
-  const getGlobalIcon = () => {
-    if (confianzaGlobal >= 80) return <CheckCircle2 className="h-6 w-6 text-green-500" />;
-    if (confianzaGlobal >= 50) return <AlertTriangle className="h-6 w-6 text-yellow-500" />;
-    return <XCircle className="h-6 w-6 text-red-500" />;
-  };
-
-  const getGlobalColor = () => {
-    if (confianzaGlobal >= 80) return 'text-green-500';
-    if (confianzaGlobal >= 50) return 'text-yellow-500';
-    return 'text-red-500';
-  };
-
+export function ExtractionResult({ parteExtraido, dudas, registroListo }: ExtractionResultProps) {
   return (
     <div className="space-y-4">
-      {/* Resumen de confianza */}
+      {/* Resumen */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {getGlobalIcon()}
-              <div>
-                <p className="font-medium">Extracción completada</p>
-                <p className="text-sm text-muted-foreground">
-                  {confianzaGlobal >= 80 ? 'Alta confianza - listo para guardar' :
-                   confianzaGlobal >= 50 ? 'Confianza media - revisar campos marcados' :
-                   'Baja confianza - requiere verificación manual'}
-                </p>
-              </div>
-            </div>
-            <div className={cn("text-3xl font-bold", getGlobalColor())}>
-              {confianzaGlobal}%
-            </div>
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-500" />
+            <p className="font-medium">Extracción completada</p>
           </div>
         </CardContent>
       </Card>
@@ -144,7 +100,6 @@ export function ExtractionResult({ parteExtraido, confianzaGlobal, dudas, regist
                   key={key}
                   label={fieldLabels[key] || key}
                   value={field?.valor}
-                  confianza={field?.confianza || 0}
                 />
               ))}
             </div>
@@ -154,7 +109,6 @@ export function ExtractionResult({ parteExtraido, confianzaGlobal, dudas, regist
                   key={key}
                   label={fieldLabels[key] || key}
                   value={field?.valor}
-                  confianza={field?.confianza || 0}
                 />
               ))}
             </div>
