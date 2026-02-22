@@ -62,7 +62,6 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
             <TableHead>Maquinista</TableHead>
             <TableHead className="w-[100px]">Tipo</TableHead>
             <TableHead className="w-[100px]">Estado</TableHead>
-            <TableHead className="w-[80px]">Confianza</TableHead>
             <TableHead className="w-[100px] text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -94,15 +93,6 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
                 <Badge variant="outline" className={cn("text-xs", estadoColors[parte.estado])}>
                   {parte.estado}
                 </Badge>
-              </TableCell>
-              <TableCell>
-                <span className={cn(
-                  "text-sm font-medium",
-                  parte.confianza_global >= 80 ? "text-green-600" :
-                  parte.confianza_global >= 50 ? "text-yellow-600" : "text-red-600"
-                )}>
-                  {parte.confianza_global}%
-                </span>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
