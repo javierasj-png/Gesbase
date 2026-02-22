@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/table';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Plus, Eye, EyeOff, Loader2, Train, Calendar, CheckCircle2 } from 'lucide-react';
-import { useMaquinistaCertificaciones } from '@/hooks/useMaquinistaCertificaciones';
+import { useMaquinistaCertificaciones, TipoRenovacion } from '@/hooks/useMaquinistaCertificaciones';
 import { format } from 'date-fns';
 
 interface MaquinistaCertificacionesTabProps {
@@ -43,17 +43,19 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
   const [registrarServicioOpen, setRegistrarServicioOpen] = useState(false);
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
+  const [tipoRenovacion, setTipoRenovacion] = useState<TipoRenovacion>('servicio');
   const [saving, setSaving] = useState(false);
 
   const handleRegistrarServicio = async () => {
     if (!selectedCert || !fechaServicio) return;
 
     setSaving(true);
-    await actualizarFechaServicio(selectedCert, fechaServicio);
+    await actualizarFechaServicio(selectedCert, fechaServicio, tipoRenovacion);
     setSaving(false);
     setRegistrarServicioOpen(false);
     setSelectedCert('');
     setFechaServicio('');
+    setTipoRenovacion('servicio');
   };
 
   if (loading) {
@@ -76,7 +78,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
         </div>
         <Button onClick={() => setRegistrarServicioOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Registrar Servicio
+          Renovar Certificación
         </Button>
       </div>
 
@@ -128,7 +130,7 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                 <TableHead>Certificación</TableHead>
                 <TableHead className="text-center w-20">Obligat.</TableHead>
                 <TableHead className="text-center w-20">Vigilar</TableHead>
-                <TableHead className="text-center w-28">Últ. Servicio</TableHead>
+                <TableHead className="text-center w-28">Últ. Renovación</TableHead>
                 <TableHead className="text-center w-28">Venc. Est.</TableHead>
                 <TableHead className="text-center w-16">Días</TableHead>
                 <TableHead className="text-center w-24">Estado</TableHead>
@@ -169,7 +171,16 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                   </TableCell>
                   <TableCell className="text-center text-sm">
                     {item.obtenida && item.fecha_ultimo_servicio 
-                      ? format(new Date(item.fecha_ultimo_servicio), 'dd/MM/yyyy') 
+                      ? (
+                        <div>
+                          <div>{format(new Date(item.fecha_ultimo_servicio), 'dd/MM/yyyy')}</div>
+                          {item.tipo_renovacion && (
+                            <Badge variant="outline" className="text-[10px] mt-0.5">
+                              {item.tipo_renovacion === 'servicio' ? 'Servicio' : 'Asesoramiento'}
+                            </Badge>
+                          )}
+                        </div>
+                      )
                       : <span className="text-muted-foreground">{item.obtenida ? 'Sin reg.' : '—'}</span>}
                   </TableCell>
                   <TableCell className="text-center text-sm">
@@ -214,10 +225,10 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
-              Registrar Servicio
+              Renovar Certificación
             </DialogTitle>
             <DialogDescription>
-              Registra la fecha del último servicio para actualizar el estado de la certificación
+              Renueva una certificación mediante un servicio o un asesoramiento formativo
             </DialogDescription>
           </DialogHeader>
 
@@ -249,7 +260,20 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
             </div>
 
             <div className="space-y-2">
-              <Label>Fecha del servicio</Label>
+              <Label>Tipo de renovación</Label>
+              <Select value={tipoRenovacion} onValueChange={(v) => setTipoRenovacion(v as TipoRenovacion)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="servicio">Servicio</SelectItem>
+                  <SelectItem value="asesoramiento">Asesoramiento formativo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Fecha de renovación</Label>
               <Input
                 type="date"
                 value={fechaServicio}

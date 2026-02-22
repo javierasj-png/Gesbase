@@ -236,7 +236,7 @@ function CertificacionRow({ cert, onToggleAsignada, onFechaChange }: Certificaci
         <div className="ml-10 mt-3 flex items-center gap-3">
           <Label className="text-xs text-muted-foreground flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            Último servicio:
+            Últ. renovación:
           </Label>
           <Input
             type="date"

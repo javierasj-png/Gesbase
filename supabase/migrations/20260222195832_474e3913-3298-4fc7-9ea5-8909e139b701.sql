@@ -1,0 +1,1 @@
+ALTER TABLE public.maquinista_certificaciones ADD COLUMN tipo_renovacion text DEFAULT NULL;

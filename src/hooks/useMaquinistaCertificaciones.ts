@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { addMonths, differenceInDays } from 'date-fns';
 
+export type TipoRenovacion = 'servicio' | 'asesoramiento';
+
 export interface MaquinistaCertificacionDB {
   id: string;
   maquinista_id: string;
@@ -12,6 +14,7 @@ export interface MaquinistaCertificacionDB {
   obtenida: boolean;
   fecha_obtencion: string | null;
   fecha_ultimo_servicio: string | null;
+  tipo_renovacion: TipoRenovacion | null;
 }
 
 export interface CertificacionConEstado extends MaquinistaCertificacionDB {
@@ -34,7 +37,10 @@ export interface CertificacionDisponible {
   aviso_dias: number;
   asignada: boolean;
   fecha_ultimo_servicio: string | null;
+  tipo_renovacion: TipoRenovacion | null;
 }
+
+// CertificacionDisponible moved above
 
 function calcularEstado(
   obtenida: boolean,
@@ -142,6 +148,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           obtenida,
           fecha_obtencion: asignada?.fecha_obtencion || null,
           fecha_ultimo_servicio: fechaServicio,
+          tipo_renovacion: (asignada?.tipo_renovacion as TipoRenovacion) || null,
           obligatoria: bc.obligatoria,
           vigilar_vencimiento: vigilar,
           periodo_inactividad_meses: periodo,
@@ -166,6 +173,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           aviso_dias: bc.aviso_dias,
           asignada: !!asignada,
           fecha_ultimo_servicio: asignada?.fecha_ultimo_servicio || null,
+          tipo_renovacion: (asignada?.tipo_renovacion as TipoRenovacion) || null,
         };
       });
 
@@ -189,7 +197,8 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
 
   const actualizarFechaServicio = async (
     certificacionId: string,
-    fechaServicio: string
+    fechaServicio: string,
+    tipoRenovacion: TipoRenovacion = 'servicio'
   ): Promise<boolean> => {
     if (!maquinistaId) return false;
 
@@ -206,7 +215,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
       if (existente) {
         const { error } = await supabase
           .from('maquinista_certificaciones')
-          .update({ fecha_ultimo_servicio: fechaServicio })
+          .update({ fecha_ultimo_servicio: fechaServicio, tipo_renovacion: tipoRenovacion })
           .eq('id', existente.id);
 
         if (error) throw error;
@@ -220,6 +229,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
             certificacion_tipo: baseCert.tipo,
             obtenida: true,
             fecha_ultimo_servicio: fechaServicio,
+            tipo_renovacion: tipoRenovacion,
           }]);
 
         if (error) throw error;
@@ -227,7 +237,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
         throw new Error('Certificación no encontrada');
       }
 
-      toast({ title: 'Fecha de servicio actualizada' });
+      toast({ title: 'Certificación renovada correctamente' });
       await fetchData();
       return true;
     } catch (error) {
