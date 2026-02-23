@@ -69,6 +69,11 @@ const tipoColors: Record<string, string> = {
   'Otro': 'bg-muted text-muted-foreground border-border',
 };
 
+const informeColors: Record<string, string> = {
+  'PAI': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  'Informe Conducción': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
+};
+
 const estadoColors: Record<string, string> = {
   'Nuevo': 'bg-green-500/10 text-green-600 border-green-500/20',
   'En revisión': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
@@ -538,13 +543,12 @@ export default function AuditoriaPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
-                          <TableHead className="w-[120px]">Nº Parte</TableHead>
+                          <TableHead className="w-[160px]">Tipo Informe</TableHead>
                           <TableHead className="w-[100px]">Fecha</TableHead>
                           <TableHead>Base</TableHead>
                           <TableHead>Maquinista</TableHead>
                           <TableHead className="w-[100px]">Tipo</TableHead>
                           <TableHead className="w-[110px]">Estado</TableHead>
-                          
                           <TableHead className="w-[60px] text-right">Ver</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -552,7 +556,13 @@ export default function AuditoriaPage() {
                         {filteredPartes.map((parte) => (
                           <TableRow key={parte.id} className="hover:bg-muted/30">
                             <TableCell className="font-medium">
-                              {parte.numero_parte || '-'}
+                              {parte.tipo_informe ? (
+                                <Badge variant="outline" className={cn("text-xs", informeColors[parte.tipo_informe] || '')}>
+                                  {parte.tipo_informe}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               {parte.fecha_parte
