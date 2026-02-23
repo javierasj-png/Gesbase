@@ -171,7 +171,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpload} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <form onSubmit={handleUpload} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
             <div className="space-y-2">
               <Label>Base</Label>
               <Select value={selectedBase} onValueChange={setSelectedBase}>
@@ -201,7 +201,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
               <Label>Archivo PDF</Label>
               <Input id="visita-file" type="file" accept=".pdf,.jpg,.jpeg,.png" />
             </div>
-            <div className="md:col-span-5 flex justify-end">
+            <div>
               <Button type="submit" disabled={uploading}>
                 {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                 {uploading ? 'Subiendo…' : 'Subir y Analizar'}
