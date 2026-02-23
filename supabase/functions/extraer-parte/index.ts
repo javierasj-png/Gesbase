@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import pdf from "npm:pdf-parse@1.1.1";
 
 const corsHeaders = {
@@ -85,6 +86,32 @@ serve(async (req) => {
   }
 
   try {
+    // --- Authentication check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // --- End authentication ---
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const imageBase64 = formData.get("imageBase64") as string | null;
@@ -98,7 +125,6 @@ serve(async (req) => {
     let messageContent: any[] = [];
 
     if (imageBase64) {
-      // Imagen ya viene en base64
       console.log("Procesando imagen base64...");
       messageContent = [
         { type: "text", text: EXTRACTION_PROMPT },
@@ -111,7 +137,6 @@ serve(async (req) => {
       const isPdf = mimeType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf");
 
       if (isPdf) {
-        // Intentar extraer texto del PDF
         console.log("Procesando PDF, extrayendo texto...");
         let pdfText = "";
         try {
@@ -124,7 +149,6 @@ serve(async (req) => {
         }
 
         if (pdfText.length > 50) {
-          // PDF con texto suficiente: enviar como texto
           console.log("PDF con texto legible, enviando como texto al modelo");
           messageContent = [
             { 
@@ -133,7 +157,6 @@ serve(async (req) => {
             }
           ];
         } else {
-          // PDF sin texto (escaneado): enviar como imagen para OCR
           console.log("PDF sin texto legible (escaneado), enviando como imagen para OCR");
           let binary = "";
           for (let i = 0; i < uint8Array.length; i++) {
@@ -146,7 +169,6 @@ serve(async (req) => {
           ];
         }
       } else {
-        // Imagen: enviar como base64
         console.log("Procesando imagen...");
         let binary = "";
         for (let i = 0; i < uint8Array.length; i++) {
@@ -213,18 +235,14 @@ serve(async (req) => {
 
     console.log("Respuesta de IA recibida, parseando...");
 
-    // Extraer JSON de la respuesta
     let extractedData;
     try {
-      // Limpiar markdown code fences y buscar JSON
       let cleanContent = content.trim();
       cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
       
-      // Buscar el objeto JSON principal
       const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         let jsonStr = jsonMatch[0];
-        // Eliminar comentarios // dentro del JSON (no dentro de strings)
         jsonStr = jsonStr.replace(/\/\/[^\n"]*(?=\n)/g, '');
         extractedData = JSON.parse(jsonStr);
       } else {
@@ -242,7 +260,6 @@ serve(async (req) => {
       };
     }
 
-    // Añadir nombre del archivo fuente
     if (extractedData.registroListo) {
       extractedData.registroListo.fuente_archivo = fileName;
     }

@@ -60,6 +60,34 @@ serve(async (req) => {
   }
 
   try {
+    // --- Authentication check ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "No autorizado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const userId = claimsData.claims.sub;
+    // --- End authentication ---
+
     const { visitaId } = await req.json();
 
     if (!visitaId) {
@@ -74,8 +102,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY no configurada");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get visita record
@@ -87,6 +113,18 @@ serve(async (req) => {
 
     if (visitaError || !visita) {
       throw new Error("Visita no encontrada");
+    }
+
+    // Verify user has access to this base
+    const { data: canAccess } = await supabaseAdmin.rpc("can_access_base", {
+      _user_id: userId,
+      _base_nombre: visita.base_nombre,
+    });
+    if (!canAccess) {
+      return new Response(
+        JSON.stringify({ error: "Sin acceso a esta base" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update status to processing
