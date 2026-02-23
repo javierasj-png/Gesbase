@@ -227,9 +227,6 @@ export default function AuditoriaPage() {
   const totalPartes = partes.length;
   const partesCerrados = partes.filter(p => p.estado === 'Cerrado').length;
   const partesNuevos = partes.filter(p => p.estado === 'Nuevo').length;
-  const avgConfianza = totalPartes > 0
-    ? Math.round(partes.reduce((acc, p) => acc + (p.confianza_global || 0), 0) / totalPartes)
-    : 0;
 
   const getCumplimientoBadge = (porcentaje: number) => {
     if (porcentaje >= 80) return <Badge className="bg-status-ok text-primary-foreground">{porcentaje}%</Badge>;
@@ -491,19 +488,6 @@ export default function AuditoriaPage() {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Confianza Media IA</p>
-                      <p className="text-2xl font-bold">{avgConfianza}%</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <TrendingUp className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Partes Table */}
@@ -560,7 +544,7 @@ export default function AuditoriaPage() {
                           <TableHead>Maquinista</TableHead>
                           <TableHead className="w-[100px]">Tipo</TableHead>
                           <TableHead className="w-[110px]">Estado</TableHead>
-                          <TableHead className="w-[80px]">Confianza</TableHead>
+                          
                           <TableHead className="w-[60px] text-right">Ver</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -586,15 +570,6 @@ export default function AuditoriaPage() {
                               <Badge variant="outline" className={cn("text-xs", estadoColors[parte.estado] || estadoColors['Cerrado'])}>
                                 {parte.estado}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <span className={cn(
-                                "text-sm font-medium",
-                                parte.confianza_global >= 80 ? "text-green-600" :
-                                parte.confianza_global >= 50 ? "text-yellow-600" : "text-red-600"
-                              )}>
-                                {parte.confianza_global}%
-                              </span>
                             </TableCell>
                             <TableCell className="text-right">
                               <Button
