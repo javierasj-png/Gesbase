@@ -137,7 +137,7 @@ export function EditableExtractionForm({ registroListo, onChange }: EditableExtr
             />
           </Field>
 
-          <Field label="Tipo de Parte">
+          <Field label="Tipo de Suceso">
             <Select
               value={registroListo.tipo_parte || 'Otro'}
               onValueChange={v => update('tipo_parte', v)}

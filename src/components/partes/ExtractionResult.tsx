@@ -20,7 +20,7 @@ const fieldLabels: Record<string, string> = {
   maquinistaId: 'ID Maquinista',
   trenServicio: 'Tren/Servicio',
   lineaTramo: 'Línea/Tramo',
-  tipoParte: 'Tipo de Parte',
+  tipoParte: 'Tipo de Suceso',
   descripcionHechos: 'Descripción',
   minutosRetraso: 'Minutos Retraso',
   causa: 'Causa',

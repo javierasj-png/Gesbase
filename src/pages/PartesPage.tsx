@@ -513,7 +513,7 @@ export default function PartesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Tipo de Parte</Label>
+                  <Label className="text-xs text-muted-foreground">Tipo de Suceso</Label>
                   <Select
                     value={editingParte.tipo_parte || 'Otro'}
                     onValueChange={v => setEditingParte({ ...editingParte, tipo_parte: v as any })}
