@@ -60,7 +60,7 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
             <TableHead className="w-[100px]">Fecha</TableHead>
             <TableHead>Base</TableHead>
             <TableHead>Maquinista</TableHead>
-            <TableHead className="w-[100px]">Tipo</TableHead>
+            <TableHead className="w-[100px]">Tipo Suceso</TableHead>
             <TableHead className="w-[100px]">Estado</TableHead>
             <TableHead className="w-[100px] text-right">Acciones</TableHead>
           </TableRow>

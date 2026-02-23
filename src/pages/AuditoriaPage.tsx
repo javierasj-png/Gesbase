@@ -547,7 +547,7 @@ export default function AuditoriaPage() {
                           <TableHead className="w-[100px]">Fecha</TableHead>
                           <TableHead>Base</TableHead>
                           <TableHead>Maquinista</TableHead>
-                          <TableHead className="w-[100px]">Tipo</TableHead>
+                          <TableHead className="w-[100px]">Tipo Suceso</TableHead>
                           <TableHead className="w-[110px]">Estado</TableHead>
                           <TableHead className="w-[60px] text-right">Ver</TableHead>
                         </TableRow>
