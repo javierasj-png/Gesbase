@@ -26,7 +26,7 @@ const statusConfig: Record<string, { class: string; dotColor: string }> = {
   'Cumplida': { class: 'status-cumplida', dotColor: 'bg-status-cumplida' },
   
   // Celdas 12.01
-  'No planificada': { class: 'status-no-procede', dotColor: 'bg-status-no-procede' },
+  'No planificar': { class: 'status-no-procede', dotColor: 'bg-status-no-procede' },
   
   // Estados de expediente
   'Activo': { class: 'status-ok', dotColor: 'bg-status-ok' },
