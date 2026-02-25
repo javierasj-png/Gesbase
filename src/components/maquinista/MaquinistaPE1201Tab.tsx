@@ -532,7 +532,7 @@ export function MaquinistaPE1201Tab({
 
       if (error) throw error;
 
-      toast({ title: 'Hito marcado como "No procede"' });
+      toast({ title: 'Hito marcado como "No planificada"' });
       fetchData();
     } catch (err) {
       toast({
@@ -846,7 +846,7 @@ export function MaquinistaPE1201Tab({
                                 handleMarcarNoProcede(bloque.id);
                               }}
                             >
-                              No procede
+                              No planificada
                             </Button>
                           )}
                           {/* Revert no procede */}
@@ -888,7 +888,7 @@ export function MaquinistaPE1201Tab({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-muted/50 border border-muted-foreground/30"></span>
-              No procede
+              No planificada
             </div>
           </div>
 

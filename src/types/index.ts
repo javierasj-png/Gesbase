@@ -10,7 +10,7 @@ export type TipoActuacion1603 = 'Acompañamiento' | 'Registro' | 'Alcohol' | 'Dr
 export type EstadoBloque1603 = 'Pendiente' | 'En ventana' | 'Vencida' | 'Cumplida';
 export type Bloque1201 = 'Acompañamientos' | 'Registros';
 export type Etiqueta1201 = 'Día 1' | 'Día 7' | 'Día 23' | 'Día 30' | 'Día 40';
-export type EstadoCelda1201 = 'No procede' | 'Pendiente' | 'Cumplida';
+export type EstadoCelda1201 = 'No planificada' | 'Pendiente' | 'Cumplida';
 export type Base = 'Madrid-Chamartín' | 'Barcelona-Sants' | 'Sevilla-Santa Justa' | 'Valencia-Joaquín Sorolla';
 export type AppRole = 'admin' | 'gestor' | 'mando';
 
