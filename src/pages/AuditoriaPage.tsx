@@ -547,6 +547,7 @@ export default function AuditoriaPage() {
                           <TableHead className="w-[100px]">Fecha</TableHead>
                           <TableHead>Base</TableHead>
                           <TableHead>Maquinista</TableHead>
+                          <TableHead>Línea/Tramo</TableHead>
                           <TableHead className="w-[100px]">Tipo Suceso</TableHead>
                           <TableHead className="w-[110px]">Estado</TableHead>
                           <TableHead className="w-[60px] text-right">Ver</TableHead>
@@ -571,6 +572,7 @@ export default function AuditoriaPage() {
                             </TableCell>
                             <TableCell>{parte.base || '-'}</TableCell>
                             <TableCell>{parte.maquinista_texto || '-'}</TableCell>
+                            <TableCell>{parte.linea_tramo || '-'}</TableCell>
                             <TableCell>
                               <Badge variant="outline" className={cn("text-xs", tipoColors[parte.tipo_parte] || tipoColors['Otro'])}>
                                 {parte.tipo_parte}
