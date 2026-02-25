@@ -60,6 +60,7 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
             <TableHead className="w-[100px]">Fecha</TableHead>
             <TableHead>Base</TableHead>
             <TableHead>Maquinista</TableHead>
+            <TableHead>Línea/Tramo</TableHead>
             <TableHead className="w-[100px]">Tipo Suceso</TableHead>
             <TableHead className="w-[100px]">Estado</TableHead>
             <TableHead className="w-[100px] text-right">Acciones</TableHead>
@@ -84,6 +85,7 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
               </TableCell>
               <TableCell>{parte.base || '-'}</TableCell>
               <TableCell>{parte.maquinista_texto || '-'}</TableCell>
+              <TableCell>{parte.linea_tramo || '-'}</TableCell>
               <TableCell>
                 <Badge variant="outline" className={cn("text-xs", tipoColors[parte.tipo_parte])}>
                   {parte.tipo_parte}
