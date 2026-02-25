@@ -436,7 +436,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
         const planRows = expPlan.map((b: any) => {
           const act = expActs.find((a: any) => a.id === b.actuacion_id);
           let estado = b.estado as string;
-          if (estado === 'no_procede') estado = 'No procede';
+          if (estado === 'no_procede') estado = 'No planificada';
           else if (b.actuacion_id) estado = 'Realizado';
           else estado = 'Pendiente';
 
