@@ -134,6 +134,8 @@ serve(async (req) => {
       .eq("id", visitaId);
 
     // Download the PDF file
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     const { data: fileData, error: fileError } = await supabaseAdmin
       .storage
       .from("visitas-base")
@@ -147,8 +149,20 @@ serve(async (req) => {
       throw new Error("No se pudo descargar el archivo");
     }
 
-    // Convert to base64
+    // Validate file size
     const arrayBuffer = await fileData.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
+      await supabaseAdmin
+        .from("visitas_base")
+        .update({ estado_analisis: "error" })
+        .eq("id", visitaId);
+      return new Response(
+        JSON.stringify({ error: "El archivo excede el tamaño máximo permitido (10MB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Convert to base64
     const uint8Array = new Uint8Array(arrayBuffer);
     let binary = "";
     for (let i = 0; i < uint8Array.length; i++) {

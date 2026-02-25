@@ -112,10 +112,47 @@ serve(async (req) => {
     }
     // --- End authentication ---
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const ALLOWED_MIME_TYPES = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+      "image/gif",
+    ];
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const imageBase64 = formData.get("imageBase64") as string | null;
     const fileName = formData.get("fileName") as string || "documento";
+
+    // Validate file size
+    if (file && file.size > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: "El archivo excede el tamaño máximo permitido (10MB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate imageBase64 size (approx)
+    if (imageBase64 && imageBase64.length > MAX_FILE_SIZE * 1.37) {
+      return new Response(
+        JSON.stringify({ error: "La imagen excede el tamaño máximo permitido (10MB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate file MIME type
+    if (file) {
+      const mimeType = file.type || "application/octet-stream";
+      if (!ALLOWED_MIME_TYPES.includes(mimeType) && !fileName.toLowerCase().endsWith(".pdf")) {
+        return new Response(
+          JSON.stringify({ error: "Tipo de archivo no permitido. Use PDF o imágenes (PNG, JPG, WebP)." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
