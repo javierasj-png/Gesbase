@@ -400,7 +400,7 @@ export async function generateDossierPDF(maquinistaId: string) {
       const planRows = expPlan.map(b => {
         const act = expActs.find(a => a.id === (b as any).actuacion_id);
         let estado = b.estado as string;
-        if (estado === 'no_procede') estado = 'No planificada';
+        if (estado === 'no_procede') estado = 'No planificar';
         else if ((b as any).actuacion_id) estado = 'Realizado';
         else estado = 'Pendiente';
 
