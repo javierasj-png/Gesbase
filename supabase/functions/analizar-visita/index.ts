@@ -10,6 +10,14 @@ const ANALYSIS_PROMPT = `Eres un auditor experto en Sistemas de Gestión de Segu
 
 Analiza el documento proporcionado, que corresponde a una visita de seguridad o auditoría realizada en una base de conducción ferroviaria.
 
+PASO 1 - CLASIFICACIÓN DEL DOCUMENTO:
+Determina el tipo de documento:
+- "visita_seguridad" si se trata de una Visita de Seguridad a la Base (Lista 80 o similar). Suele ser un checklist de verificación de aspectos operativos.
+- "auditoria" si se trata de una Auditoría de Base (Lista 122 o similar). Suele ser una revisión más formal y exhaustiva con hallazgos estructurados.
+
+Extrae la fecha de realización del documento (no la fecha de emisión, sino la fecha en que se realizó la visita/auditoría).
+
+PASO 2 - ANÁLISIS:
 Genera un ACTA DE AUDITORÍA estructurada con los siguientes apartados:
 
 1. **RESUMEN EJECUTIVO**: Breve resumen de la visita/auditoría (2-3 párrafos). Incluye fecha, tipo de visita, alcance y conclusión general.
@@ -36,6 +44,8 @@ Genera un ACTA DE AUDITORÍA estructurada con los siguientes apartados:
 
 RESPONDE EN FORMATO JSON con esta estructura exacta:
 {
+  "tipo_documento": "visita_seguridad" o "auditoria",
+  "fecha_documento": "YYYY-MM-DD" (fecha de realización extraída del documento, o null si no se puede determinar),
   "resumen": "Texto del resumen ejecutivo...",
   "puntos_fuertes": [
     { "titulo": "...", "detalle": "...", "area": "..." }
@@ -86,10 +96,8 @@ serve(async (req) => {
       );
     }
     const userId = claimsData.claims.sub;
-    // --- End authentication ---
 
     const { visitaId } = await req.json();
-
     if (!visitaId) {
       return new Response(
         JSON.stringify({ error: "visitaId es requerido" }),
@@ -133,8 +141,8 @@ serve(async (req) => {
       .update({ estado_analisis: "procesando" })
       .eq("id", visitaId);
 
-    // Download the PDF file
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    // Download the file
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     const { data: fileData, error: fileError } = await supabaseAdmin
       .storage
@@ -149,7 +157,6 @@ serve(async (req) => {
       throw new Error("No se pudo descargar el archivo");
     }
 
-    // Validate file size
     const arrayBuffer = await fileData.arrayBuffer();
     if (arrayBuffer.byteLength > MAX_FILE_SIZE) {
       await supabaseAdmin
@@ -249,11 +256,28 @@ serve(async (req) => {
       );
     }
 
-    // Update visita with analysis results
+    // Determine tipo and fecha from AI detection
+    const tipoDetectado = analysisData.tipo_documento === "auditoria" ? "auditoria" : "visita_seguridad";
+    const fechaDetectada = analysisData.fecha_documento || visita.fecha_visita;
+    
+    // Build titulo from detected type and date
+    const tipoLabel = tipoDetectado === "auditoria" ? "Auditoría" : "Visita Seguridad";
+    let fechaFormateada = "";
+    try {
+      const d = new Date(fechaDetectada);
+      fechaFormateada = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    } catch {
+      fechaFormateada = fechaDetectada;
+    }
+
+    // Update visita with analysis results + detected type/date
     const { error: updateError } = await supabaseAdmin
       .from("visitas_base")
       .update({
         estado_analisis: "completado",
+        tipo: tipoDetectado,
+        fecha_visita: fechaDetectada,
+        titulo: `${tipoLabel} ${fechaFormateada}`,
         resumen: analysisData.resumen || "",
         puntos_fuertes: analysisData.puntos_fuertes || [],
         puntos_mejora: analysisData.puntos_mejora || [],
@@ -269,7 +293,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, ...analysisData }),
+      JSON.stringify({ success: true, tipo_detectado: tipoDetectado, fecha_detectada: fechaDetectada, ...analysisData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
