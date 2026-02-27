@@ -605,7 +605,7 @@ export default function AuditoriaPage() {
 
           {/* Visitas Tab */}
           <TabsContent value="visitas" className="space-y-6">
-            <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} />
+            <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} fechaDesde={fechaDesde} fechaHasta={fechaHasta} />
           </TabsContent>
         </Tabs>
       </div>

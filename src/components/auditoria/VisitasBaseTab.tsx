@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,34 +6,42 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Upload, FileText, Loader2, Eye, Trash2, CheckCircle2,
   AlertTriangle, XCircle, ThumbsUp, ArrowUpCircle, ShieldAlert,
-  RefreshCw
+  RefreshCw, Sparkles, Calendar, ClipboardList
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, differenceInDays, differenceInMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 interface VisitasBaseTabProps {
   baseFilter: string;
   bases: { id: string; nombre: string }[];
+  fechaDesde?: string;
+  fechaHasta?: string;
 }
 
-export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
+export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: VisitasBaseTabProps) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  
-  const [tipo, setTipo] = useState<string>('visita_seguridad');
-  const [fechaVisita, setFechaVisita] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedBase, setSelectedBase] = useState<string>(baseFilter !== 'all' ? baseFilter : (bases[0]?.nombre || ''));
+  const [selectedBase, setSelectedBase] = useState<string>('');
   const [selectedVisita, setSelectedVisita] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Sync selectedBase when bases load or baseFilter changes
+  useEffect(() => {
+    if (baseFilter !== 'all') {
+      setSelectedBase(baseFilter);
+    } else if (bases.length > 0 && !selectedBase) {
+      setSelectedBase(bases[0].nombre);
+    }
+  }, [baseFilter, bases, selectedBase]);
 
   const effectiveBaseFilter = baseFilter !== 'all' ? baseFilter : undefined;
 
@@ -54,6 +62,97 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
       return data || [];
     },
   });
+
+  // Propuesta de auditoría
+  const propuesta = useMemo(() => {
+    if (!visitas || !bases.length) return null;
+
+    const basesToCheck = effectiveBaseFilter
+      ? bases.filter(b => b.nombre === effectiveBaseFilter)
+      : bases;
+
+    const hoy = new Date();
+    const recomendaciones: {
+      base: string;
+      ultimaVisita?: string;
+      ultimaAuditoria?: string;
+      diasSinVisita: number;
+      diasSinAuditoria: number;
+      ncPendientes: number;
+      accion: string;
+      prioridad: 'alta' | 'media' | 'baja';
+    }[] = [];
+
+    for (const base of basesToCheck) {
+      const visitasBase = visitas.filter(v => v.base_nombre === base.nombre);
+      
+      const visitasSeguridad = visitasBase
+        .filter(v => v.tipo === 'visita_seguridad')
+        .sort((a, b) => new Date(b.fecha_visita).getTime() - new Date(a.fecha_visita).getTime());
+      
+      const auditorias = visitasBase
+        .filter(v => v.tipo === 'auditoria')
+        .sort((a, b) => new Date(b.fecha_visita).getTime() - new Date(a.fecha_visita).getTime());
+
+      const ultimaVisita = visitasSeguridad[0]?.fecha_visita;
+      const ultimaAuditoria = auditorias[0]?.fecha_visita;
+      
+      const diasSinVisita = ultimaVisita
+        ? differenceInDays(hoy, new Date(ultimaVisita))
+        : 999;
+      const diasSinAuditoria = ultimaAuditoria
+        ? differenceInDays(hoy, new Date(ultimaAuditoria))
+        : 999;
+
+      // Contar NC pendientes (de auditorías completadas)
+      let ncPendientes = 0;
+      for (const v of visitasBase) {
+        if (v.estado_analisis === 'completado' && Array.isArray(v.no_conformidades)) {
+          ncPendientes += (v.no_conformidades as any[]).length;
+        }
+      }
+
+      let accion = '';
+      let prioridad: 'alta' | 'media' | 'baja' = 'baja';
+
+      if (diasSinVisita > 180 && diasSinAuditoria > 365) {
+        accion = 'Realizar auditoría y visita de seguridad (supera plazos recomendados)';
+        prioridad = 'alta';
+      } else if (diasSinAuditoria > 365) {
+        accion = 'Realizar auditoría (más de 12 meses sin auditoría)';
+        prioridad = 'alta';
+      } else if (diasSinVisita > 180) {
+        accion = 'Programar visita de seguridad (más de 6 meses sin visita)';
+        prioridad = 'media';
+      } else if (ncPendientes > 0) {
+        accion = `Seguimiento de ${ncPendientes} no conformidad(es) detectada(s)`;
+        prioridad = ncPendientes > 3 ? 'alta' : 'media';
+      } else if (diasSinVisita > 90) {
+        accion = 'Programar visita de seguimiento (más de 3 meses)';
+        prioridad = 'baja';
+      } else {
+        accion = 'Sin acciones requeridas';
+        prioridad = 'baja';
+      }
+
+      recomendaciones.push({
+        base: base.nombre,
+        ultimaVisita: ultimaVisita || undefined,
+        ultimaAuditoria: ultimaAuditoria || undefined,
+        diasSinVisita,
+        diasSinAuditoria,
+        ncPendientes,
+        accion,
+        prioridad,
+      });
+    }
+
+    // Ordenar por prioridad
+    const prioridadOrder = { alta: 0, media: 1, baja: 2 };
+    recomendaciones.sort((a, b) => prioridadOrder[a.prioridad] - prioridadOrder[b.prioridad]);
+
+    return recomendaciones;
+  }, [visitas, bases, effectiveBaseFilter]);
 
   const analyzeMutation = useMutation({
     mutationFn: async (visitaId: string) => {
@@ -78,14 +177,26 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
     const fileInput = document.getElementById('visita-file') as HTMLInputElement;
     const file = fileInput?.files?.[0];
 
-    if (!file || !selectedBase) {
-      toast.error('Completa todos los campos y selecciona un archivo');
+    if (!file) {
+      toast.error('Selecciona un archivo');
+      return;
+    }
+
+    if (!selectedBase) {
+      toast.error('Selecciona una base');
       return;
     }
 
     const baseObj = bases.find(b => b.nombre === selectedBase);
     if (!baseObj) {
       toast.error('Base no válida');
+      return;
+    }
+
+    // Validate file size
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('El archivo excede el tamaño máximo de 10MB');
       return;
     }
 
@@ -99,15 +210,15 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
 
       if (uploadError) throw uploadError;
 
-      // Create record
+      // Create record with placeholder - AI will detect type & date
       const { data: visita, error: insertError } = await supabase
         .from('visitas_base')
         .insert({
           base_id: baseObj.id,
           base_nombre: selectedBase,
-          titulo: `${tipo === 'auditoria' ? 'Auditoría' : 'Visita Seguridad'} ${format(new Date(fechaVisita), 'dd/MM/yyyy')}`,
-          tipo,
-          fecha_visita: fechaVisita,
+          titulo: `Documento ${format(new Date(), 'dd/MM/yyyy')}`,
+          tipo: 'visita_seguridad', // placeholder, AI will update
+          fecha_visita: format(new Date(), 'yyyy-MM-dd'), // placeholder, AI will update
           archivo_url: filePath,
           archivo_nombre: file.name,
           estado_analisis: 'pendiente',
@@ -117,7 +228,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
 
       if (insertError) throw insertError;
 
-      toast.success('Documento subido. Iniciando análisis con IA...');
+      toast.success('Documento subido. La IA detectará el tipo, fecha y analizará el contenido...');
       
       fileInput.value = '';
       queryClient.invalidateQueries({ queryKey: ['visitas-base'] });
@@ -127,6 +238,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
         analyzeMutation.mutate(visita.id);
       }
     } catch (err: any) {
+      console.error('Upload error:', err);
       toast.error(err.message || 'Error al subir el documento');
     } finally {
       setUploading(false);
@@ -161,21 +273,40 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
     }
   };
 
+  const prioridadBadge = (p: string) => {
+    switch (p) {
+      case 'alta': return <Badge className="bg-red-500 text-white">Alta</Badge>;
+      case 'media': return <Badge className="bg-amber-500 text-white">Media</Badge>;
+      default: return <Badge variant="secondary">Baja</Badge>;
+    }
+  };
+
+  const tipoLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'auditoria': return 'Auditoría (Lista 122)';
+      case 'visita_seguridad': return 'Visita Seguridad (Lista 80)';
+      default: return tipo;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Upload form */}
+      {/* Upload form - simplified: only base + file */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Upload className="w-4 h-4" /> Subir documento de visita / auditoría
           </CardTitle>
+          <CardDescription>
+            La IA detectará automáticamente si es una Visita (Lista 80) o Auditoría (Lista 122), la fecha y analizará el contenido
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpload} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 items-end">
+          <form onSubmit={handleUpload} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-4 items-end">
             <div className="space-y-2">
               <Label>Base</Label>
               <Select value={selectedBase} onValueChange={setSelectedBase}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Seleccionar base" /></SelectTrigger>
                 <SelectContent>
                   {bases.map(b => (
                     <SelectItem key={b.id} value={b.nombre}>{b.nombre}</SelectItem>
@@ -184,25 +315,11 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="visita_seguridad">Visita de Seguridad</SelectItem>
-                  <SelectItem value="auditoria">Auditoría</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Fecha</Label>
-              <Input type="date" value={fechaVisita} onChange={e => setFechaVisita(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Archivo PDF</Label>
+              <Label>Archivo (PDF o imagen)</Label>
               <Input id="visita-file" type="file" accept=".pdf,.jpg,.jpeg,.png" />
             </div>
             <div>
-              <Button type="submit" disabled={uploading}>
+              <Button type="submit" disabled={uploading || !selectedBase}>
                 {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                 {uploading ? 'Subiendo…' : 'Subir y Analizar'}
               </Button>
@@ -211,10 +328,65 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
         </CardContent>
       </Card>
 
+      {/* Propuesta de auditoría */}
+      {propuesta && propuesta.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
+            </CardTitle>
+            <CardDescription>
+              Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Base</TableHead>
+                  <TableHead>Última Visita</TableHead>
+                  <TableHead>Última Auditoría</TableHead>
+                  <TableHead className="text-center">NC detectadas</TableHead>
+                  <TableHead>Prioridad</TableHead>
+                  <TableHead>Recomendación</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {propuesta.map(r => (
+                  <TableRow key={r.base}>
+                    <TableCell className="font-medium">{r.base}</TableCell>
+                    <TableCell>
+                      {r.ultimaVisita 
+                        ? <span>{format(new Date(r.ultimaVisita), 'dd/MM/yyyy')} <span className="text-muted-foreground text-xs">({r.diasSinVisita}d)</span></span>
+                        : <span className="text-muted-foreground italic">Sin registro</span>
+                      }
+                    </TableCell>
+                    <TableCell>
+                      {r.ultimaAuditoria 
+                        ? <span>{format(new Date(r.ultimaAuditoria), 'dd/MM/yyyy')} <span className="text-muted-foreground text-xs">({r.diasSinAuditoria}d)</span></span>
+                        : <span className="text-muted-foreground italic">Sin registro</span>
+                      }
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {r.ncPendientes > 0 
+                        ? <Badge variant="destructive">{r.ncPendientes}</Badge>
+                        : <span className="text-muted-foreground">0</span>
+                      }
+                    </TableCell>
+                    <TableCell>{prioridadBadge(r.prioridad)}</TableCell>
+                    <TableCell className="text-sm max-w-xs">{r.accion}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* List */}
       <Card>
         <CardHeader>
-          <CardTitle>Visitas y Auditorías registradas</CardTitle>
+          <CardTitle>Histórico de Visitas y Auditorías</CardTitle>
           <CardDescription>Documentos analizados por IA con acta de auditoría generada</CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,7 +397,6 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
-                  
                   <TableHead>Base</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
@@ -236,9 +407,8 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
                 {visitas.map((v: any) => (
                   <TableRow key={v.id}>
                     <TableCell>{format(new Date(v.fecha_visita), 'dd/MM/yyyy')}</TableCell>
-                    
                     <TableCell>{v.base_nombre}</TableCell>
-                    <TableCell>{v.tipo === 'auditoria' ? 'Auditoría' : 'Visita Seguridad'}</TableCell>
+                    <TableCell>{tipoLabel(v.tipo)}</TableCell>
                     <TableCell className="text-center">{estadoBadge(v.estado_analisis)}</TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
@@ -282,7 +452,7 @@ export function VisitasBaseTab({ baseFilter, bases }: VisitasBaseTabProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Acta de Auditoría — {selectedVisita?.titulo}
+              {selectedVisita?.titulo}
             </DialogTitle>
           </DialogHeader>
           {selectedVisita && (
