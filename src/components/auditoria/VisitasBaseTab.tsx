@@ -34,7 +34,7 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
   const [selectedBase, setSelectedBase] = useState<string>('');
   const [selectedVisita, setSelectedVisita] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [generatingReport, setGeneratingReport] = useState(false);
+  const [generatingReportBase, setGeneratingReportBase] = useState<string | null>(null);
   const [reportContent, setReportContent] = useState<string | null>(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
@@ -336,43 +336,12 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
       {propuesta && propuesta.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
-                </CardTitle>
-                <CardDescription>
-                  Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
-                </CardDescription>
-              </div>
-              <Button
-                size="sm"
-                disabled={generatingReport}
-                onClick={async () => {
-                  setGeneratingReport(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
-                      body: { baseFilter },
-                    });
-                    if (error) throw error;
-                    if (data?.informe) {
-                      setReportContent(data.informe);
-                      setReportDialogOpen(true);
-                    } else {
-                      throw new Error('No se recibió el informe');
-                    }
-                  } catch (err: any) {
-                    console.error('Error generating report:', err);
-                    toast.error(err.message || 'Error al generar el informe');
-                  } finally {
-                    setGeneratingReport(false);
-                  }
-                }}
-              >
-                {generatingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileBarChart className="w-4 h-4 mr-2" />}
-                {generatingReport ? 'Generando informe…' : 'Generar Informe IA'}
-              </Button>
-            </div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
+            </CardTitle>
+            <CardDescription>
+              Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -383,9 +352,10 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
                   <TableHead>Última Auditoría</TableHead>
                   <TableHead className="text-center">NC detectadas</TableHead>
                   <TableHead>Prioridad</TableHead>
-                  <TableHead>Recomendación</TableHead>
-                </TableRow>
-              </TableHeader>
+                   <TableHead>Recomendación</TableHead>
+                   <TableHead className="text-center">Informe</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {propuesta.map(r => (
                   <TableRow key={r.base}>
@@ -409,8 +379,41 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
                       }
                     </TableCell>
                     <TableCell>{prioridadBadge(r.prioridad)}</TableCell>
-                    <TableCell className="text-sm max-w-xs">{r.accion}</TableCell>
-                  </TableRow>
+                     <TableCell className="text-sm max-w-xs">{r.accion}</TableCell>
+                     <TableCell className="text-center">
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         disabled={generatingReportBase === r.base}
+                         title="Generar informe IA para esta base"
+                         onClick={async () => {
+                           setGeneratingReportBase(r.base);
+                           try {
+                             const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
+                               body: { baseFilter: r.base },
+                             });
+                             if (error) throw error;
+                             if (data?.informe) {
+                               setReportContent(data.informe);
+                               setReportDialogOpen(true);
+                             } else {
+                               throw new Error('No se recibió el informe');
+                             }
+                           } catch (err: any) {
+                             console.error('Error generating report:', err);
+                             toast.error(err.message || 'Error al generar el informe');
+                           } finally {
+                             setGeneratingReportBase(null);
+                           }
+                         }}
+                       >
+                         {generatingReportBase === r.base
+                           ? <Loader2 className="w-4 h-4 animate-spin" />
+                           : <FileBarChart className="w-4 h-4" />
+                         }
+                       </Button>
+                     </TableCell>
+                   </TableRow>
                 ))}
               </TableBody>
             </Table>
