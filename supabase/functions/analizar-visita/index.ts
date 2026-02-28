@@ -122,13 +122,26 @@ serve(async (req) => {
       throw new Error("Visita no encontrada");
     }
 
-    // Verify user has access to this base
-    console.log("Checking access for user:", userId, "base:", visita.base_nombre);
-    const { data: canAccess, error: accessError } = await supabaseAdmin.rpc("can_access_base", {
-      _user_id: userId,
-      _base_nombre: visita.base_nombre,
-    });
-    console.log("Access result:", canAccess, "error:", accessError);
+    // Verify user has access to this base - check admin role or base assignment directly
+    // (avoid RPC overload ambiguity with can_access_base)
+    const { data: userRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    let canAccess = !!userRoles;
+    if (!canAccess) {
+      const { data: assignment } = await supabaseAdmin
+        .from("base_assignments")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("base_nombre", visita.base_nombre)
+        .maybeSingle();
+      canAccess = !!assignment;
+    }
+
     if (!canAccess) {
       return new Response(
         JSON.stringify({ error: "Sin acceso a esta base" }),
