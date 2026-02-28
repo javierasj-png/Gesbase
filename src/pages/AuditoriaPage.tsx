@@ -81,7 +81,7 @@ const estadoColors: Record<string, string> = {
 };
 
 export default function AuditoriaPage() {
-  const { isAdmin, assignedBases } = useAuth();
+  const { isAdmin, isGestor, assignedBases } = useAuth();
   const [selectedTab, setSelectedTab] = useState('cumplimiento');
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -103,7 +103,7 @@ export default function AuditoriaPage() {
         .select('id, nombre')
         .eq('activa', true)
         .order('nombre');
-      if (!isAdmin && assignedBases.length > 0) {
+      if (!isAdmin && !isGestor && assignedBases.length > 0) {
         query = query.in('nombre', assignedBases);
       }
       const { data } = await query;
@@ -113,7 +113,7 @@ export default function AuditoriaPage() {
 
   const accessibleBases = isAdmin
     ? (bases?.map(b => b.nombre) || [])
-    : assignedBases;
+    : (isGestor ? (bases?.map(b => b.nombre) || []) : assignedBases);
 
   // Cumplimiento data
   const { data: cumplimientoData, isLoading: loadingCumplimiento } = useQuery({
@@ -605,7 +605,7 @@ export default function AuditoriaPage() {
 
           {/* Visitas Tab */}
           <TabsContent value="visitas" className="space-y-6">
-            <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} fechaDesde={fechaDesde} fechaHasta={fechaHasta} />
+            <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} fechaDesde={fechaDesde} fechaHasta={fechaHasta} canGenerateReport={isAdmin} />
           </TabsContent>
         </Tabs>
       </div>
