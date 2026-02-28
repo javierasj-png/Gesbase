@@ -26,9 +26,10 @@ interface VisitasBaseTabProps {
   bases: { id: string; nombre: string }[];
   fechaDesde?: string;
   fechaHasta?: string;
+  canGenerateReport?: boolean;
 }
 
-export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: VisitasBaseTabProps) {
+export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canGenerateReport = false }: VisitasBaseTabProps) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [selectedBase, setSelectedBase] = useState<string>('');
@@ -381,37 +382,41 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
                     <TableCell>{prioridadBadge(r.prioridad)}</TableCell>
                      <TableCell className="text-sm max-w-xs">{r.accion}</TableCell>
                      <TableCell className="text-center">
-                       <Button
-                         variant="ghost"
-                         size="icon"
-                         disabled={generatingReportBase === r.base}
-                         title="Generar informe IA para esta base"
-                         onClick={async () => {
-                           setGeneratingReportBase(r.base);
-                           try {
-                             const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
-                               body: { baseFilter: r.base },
-                             });
-                             if (error) throw error;
-                             if (data?.informe) {
-                               setReportContent(data.informe);
-                               setReportDialogOpen(true);
-                             } else {
-                               throw new Error('No se recibió el informe');
+                       {canGenerateReport ? (
+                         <Button
+                           variant="ghost"
+                           size="icon"
+                           disabled={generatingReportBase === r.base}
+                           title="Generar informe IA para esta base"
+                           onClick={async () => {
+                             setGeneratingReportBase(r.base);
+                             try {
+                               const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
+                                 body: { baseFilter: r.base },
+                               });
+                               if (error) throw error;
+                               if (data?.informe) {
+                                 setReportContent(data.informe);
+                                 setReportDialogOpen(true);
+                               } else {
+                                 throw new Error('No se recibió el informe');
+                               }
+                             } catch (err: any) {
+                               console.error('Error generating report:', err);
+                               toast.error(err.message || 'Error al generar el informe');
+                             } finally {
+                               setGeneratingReportBase(null);
                              }
-                           } catch (err: any) {
-                             console.error('Error generating report:', err);
-                             toast.error(err.message || 'Error al generar el informe');
-                           } finally {
-                             setGeneratingReportBase(null);
+                           }}
+                         >
+                           {generatingReportBase === r.base
+                             ? <Loader2 className="w-4 h-4 animate-spin" />
+                             : <FileBarChart className="w-4 h-4" />
                            }
-                         }}
-                       >
-                         {generatingReportBase === r.base
-                           ? <Loader2 className="w-4 h-4 animate-spin" />
-                           : <FileBarChart className="w-4 h-4" />
-                         }
-                       </Button>
+                         </Button>
+                       ) : (
+                         <span className="text-xs text-muted-foreground">—</span>
+                       )}
                      </TableCell>
                    </TableRow>
                 ))}
