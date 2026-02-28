@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Upload, FileText, Loader2, Eye, Trash2, CheckCircle2,
   AlertTriangle, XCircle, ThumbsUp, ArrowUpCircle, ShieldAlert,
-  RefreshCw, Sparkles, Calendar, ClipboardList
+  RefreshCw, Sparkles, Calendar, ClipboardList, FileBarChart, Download
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +34,9 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
   const [selectedBase, setSelectedBase] = useState<string>('');
   const [selectedVisita, setSelectedVisita] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [reportContent, setReportContent] = useState<string | null>(null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   // Sync selectedBase when bases load or baseFilter changes
   useEffect(() => {
@@ -332,12 +336,43 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
       {propuesta && propuesta.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
-            </CardTitle>
-            <CardDescription>
-              Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
+                </CardTitle>
+                <CardDescription>
+                  Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
+                </CardDescription>
+              </div>
+              <Button
+                size="sm"
+                disabled={generatingReport}
+                onClick={async () => {
+                  setGeneratingReport(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
+                      body: { baseFilter },
+                    });
+                    if (error) throw error;
+                    if (data?.informe) {
+                      setReportContent(data.informe);
+                      setReportDialogOpen(true);
+                    } else {
+                      throw new Error('No se recibió el informe');
+                    }
+                  } catch (err: any) {
+                    console.error('Error generating report:', err);
+                    toast.error(err.message || 'Error al generar el informe');
+                  } finally {
+                    setGeneratingReport(false);
+                  }
+                }}
+              >
+                {generatingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileBarChart className="w-4 h-4 mr-2" />}
+                {generatingReport ? 'Generando informe…' : 'Generar Informe IA'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -559,6 +594,27 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta }: Vi
                     </div>
                   )}
                 </section>
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Report Dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <FileBarChart className="w-5 h-5 text-primary" />
+                Informe de Propuesta de Auditoría
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          {reportContent && (
+            <ScrollArea className="max-h-[70vh] pr-4">
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{reportContent}</ReactMarkdown>
               </div>
             </ScrollArea>
           )}

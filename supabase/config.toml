@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.extraer-parte]
 verify_jwt = false
+
+[functions.generar-propuesta-auditoria]
+verify_jwt = false
