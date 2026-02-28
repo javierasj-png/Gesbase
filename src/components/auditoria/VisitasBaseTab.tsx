@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { exportMarkdownToDoc } from '@/utils/exportMarkdownToDoc';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
   const [detailOpen, setDetailOpen] = useState(false);
   const [generatingReportBase, setGeneratingReportBase] = useState<string | null>(null);
   const [reportContent, setReportContent] = useState<string | null>(null);
+  const [reportBaseName, setReportBaseName] = useState<string | null>(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   // Sync selectedBase when bases load or baseFilter changes
@@ -395,9 +397,10 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
                                  body: { baseFilter: r.base },
                                });
                                if (error) throw error;
-                               if (data?.informe) {
-                                 setReportContent(data.informe);
-                                 setReportDialogOpen(true);
+                                if (data?.informe) {
+                                  setReportContent(data.informe);
+                                  setReportBaseName(r.base);
+                                  setReportDialogOpen(true);
                                } else {
                                  throw new Error('No se recibió el informe');
                                }
@@ -617,6 +620,20 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
                 <FileBarChart className="w-5 h-5 text-primary" />
                 Informe de Propuesta de Auditoría
               </DialogTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-8"
+                onClick={() => {
+                  if (reportContent) {
+                    const safeName = (reportBaseName || 'informe').replace(/\s+/g, '_');
+                    exportMarkdownToDoc(reportContent, `Propuesta_Auditoria_${safeName}_${format(new Date(), 'yyyyMMdd')}.doc`);
+                  }
+                }}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Exportar .doc
+              </Button>
             </div>
           </DialogHeader>
           {reportContent && (
