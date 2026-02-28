@@ -103,7 +103,7 @@ export default function AuditoriaPage() {
         .select('id, nombre')
         .eq('activa', true)
         .order('nombre');
-      if (!isAdmin && !isGestor && assignedBases.length > 0) {
+      if (!isAdmin && assignedBases.length > 0) {
         query = query.in('nombre', assignedBases);
       }
       const { data } = await query;
@@ -111,9 +111,7 @@ export default function AuditoriaPage() {
     }
   });
 
-  const accessibleBases = isAdmin
-    ? (bases?.map(b => b.nombre) || [])
-    : (isGestor ? (bases?.map(b => b.nombre) || []) : assignedBases);
+  const accessibleBases = bases?.map(b => b.nombre) || [];
 
   // Cumplimiento data
   const { data: cumplimientoData, isLoading: loadingCumplimiento } = useQuery({
