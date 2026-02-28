@@ -23,7 +23,7 @@ import { es } from 'date-fns/locale';
 import type { ExtraccionResult, Parte, EstadoParte, TipoInforme } from '@/types/partes';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 export default function PartesPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getAccessibleBases } = useBaseFilter();
@@ -50,12 +50,16 @@ export default function PartesPage() {
 
   // Fetch partes from DB
   const { data: partes = [], isLoading } = useQuery({
-    queryKey: ['partes'],
+    queryKey: ['partes', isAdmin, getAccessibleBases],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('partes')
         .select('*')
         .order('created_at', { ascending: false });
+      if (!isAdmin && getAccessibleBases.length > 0) {
+        query = query.in('base', getAccessibleBases);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as Parte[];
     },
