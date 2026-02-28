@@ -87,15 +87,14 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "No autorizado" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
     const { visitaId } = await req.json();
     if (!visitaId) {
@@ -124,10 +123,12 @@ serve(async (req) => {
     }
 
     // Verify user has access to this base
-    const { data: canAccess } = await supabaseAdmin.rpc("can_access_base", {
+    console.log("Checking access for user:", userId, "base:", visita.base_nombre);
+    const { data: canAccess, error: accessError } = await supabaseAdmin.rpc("can_access_base", {
       _user_id: userId,
       _base_nombre: visita.base_nombre,
     });
+    console.log("Access result:", canAccess, "error:", accessError);
     if (!canAccess) {
       return new Response(
         JSON.stringify({ error: "Sin acceso a esta base" }),
