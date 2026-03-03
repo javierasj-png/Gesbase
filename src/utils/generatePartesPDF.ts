@@ -44,8 +44,8 @@ export function generatePartesPDF(
     p.base || '-',
     p.tren_servicio || '-',
     p.estado || '-',
-    truncate(p.descripcion_hechos, 60),
-    truncate(p.observaciones, 40),
+    truncate(p.descripcion_hechos, 180),
+    truncate(p.observaciones, 120),
   ]);
 
   autoTable(doc, {
@@ -73,7 +73,9 @@ export function generatePartesPDF(
     bodyStyles: {
       textColor: DARK,
       fontSize: 7,
-      cellPadding: 1.5,
+      cellPadding: 2,
+      minCellHeight: 12,
+      overflow: 'linebreak' as const,
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
@@ -84,8 +86,8 @@ export function generatePartesPDF(
       4: { cellWidth: 22 },
       5: { cellWidth: 18 },
       6: { cellWidth: 18 },
-      7: { cellWidth: 'auto' },
-      8: { cellWidth: 35 },
+      7: { cellWidth: 'auto', overflow: 'linebreak' as const },
+      8: { cellWidth: 38, overflow: 'linebreak' as const },
     },
     didDrawPage: (data) => {
       // Footer
