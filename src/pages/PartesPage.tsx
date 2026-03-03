@@ -9,7 +9,11 @@ import { PartesTable } from '@/components/partes/PartesTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Save, Loader2, FileText, Search, X, Pencil } from 'lucide-react';
+import { Save, Loader2, FileText, Search, X, Pencil, FileDown, CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { generatePartesPDF } from '@/utils/generatePartesPDF';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,6 +51,8 @@ export default function PartesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
+  const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
+  const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
 
   // Fetch partes from DB
   const { data: partes = [], isLoading } = useQuery({
@@ -261,7 +267,9 @@ export default function PartesPage() {
       (p.maquinista_texto?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (p.base?.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesEstado = estadoFilter === 'all' || p.estado === estadoFilter;
-    return matchesSearch && matchesEstado;
+    const matchesFechaDesde = !fechaDesde || (p.fecha_parte && new Date(p.fecha_parte) >= fechaDesde);
+    const matchesFechaHasta = !fechaHasta || (p.fecha_parte && new Date(p.fecha_parte) <= fechaHasta);
+    return matchesSearch && matchesEstado && matchesFechaDesde && matchesFechaHasta;
   });
 
   return (
@@ -329,7 +337,7 @@ export default function PartesPage() {
             <CardDescription>Consulta y gestión de partes registrados</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 items-end">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -350,6 +358,41 @@ export default function PartesPage() {
                   <SelectItem value="Cerrado">Cerrado</SelectItem>
                 </SelectContent>
               </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !fechaDesde && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fechaDesde ? format(fechaDesde, 'dd/MM/yyyy', { locale: es }) : 'Desde'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={fechaDesde} onSelect={setFechaDesde} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !fechaHasta && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {fechaHasta ? format(fechaHasta, 'dd/MM/yyyy', { locale: es }) : 'Hasta'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={fechaHasta} onSelect={setFechaHasta} initialFocus className="p-3 pointer-events-auto" />
+                </PopoverContent>
+              </Popover>
+              {(fechaDesde || fechaHasta) && (
+                <Button variant="ghost" size="icon" onClick={() => { setFechaDesde(undefined); setFechaHasta(undefined); }} title="Limpiar fechas">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="default"
+                onClick={() => generatePartesPDF(filteredPartes, fechaDesde, fechaHasta)}
+                disabled={filteredPartes.length === 0}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
             </div>
 
             {isLoading ? (
