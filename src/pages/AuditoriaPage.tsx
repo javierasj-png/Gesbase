@@ -37,6 +37,7 @@ import {
   Eye,
   Search,
 } from 'lucide-react';
+import { generatePartesPDF } from '@/utils/generatePartesPDF';
 import { cn } from '@/lib/utils';
 import type { Parte } from '@/types/partes';
 import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
@@ -503,7 +504,7 @@ export default function AuditoriaPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 items-end">
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
@@ -524,6 +525,18 @@ export default function AuditoriaPage() {
                       <SelectItem value="Cerrado">Cerrado</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button
+                    variant="default"
+                    onClick={() => generatePartesPDF(
+                      filteredPartes,
+                      fechaDesde ? new Date(fechaDesde) : undefined,
+                      fechaHasta ? new Date(fechaHasta) : undefined,
+                    )}
+                    disabled={filteredPartes.length === 0}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar PDF
+                  </Button>
                 </div>
 
                 {loadingPartes ? (
