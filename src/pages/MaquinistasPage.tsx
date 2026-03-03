@@ -23,6 +23,8 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { useMaquinistas } from '@/hooks/useMaquinistas';
+import { useTableSort } from '@/hooks/useTableSort';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
 import { useExpedientes1201 } from '@/hooks/useExpedientes1201';
 import { useAuth } from '@/contexts/AuthContext';
@@ -80,6 +82,8 @@ export default function MaquinistasPage() {
       (statusFilter === 'inactivo' && !m.activo);
     return matchesSearch && matchesBase && matchesStatus;
   });
+
+  const { sortedItems: sortedMaquinistas, sortConfig, requestSort } = useTableSort(filteredMaquinistas);
 
   if (loading) {
     return (
@@ -146,10 +150,10 @@ export default function MaquinistasPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px]">Matrícula</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Base</TableHead>
-                  <TableHead>Licencia</TableHead>
+                  <SortableTableHead sortKey="matricula" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort} className="w-[120px]">Matrícula</SortableTableHead>
+                  <SortableTableHead sortKey="nombre_apellidos" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Nombre</SortableTableHead>
+                  <SortableTableHead sortKey="base" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Base</SortableTableHead>
+                  <SortableTableHead sortKey="fecha_licencia_conduccion" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Licencia</SortableTableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead>Estado General</TableHead>
@@ -164,7 +168,7 @@ export default function MaquinistasPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredMaquinistas.map((maquinista) => {
+                  sortedMaquinistas.map((maquinista) => {
                     const exp1603 = expedientes.filter(e => 
                       e.expediente.maquinista_id === maquinista.id && e.expediente.estado === 'abierto'
                     ).length;

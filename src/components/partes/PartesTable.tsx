@@ -9,9 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useTableSort } from '@/hooks/useTableSort';
 import type { Parte, TipoParte, EstadoParte, TipoInforme } from '@/types/partes';
 
 interface PartesTableProps {
@@ -51,23 +53,25 @@ export function PartesTable({ partes, onView, onEdit, onDelete }: PartesTablePro
     );
   }
 
+  const { sortedItems: sortedPartes, sortConfig, requestSort } = useTableSort(partes);
+
   return (
     <div className="rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="w-[160px]">Tipo Informe</TableHead>
-            <TableHead className="w-[100px]">Fecha</TableHead>
-            <TableHead>Base</TableHead>
-            <TableHead>Maquinista</TableHead>
-            <TableHead>Línea/Tramo</TableHead>
-            <TableHead className="w-[100px]">Tipo Suceso</TableHead>
-            <TableHead className="w-[100px]">Estado</TableHead>
+            <SortableTableHead sortKey="tipo_informe" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort} className="w-[160px]">Tipo Informe</SortableTableHead>
+            <SortableTableHead sortKey="fecha_parte" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort} className="w-[100px]">Fecha</SortableTableHead>
+            <SortableTableHead sortKey="base" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Base</SortableTableHead>
+            <SortableTableHead sortKey="maquinista_texto" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Maquinista</SortableTableHead>
+            <SortableTableHead sortKey="linea_tramo" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Línea/Tramo</SortableTableHead>
+            <SortableTableHead sortKey="tipo_parte" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort} className="w-[100px]">Tipo Suceso</SortableTableHead>
+            <SortableTableHead sortKey="estado" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort} className="w-[100px]">Estado</SortableTableHead>
             <TableHead className="w-[100px] text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {partes.map((parte) => (
+          {sortedPartes.map((parte) => (
             <TableRow key={parte.id} className="hover:bg-muted/30">
               <TableCell className="font-medium">
                 {parte.tipo_informe ? (
