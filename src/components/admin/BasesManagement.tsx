@@ -222,7 +222,7 @@ export function BasesManagement() {
               No hay bases de conducción registradas
             </p>
           ) : (
-            <ScrollArea className="max-h-[400px]">
+            <ScrollArea className="max-h-[60vh]">
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
