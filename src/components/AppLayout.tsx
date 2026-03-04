@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
+import { ChatBubble } from '@/components/ChatBubble';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
@@ -20,6 +21,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main className="ml-64 min-h-screen overflow-y-auto">
         {children}
       </main>
+      <ChatBubble />
     </div>
   );
 }
