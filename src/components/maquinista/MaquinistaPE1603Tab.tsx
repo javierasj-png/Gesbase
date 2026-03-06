@@ -1713,7 +1713,7 @@ export function MaquinistaPE1603Tab({
           setTrasladoObservaciones('');
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="w-5 h-5 text-blue-500" />
