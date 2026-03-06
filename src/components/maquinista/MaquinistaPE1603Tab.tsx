@@ -112,6 +112,8 @@ export function MaquinistaPE1603Tab({
   const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
   const [trasladoBaseDestinoOtra, setTrasladoBaseDestinoOtra] = useState('');
   const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
+  const [editingTraslado, setEditingTraslado] = useState<Traslado1603 | null>(null);
+  const [deletingTrasladoId, setDeletingTrasladoId] = useState<string | null>(null);
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
@@ -603,6 +605,120 @@ export function MaquinistaPE1603Tab({
         description: (err as any)?.message || 'No se pudo registrar el traslado',
         variant: 'destructive',
       });
+    } finally {
+      setSaving(false);
+    }
+  };
+  // Handle edit traslado - open modal prefilled
+  const handleEditTraslado = (traslado: Traslado1603) => {
+    setEditingTraslado(traslado);
+    setTrasladoFecha(traslado.fecha_traslado);
+    setTrasladoBaseOrigen(traslado.base_origen);
+    const isGesbase = basesActivas.some(b => b.nombre === traslado.base_destino);
+    setTrasladoBaseDestino(isGesbase ? traslado.base_destino : '__otra__');
+    setTrasladoBaseDestinoOtra(isGesbase ? '' : traslado.base_destino);
+    setTrasladoObservaciones(traslado.observaciones || '');
+    setTrasladoOpen(true);
+  };
+
+  // Handle update existing traslado
+  const handleUpdateTraslado = async () => {
+    if (!editingTraslado || !trasladoFecha || !trasladoBaseOrigen) return;
+    const baseDestinoFinal = trasladoBaseDestino === '__otra__' ? trasladoBaseDestinoOtra : trasladoBaseDestino;
+    if (!baseDestinoFinal) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('traslados_1603')
+        .update({
+          fecha_traslado: trasladoFecha,
+          base_origen: trasladoBaseOrigen,
+          base_destino: baseDestinoFinal,
+          observaciones: trasladoObservaciones || null,
+        })
+        .eq('id', editingTraslado.id);
+
+      if (error) throw error;
+
+      // Re-justify: first un-justify all blocks linked to this traslado
+      await supabase
+        .from('plan_1603')
+        .update({ justificado_traslado: false, traslado_id: null })
+        .eq('traslado_id', editingTraslado.id);
+
+      // Then re-justify blocks overdue at the new transfer date
+      const trasladoDate = parseISO(trasladoFecha);
+      const bloquesVencidos = plan1603.filter(b => {
+        if (b.actuacion_id) return false;
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      });
+
+      // Filter out blocks already justified by OTHER traslados
+      const bloquesParaJustificar = bloquesVencidos.filter(b => 
+        !b.justificado_traslado || b.traslado_id === editingTraslado.id
+      );
+
+      if (bloquesParaJustificar.length > 0) {
+        await supabase
+          .from('plan_1603')
+          .update({ justificado_traslado: true, traslado_id: editingTraslado.id })
+          .in('id', bloquesParaJustificar.map(b => b.id));
+      }
+
+      // Update maquinista base if destination is a GESBASE base
+      const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
+      if (esBaseGesbase) {
+        await supabase
+          .from('maquinistas')
+          .update({ base: baseDestinoFinal })
+          .eq('id', maquinista.id);
+      }
+
+      toast({ title: 'Traslado actualizado', description: 'Los datos del traslado se han modificado correctamente' });
+
+      setEditingTraslado(null);
+      setTrasladoOpen(false);
+      setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseDestino('');
+      setTrasladoBaseDestinoOtra('');
+      setTrasladoObservaciones('');
+      onRefetch();
+    } catch (err) {
+      console.error('Error updating traslado:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el traslado' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle delete traslado
+  const handleDeleteTraslado = async (trasladoId: string) => {
+    setSaving(true);
+    try {
+      // 1. Un-justify all blocks linked to this traslado
+      await supabase
+        .from('plan_1603')
+        .update({ justificado_traslado: false, traslado_id: null })
+        .eq('traslado_id', trasladoId);
+
+      // 2. Delete the traslado record
+      const { error } = await supabase
+        .from('traslados_1603')
+        .delete()
+        .eq('id', trasladoId);
+
+      if (error) throw error;
+
+      toast({ title: 'Traslado eliminado', description: 'Los bloques justificados han sido restaurados' });
+      setDeletingTrasladoId(null);
+      onRefetch();
+    } catch (err) {
+      console.error('Error deleting traslado:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el traslado' });
     } finally {
       setSaving(false);
     }
@@ -1115,11 +1231,37 @@ export function MaquinistaPE1603Tab({
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Traslados registrados</p>
               {traslados1603.map(t => (
-                <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
+                <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
                   <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
-                  <span className="text-muted-foreground">{t.base_origen} → {t.base_destino}</span>
-                  {t.observaciones && <span className="text-muted-foreground text-xs">— {t.observaciones}</span>}
+                  <span className="text-muted-foreground flex-1">{t.base_origen} → {t.base_destino}</span>
+                  {t.observaciones && <span className="text-muted-foreground text-xs truncate max-w-[120px]">— {t.observaciones}</span>}
+                  {puedeEditar && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTraslado(t)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <AlertDialog open={deletingTrasladoId === t.id} onOpenChange={(open) => !open && setDeletingTrasladoId(null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingTrasladoId(t.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Eliminar traslado</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará el traslado del {format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')} ({t.base_origen} → {t.base_destino}) y se restaurarán los bloques justificados asociados. ¿Continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteTraslado(t.id)}>Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1536,16 +1678,29 @@ export function MaquinistaPE1603Tab({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Registrar Traslado */}
-      <Dialog open={trasladoOpen} onOpenChange={setTrasladoOpen}>
+      {/* Modal Registrar/Editar Traslado */}
+      <Dialog open={trasladoOpen} onOpenChange={(open) => {
+        setTrasladoOpen(open);
+        if (!open) {
+          setEditingTraslado(null);
+          setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+          setTrasladoBaseOrigen(maquinista.base);
+          setTrasladoBaseDestino('');
+          setTrasladoBaseDestinoOtra('');
+          setTrasladoObservaciones('');
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="w-5 h-5 text-blue-500" />
-              Registrar Traslado
+              {editingTraslado ? 'Editar Traslado' : 'Registrar Traslado'}
             </DialogTitle>
             <DialogDescription>
-              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas. Si la base de destino es una base GESBASE, se actualizará automáticamente la base del maquinista.
+              {editingTraslado
+                ? 'Modifica los datos del traslado. Se recalcularán los bloques justificados.'
+                : 'Registra un traslado de base. Las actuaciones vencidas quedarán justificadas. Si la base de destino es GESBASE, se actualizará la base del maquinista.'
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -1656,11 +1811,11 @@ export function MaquinistaPE1603Tab({
               Cancelar
             </Button>
             <Button 
-              onClick={handleRegistrarTraslado} 
+              onClick={editingTraslado ? handleUpdateTraslado : handleRegistrarTraslado} 
               disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino || (trasladoBaseDestino === '__otra__' && !trasladoBaseDestinoOtra)}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Registrar Traslado
+              {editingTraslado ? 'Guardar Cambios' : 'Registrar Traslado'}
             </Button>
           </DialogFooter>
         </DialogContent>
