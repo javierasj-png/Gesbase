@@ -34,6 +34,8 @@ export interface Plan1603DB {
   inicio_ventana: string | null;
   fin_ventana: string | null;
   estado: EstadoBloque1603;
+  justificado_traslado: boolean;
+  traslado_id: string | null;
   created_at: string;
 }
 
