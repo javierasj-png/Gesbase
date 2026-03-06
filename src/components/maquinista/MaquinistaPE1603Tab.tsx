@@ -1545,7 +1545,7 @@ export function MaquinistaPE1603Tab({
               Registrar Traslado
             </DialogTitle>
             <DialogDescription>
-              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas y no penalizarán en la auditoría.
+              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas. Si la base de destino es una base GESBASE, se actualizará automáticamente la base del maquinista.
             </DialogDescription>
           </DialogHeader>
 
@@ -1562,21 +1562,54 @@ export function MaquinistaPE1603Tab({
 
             <div className="space-y-2">
               <Label>Base de origen *</Label>
-              <Input
-                value={trasladoBaseOrigen}
-                onChange={(e) => setTrasladoBaseOrigen(e.target.value)}
-                placeholder="Base de origen"
-              />
+              <Select value={trasladoBaseOrigen} onValueChange={setTrasladoBaseOrigen}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar base de origen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {basesActivas.map(b => (
+                    <SelectItem key={b.id} value={b.nombre}>{b.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <Label>Base de destino *</Label>
-              <Input
-                value={trasladoBaseDestino}
-                onChange={(e) => setTrasladoBaseDestino(e.target.value)}
-                placeholder="Base de destino"
-              />
+              <Select value={trasladoBaseDestino} onValueChange={(v) => {
+                setTrasladoBaseDestino(v);
+                if (v !== '__otra__') setTrasladoBaseDestinoOtra('');
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar base de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {basesActivas
+                    .filter(b => b.nombre !== trasladoBaseOrigen)
+                    .map(b => (
+                      <SelectItem key={b.id} value={b.nombre}>{b.nombre}</SelectItem>
+                    ))}
+                  <SelectItem value="__otra__">Otra (no GESBASE)</SelectItem>
+                </SelectContent>
+              </Select>
+              {trasladoBaseDestino === '__otra__' && (
+                <Input
+                  value={trasladoBaseDestinoOtra}
+                  onChange={(e) => setTrasladoBaseDestinoOtra(e.target.value)}
+                  placeholder="Nombre de la base externa"
+                  className="mt-2"
+                />
+              )}
             </div>
+
+            {/* Info: base will be updated */}
+            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && (
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800">
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                  ✓ La base del maquinista se actualizará automáticamente a <strong>{trasladoBaseDestino}</strong>
+                </p>
+              </div>
+            )}
 
             {/* Preview of blocks that will be justified */}
             {trasladoFecha && (() => {
@@ -1624,7 +1657,7 @@ export function MaquinistaPE1603Tab({
             </Button>
             <Button 
               onClick={handleRegistrarTraslado} 
-              disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino}
+              disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino || (trasladoBaseDestino === '__otra__' && !trasladoBaseDestinoOtra)}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Registrar Traslado
