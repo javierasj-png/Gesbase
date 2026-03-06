@@ -705,7 +705,14 @@ export function MaquinistaPE1603Tab({
         .update({ justificado_traslado: false, traslado_id: null })
         .eq('traslado_id', trasladoId);
 
-      // 2. Delete the traslado record
+      // 2. Get traslado info before deleting (to revert base)
+      const { data: trasladoData } = await supabase
+        .from('traslados_1603')
+        .select('base_origen')
+        .eq('id', trasladoId)
+        .single();
+
+      // 3. Delete the traslado record
       const { error } = await supabase
         .from('traslados_1603')
         .delete()
@@ -713,7 +720,15 @@ export function MaquinistaPE1603Tab({
 
       if (error) throw error;
 
-      toast({ title: 'Traslado eliminado', description: 'Los bloques justificados han sido restaurados' });
+      // 4. Revert maquinista base to origin
+      if (trasladoData?.base_origen) {
+        await supabase
+          .from('maquinistas')
+          .update({ base: trasladoData.base_origen })
+          .eq('id', maquinista.id);
+      }
+
+      toast({ title: 'Traslado eliminado', description: 'La base del maquinista se ha revertido a ' + (trasladoData?.base_origen || 'origen') });
       setDeletingTrasladoId(null);
       onRefetch();
     } catch (err) {
