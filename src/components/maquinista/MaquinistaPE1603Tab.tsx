@@ -509,7 +509,74 @@ export function MaquinistaPE1603Tab({
     setEditarOpen(true);
   };
 
-  // Load actuacion and open edit modal for a completed block
+  // Handle registrar traslado
+  const handleRegistrarTraslado = async () => {
+    if (!expediente1603 || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino) return;
+
+    setSaving(true);
+    try {
+      // 1. Create traslado record
+      const { data: traslado, error: tError } = await supabase
+        .from('traslados_1603')
+        .insert({
+          expediente_id: expediente1603.id,
+          fecha_traslado: trasladoFecha,
+          base_origen: trasladoBaseOrigen,
+          base_destino: trasladoBaseDestino,
+          observaciones: trasladoObservaciones || null,
+          registrado_por: user?.id ?? null,
+        })
+        .select()
+        .single();
+
+      if (tError) throw tError;
+
+      // 2. Justify all overdue blocks up to the transfer date
+      const trasladoDate = parseISO(trasladoFecha);
+      const bloquesVencidos = plan1603.filter(b => {
+        if (b.actuacion_id || b.justificado_traslado) return false;
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      });
+
+      if (bloquesVencidos.length > 0) {
+        const { error: updateError } = await supabase
+          .from('plan_1603')
+          .update({
+            justificado_traslado: true,
+            traslado_id: traslado.id,
+          })
+          .in('id', bloquesVencidos.map(b => b.id));
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: 'Traslado registrado',
+        description: `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
+      });
+
+      // Reset form and close
+      setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseDestino('');
+      setTrasladoObservaciones('');
+      setTrasladoOpen(false);
+      
+      onRefetch();
+    } catch (err) {
+      console.error('Error registering traslado:', err);
+      toast({
+        title: 'Error',
+        description: (err as any)?.message || 'No se pudo registrar el traslado',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleBlockClick = async (bloque: PlanBloque1603) => {
     if (!puedeEditar) return;
     if (!bloque.actuacion_id) return; // Only editable if has actuacion
