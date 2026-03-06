@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -130,6 +130,19 @@ export function MaquinistaPE1603Tab({
     if (Number.isNaN(val)) return null;
     return val;
   };
+
+  // Fetch active bases for transfer selector
+  useEffect(() => {
+    const fetchBases = async () => {
+      const { data } = await supabase
+        .from('bases_conduccion')
+        .select('id, nombre')
+        .eq('activa', true)
+        .order('nombre');
+      if (data) setBasesActivas(data);
+    };
+    fetchBases();
+  }, []);
 
   // Check if expediente is closed
   const expedienteCerrado = expediente1603?.estado === 'cerrado';
