@@ -13,6 +13,7 @@ const CARD_BG: [number, number, number] = [248, 250, 252];
 const GREEN: [number, number, number] = [34, 197, 94];
 const YELLOW: [number, number, number] = [234, 179, 8];
 const RED: [number, number, number] = [239, 68, 68];
+const BLUE: [number, number, number] = [59, 130, 246];
 
 const PAGE_HEADER_H = 14;
 
@@ -113,6 +114,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   const [
     { data: plans1603 },
     { data: acts1603 },
+    { data: traslados1603 },
     { data: plans1201 },
     { data: acts1201 },
   ] = await Promise.all([
@@ -121,6 +123,9 @@ export async function generateDossierPDF(maquinistaId: string) {
       : Promise.resolve({ data: [] }),
     exp1603Ids.length > 0
       ? supabase.from('actuaciones_1603').select('*').in('expediente_id', exp1603Ids).order('fecha_real')
+      : Promise.resolve({ data: [] }),
+    exp1603Ids.length > 0
+      ? supabase.from('traslados_1603').select('*').in('expediente_id', exp1603Ids).order('fecha_traslado')
       : Promise.resolve({ data: [] }),
     exp1201Ids.length > 0
       ? supabase.from('plan_1201').select('*').in('expediente_id', exp1201Ids).order('dia_desde_origen')
@@ -308,7 +313,8 @@ export async function generateDossierPDF(maquinistaId: string) {
     if (expPlan.length > 0) {
       const planRows = expPlan.map(b => {
         const act = expActs.find(a => a.id === b.actuacion_id);
-        const estado = b.actuacion_id ? 'Cumplida' : 'Pendiente';
+        const isJustified = b.justificado_traslado === true;
+        const estado = isJustified ? 'Justificada' : b.actuacion_id ? 'Cumplida' : 'Pendiente';
         return [
           tipoLabels1603[b.tipo] || b.tipo,
           b.etiqueta || `Mes ${b.mes}`,
@@ -331,9 +337,41 @@ export async function generateDossierPDF(maquinistaId: string) {
         columnStyles: { 2: { cellWidth: 34 } },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 3) {
-            data.cell.styles.textColor = data.cell.raw === 'Cumplida' ? GREEN : RED;
+            const val = data.cell.raw as string;
+            if (val === 'Cumplida') data.cell.styles.textColor = GREEN;
+            else if (val === 'Justificada') data.cell.styles.textColor = BLUE;
+            else data.cell.styles.textColor = RED;
           }
         },
+      });
+      y = tableEndY(doc, y) + 6;
+    }
+
+    // Traslados for this expediente
+    const expTraslados = (traslados1603 || []).filter(t => t.expediente_id === exp.id);
+    if (expTraslados.length > 0) {
+      y = needSpace(doc, y, 20, LABEL_1603);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...BLUE);
+      doc.text('Traslados registrados', 18, y);
+      y += 2;
+
+      const trasladoRows = expTraslados.map(t => [
+        format(parseISO(t.fecha_traslado), 'dd/MM/yyyy'),
+        t.base_origen,
+        t.base_destino,
+        t.observaciones || '-',
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Fecha', 'Base Origen', 'Base Destino', 'Observaciones']],
+        body: trasladoRows,
+        theme: 'grid',
+        headStyles: { fillColor: BLUE, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+        bodyStyles: { textColor: DARK },
       });
       y = tableEndY(doc, y) + 6;
     }
