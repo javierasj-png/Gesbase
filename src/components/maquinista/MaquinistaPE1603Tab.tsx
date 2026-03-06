@@ -92,6 +92,7 @@ export function MaquinistaPE1603Tab({
   maquinista, 
   expediente1603, 
   plan1603,
+  traslados1603,
   onRefetch 
 }: MaquinistaPE1603TabProps) {
   const { toast } = useToast();
@@ -99,9 +100,16 @@ export function MaquinistaPE1603Tab({
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
+  const [trasladoOpen, setTrasladoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [editingActuacion, setEditingActuacion] = useState<any>(null);
+  
+  // Transfer form state
+  const [trasladoFecha, setTrasladoFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [trasladoBaseOrigen, setTrasladoBaseOrigen] = useState(maquinista.base);
+  const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
+  const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
