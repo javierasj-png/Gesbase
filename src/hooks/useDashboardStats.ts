@@ -174,17 +174,17 @@ export function useDashboardStats(baseFilter?: string) {
               
               const { data: planItems } = await supabase
                 .from('plan_1603')
-                .select('id, expediente_id, estado, actuacion_id, mes, tipo, inicio_ventana, fin_ventana')
+                .select('id, expediente_id, estado, actuacion_id, mes, tipo, inicio_ventana, fin_ventana, justificado_traslado')
                 .in('expediente_id', expIds);
 
               if (planItems) {
                 const today = new Date();
-                today.setHours(0, 0, 0, 0); // Normalizar a medianoche
+                today.setHours(0, 0, 0, 0);
                 
                 for (const item of planItems) {
                   if (item.actuacion_id) continue; // ya realizada
+                  if (item.justificado_traslado) continue; // justificada por traslado
                   
-                  // Usar inicio_ventana y fin_ventana de la DB
                   if (item.inicio_ventana && item.fin_ventana) {
                     const inicioVentana = new Date(item.inicio_ventana);
                     const finVentana = new Date(item.fin_ventana);
@@ -194,17 +194,16 @@ export function useDashboardStats(baseFilter?: string) {
                     if (today > finVentana) {
                       newStats.pe1603AccionesVencidas++;
                     } else if (today >= inicioVentana && today <= finVentana) {
-                      newStats.pe1603AccionesPendientes++; // En ventana = pendiente activa
+                      newStats.pe1603AccionesPendientes++;
                     }
-                    // Las que aún no abren (today < inicioVentana) no se cuentan
                   }
                 }
 
-                // Porcentaje cumplimiento
-                const totalPlan = planItems.length;
-                const realizadas = planItems.filter(p => p.actuacion_id).length;
-                if (totalPlan > 0) {
-                  newStats.pe1603PorcentajeCumplimiento = Math.round((realizadas / totalPlan) * 100);
+                // Porcentaje cumplimiento: excluir justificadas por traslado
+                const bloquesComputables = planItems.filter(p => !p.justificado_traslado);
+                const realizadas = bloquesComputables.filter(p => p.actuacion_id).length;
+                if (bloquesComputables.length > 0) {
+                  newStats.pe1603PorcentajeCumplimiento = Math.round((realizadas / bloquesComputables.length) * 100);
                 }
               }
             }
