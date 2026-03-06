@@ -529,8 +529,9 @@ export function MaquinistaPE1603Tab({
 
   // Handle registrar traslado
   const handleRegistrarTraslado = async () => {
+    const baseOrigenFinal = trasladoBaseOrigen === '__otra__' ? trasladoBaseOrigenOtra : trasladoBaseOrigen;
     const baseDestinoFinal = trasladoBaseDestino === '__otra__' ? trasladoBaseDestinoOtra : trasladoBaseDestino;
-    if (!expediente1603 || !trasladoFecha || !trasladoBaseOrigen || !baseDestinoFinal) return;
+    if (!expediente1603 || !trasladoFecha || !baseOrigenFinal || !baseDestinoFinal) return;
 
     const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
 
@@ -542,7 +543,7 @@ export function MaquinistaPE1603Tab({
         .insert({
           expediente_id: expediente1603.id,
           fecha_traslado: trasladoFecha,
-          base_origen: trasladoBaseOrigen,
+          base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
           registrado_por: user?.id ?? null,
@@ -593,6 +594,7 @@ export function MaquinistaPE1603Tab({
       // Reset form and close
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
       setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
       setTrasladoBaseDestinoOtra('');
       setTrasladoObservaciones('');
@@ -614,7 +616,9 @@ export function MaquinistaPE1603Tab({
   const handleEditTraslado = (traslado: Traslado1603) => {
     setEditingTraslado(traslado);
     setTrasladoFecha(traslado.fecha_traslado);
-    setTrasladoBaseOrigen(traslado.base_origen);
+    const isOrigenGesbase = basesActivas.some(b => b.nombre === traslado.base_origen);
+    setTrasladoBaseOrigen(isOrigenGesbase ? traslado.base_origen : '__otra__');
+    setTrasladoBaseOrigenOtra(isOrigenGesbase ? '' : traslado.base_origen);
     const isGesbase = basesActivas.some(b => b.nombre === traslado.base_destino);
     setTrasladoBaseDestino(isGesbase ? traslado.base_destino : '__otra__');
     setTrasladoBaseDestinoOtra(isGesbase ? '' : traslado.base_destino);
@@ -624,9 +628,10 @@ export function MaquinistaPE1603Tab({
 
   // Handle update existing traslado
   const handleUpdateTraslado = async () => {
-    if (!editingTraslado || !trasladoFecha || !trasladoBaseOrigen) return;
+    if (!editingTraslado || !trasladoFecha) return;
+    const baseOrigenFinal = trasladoBaseOrigen === '__otra__' ? trasladoBaseOrigenOtra : trasladoBaseOrigen;
     const baseDestinoFinal = trasladoBaseDestino === '__otra__' ? trasladoBaseDestinoOtra : trasladoBaseDestino;
-    if (!baseDestinoFinal) return;
+    if (!baseOrigenFinal || !baseDestinoFinal) return;
 
     setSaving(true);
     try {
