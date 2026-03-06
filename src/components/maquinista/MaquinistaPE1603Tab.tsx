@@ -1231,11 +1231,37 @@ export function MaquinistaPE1603Tab({
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Traslados registrados</p>
               {traslados1603.map(t => (
-                <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
+                <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
                   <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
-                  <span className="text-muted-foreground">{t.base_origen} → {t.base_destino}</span>
-                  {t.observaciones && <span className="text-muted-foreground text-xs">— {t.observaciones}</span>}
+                  <span className="text-muted-foreground flex-1">{t.base_origen} → {t.base_destino}</span>
+                  {t.observaciones && <span className="text-muted-foreground text-xs truncate max-w-[120px]">— {t.observaciones}</span>}
+                  {puedeEditar && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTraslado(t)}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <AlertDialog open={deletingTrasladoId === t.id} onOpenChange={(open) => !open && setDeletingTrasladoId(null)}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingTrasladoId(t.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Eliminar traslado</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Se eliminará el traslado del {format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')} ({t.base_origen} → {t.base_destino}) y se restaurarán los bloques justificados asociados. ¿Continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteTraslado(t.id)}>Eliminar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
