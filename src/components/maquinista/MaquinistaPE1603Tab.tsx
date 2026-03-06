@@ -1284,10 +1284,9 @@ export function MaquinistaPE1603Tab({
 
           {/* Action buttons */}
           {puedeEditar && (
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button 
                 variant="outline" 
-                className="flex-1"
                 onClick={() => setRegistrarOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -1311,7 +1310,7 @@ export function MaquinistaPE1603Tab({
                   onClick={() => setCerrarOpen(true)}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Cierre Manual del Expediente
+                  Cierre Manual
                 </Button>
               )}
             </div>
