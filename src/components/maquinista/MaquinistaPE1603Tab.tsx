@@ -1001,13 +1001,14 @@ export function MaquinistaPE1603Tab({
                         <div 
                           key={bloque.id} 
                           className={`timeline-block ${
+                            estado === 'justificada' ? 'bg-blue-50 border border-blue-300 dark:bg-blue-950/30 dark:border-blue-700' :
                             estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
                             estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
                             estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
                             'bg-muted border border-border'
                           } ${isEditable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                           onClick={() => isEditable && handleBlockClick(bloque)}
-                          title={isEditable ? 'Clic para editar' : undefined}
+                          title={estado === 'justificada' ? 'Justificado por traslado' : isEditable ? 'Clic para editar' : undefined}
                         >
                           <p className="font-medium text-xs mb-1">{bloque.etiqueta || `Mes ${bloque.mes}`}</p>
                           {window && (
@@ -1016,7 +1017,9 @@ export function MaquinistaPE1603Tab({
                             </p>
                           )}
                           <div className="mt-2 flex items-center justify-center gap-1">
-                            {estado === 'cumplida' ? (
+                            {estado === 'justificada' ? (
+                              <ShieldCheck className="w-4 h-4 text-blue-500" />
+                            ) : estado === 'cumplida' ? (
                               <>
                                 <CheckCircle2 className="w-4 h-4 text-status-ok" />
                                 {isEditable && <Pencil className="w-3 h-3 text-muted-foreground" />}
@@ -1039,7 +1042,7 @@ export function MaquinistaPE1603Tab({
           </div>
 
           {/* Leyenda */}
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-status-cumplida-bg border border-status-ok"></span>
               Cumplida
@@ -1056,7 +1059,26 @@ export function MaquinistaPE1603Tab({
               <span className="w-3 h-3 rounded-full bg-muted border border-border"></span>
               Pendiente
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-blue-50 border border-blue-300 dark:bg-blue-950/30 dark:border-blue-700"></span>
+              Justificada (traslado)
+            </div>
           </div>
+
+          {/* Traslados registrados */}
+          {traslados1603.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Traslados registrados</p>
+              {traslados1603.map(t => (
+                <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
+                  <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
+                  <span className="text-muted-foreground">{t.base_origen} → {t.base_destino}</span>
+                  {t.observaciones && <span className="text-muted-foreground text-xs">— {t.observaciones}</span>}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Action buttons */}
           {puedeEditar && (
@@ -1068,6 +1090,17 @@ export function MaquinistaPE1603Tab({
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Registrar Actuación
+              </Button>
+
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setTrasladoBaseOrigen(maquinista.base);
+                  setTrasladoOpen(true);
+                }}
+              >
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Registrar Traslado
               </Button>
               
               {puedeCerrarManual && (
