@@ -1678,16 +1678,29 @@ export function MaquinistaPE1603Tab({
         </DialogContent>
       </Dialog>
 
-      {/* Modal Registrar Traslado */}
-      <Dialog open={trasladoOpen} onOpenChange={setTrasladoOpen}>
+      {/* Modal Registrar/Editar Traslado */}
+      <Dialog open={trasladoOpen} onOpenChange={(open) => {
+        setTrasladoOpen(open);
+        if (!open) {
+          setEditingTraslado(null);
+          setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+          setTrasladoBaseOrigen(maquinista.base);
+          setTrasladoBaseDestino('');
+          setTrasladoBaseDestinoOtra('');
+          setTrasladoObservaciones('');
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowRightLeft className="w-5 h-5 text-blue-500" />
-              Registrar Traslado
+              {editingTraslado ? 'Editar Traslado' : 'Registrar Traslado'}
             </DialogTitle>
             <DialogDescription>
-              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas. Si la base de destino es una base GESBASE, se actualizará automáticamente la base del maquinista.
+              {editingTraslado
+                ? 'Modifica los datos del traslado. Se recalcularán los bloques justificados.'
+                : 'Registra un traslado de base. Las actuaciones vencidas quedarán justificadas. Si la base de destino es GESBASE, se actualizará la base del maquinista.'
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -1798,11 +1811,11 @@ export function MaquinistaPE1603Tab({
               Cancelar
             </Button>
             <Button 
-              onClick={handleRegistrarTraslado} 
+              onClick={editingTraslado ? handleUpdateTraslado : handleRegistrarTraslado} 
               disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino || (trasladoBaseDestino === '__otra__' && !trasladoBaseDestinoOtra)}
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Registrar Traslado
+              {editingTraslado ? 'Guardar Cambios' : 'Registrar Traslado'}
             </Button>
           </DialogFooter>
         </DialogContent>
