@@ -151,7 +151,8 @@ export function MaquinistaPE1603Tab({
   }, [expediente1603, fechaFinPrevista]);
 
   // Calculate block state based on inicio_ventana/fin_ventana from DB
-  const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' => {
+  const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' | 'justificada' => {
+    if (bloque.justificado_traslado) return 'justificada';
     if (bloque.actuacion_id) return 'cumplida';
     
     // Use DB dates if available
