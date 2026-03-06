@@ -713,61 +713,24 @@ export function MaquinistaPE1603Tab({
     // Reset
     doc.setTextColor(0, 0, 0);
 
-    // Calculate overall compliance percentage
+    // Calculate overall compliance percentage (justified blocks count as compliant)
     const totalBloques = plan1603.length;
-    const bloquesCumplidos = plan1603.filter(b => getBlockState(b) === 'cumplida').length;
+    const bloquesCumplidos = plan1603.filter(b => getBlockState(b) === 'cumplida' || getBlockState(b) === 'justificada').length;
     const porcentajeCumplimiento = totalBloques > 0 ? Math.round((bloquesCumplidos / totalBloques) * 100) : 0;
-
-    // Compliance percentage display
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94);
-    doc.text('% CUMPLIMIENTO DEL PLAN', 14, 118);
-    
-    // Draw percentage box
-    const boxX = 90;
-    const boxY = 110;
-    const boxWidth = 40;
-    const boxHeight = 14;
-    
-    // Background color based on percentage
-    if (porcentajeCumplimiento >= 75) {
-      doc.setFillColor(34, 197, 94); // Green
-    } else if (porcentajeCumplimiento >= 50) {
-      doc.setFillColor(234, 179, 8); // Yellow
-    } else {
-      doc.setFillColor(239, 68, 68); // Red
-    }
-    doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 3, 3, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
-    doc.text(`${porcentajeCumplimiento}%`, boxX + boxWidth / 2, boxY + 9.5, { align: 'center' });
-    
-    // Additional stats text
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`(${bloquesCumplidos} de ${totalBloques} bloques cumplidos)`, boxX + boxWidth + 5, boxY + 9);
-
-    // Plan summary with colored rows
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(130, 0, 94);
-    doc.text('RESUMEN DEL PLAN DE VIGILANCIA', 14, 138);
 
     const planData = tiposActuacion.map(tipo => {
       const bloques = plan1603.filter(b => b.tipo === tipo);
       const cumplidos = bloques.filter(b => getBlockState(b) === 'cumplida').length;
+      const justificados = bloques.filter(b => getBlockState(b) === 'justificada').length;
       const enVentana = bloques.filter(b => getBlockState(b) === 'en_ventana').length;
       const vencidos = bloques.filter(b => getBlockState(b) === 'vencida').length;
       const pendientes = bloques.filter(b => getBlockState(b) === 'pendiente').length;
-      return [tipoLabels[tipo], bloques.length.toString(), cumplidos.toString(), enVentana.toString(), vencidos.toString(), pendientes.toString()];
+      return [tipoLabels[tipo], bloques.length.toString(), cumplidos.toString(), justificados.toString(), enVentana.toString(), vencidos.toString(), pendientes.toString()];
     });
 
     autoTable(doc, {
       startY: 142,
-      head: [['Tipo de Acción', 'Total', 'Cumplidas', 'En Ventana', 'Vencidas', 'Pendientes']],
+      head: [['Tipo de Acción', 'Total', 'Cumplidas', 'Justificadas', 'En Ventana', 'Vencidas', 'Pendientes']],
       body: planData,
       theme: 'grid',
       headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -785,17 +748,19 @@ export function MaquinistaPE1603Tab({
     doc.setTextColor(130, 0, 94);
     doc.text('DETALLE DE BLOQUES', 14, finalY + 14);
 
+    const BLUE: [number, number, number] = [59, 130, 246];
     const bloquesData = plan1603
       .sort((a, b) => a.tipo.localeCompare(b.tipo) || a.mes - b.mes)
       .map(b => {
         const window = getBlockWindow(b);
         const estado = getBlockState(b);
         const actuacion = actuaciones?.find(a => a.tipo === b.tipo && b.actuacion_id === a.id);
+        const estadoLabel = estado === 'justificada' ? 'Justificada' : estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' ');
         return [
           tipoLabels[b.tipo],
-          `Semestre ${b.mes}`,
+          b.etiqueta || `Semestre ${b.mes}`,
           window ? `${format(window.inicio, 'dd/MM/yy')} - ${format(window.fin, 'dd/MM/yy')}` : 'N/A',
-          estado.charAt(0).toUpperCase() + estado.slice(1).replace('_', ' '),
+          estadoLabel,
           actuacion ? format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy') : '-',
           actuacion?.indice_prever?.toString() || '-'
         ];
@@ -814,6 +779,15 @@ export function MaquinistaPE1603Tab({
       columnStyles: {
         2: { cellWidth: 32 },
         5: { halign: 'center' },
+      },
+      didParseCell: (data: any) => {
+        if (data.section === 'body' && data.column.index === 3) {
+          const val = data.cell.raw as string;
+          if (val === 'Cumplida') data.cell.styles.textColor = [34, 197, 94];
+          else if (val === 'Justificada') data.cell.styles.textColor = BLUE;
+          else if (val === 'Vencida') data.cell.styles.textColor = [239, 68, 68];
+          else if (val === 'En ventana') data.cell.styles.textColor = [234, 179, 8];
+        }
       },
     });
 
