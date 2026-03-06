@@ -112,6 +112,8 @@ export function MaquinistaPE1603Tab({
   const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
   const [trasladoBaseDestinoOtra, setTrasladoBaseDestinoOtra] = useState('');
   const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
+  const [editingTraslado, setEditingTraslado] = useState<Traslado1603 | null>(null);
+  const [deletingTrasladoId, setDeletingTrasladoId] = useState<string | null>(null);
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
