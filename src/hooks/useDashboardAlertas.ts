@@ -185,10 +185,11 @@ export function useDashboardAlertas(baseFilter?: string) {
         const expIds = expedientes1603.map(e => e.id);
         const { data: planItems } = await supabase
           .from('plan_1603')
-          .select('id, expediente_id, tipo, etiqueta, mes, estado, actuacion_id, inicio_ventana, fin_ventana')
+          .select('id, expediente_id, tipo, etiqueta, mes, estado, actuacion_id, inicio_ventana, fin_ventana, justificado_traslado')
           .in('expediente_id', expIds)
           .is('actuacion_id', null)
-          .neq('estado', 'no_procede');
+          .neq('estado', 'no_procede')
+          .or('justificado_traslado.is.null,justificado_traslado.eq.false');
 
         if (planItems) {
           for (const item of planItems) {
