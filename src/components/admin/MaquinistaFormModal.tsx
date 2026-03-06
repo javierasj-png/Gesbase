@@ -138,7 +138,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{maquinista ? 'Editar Maquinista' : 'Nuevo Maquinista'}</DialogTitle>
         </DialogHeader>
