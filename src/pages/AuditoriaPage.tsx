@@ -142,11 +142,15 @@ export default function AuditoriaPage() {
           const expIds = exp1603.map(e => e.id);
           const { data: plan1603 } = await supabase
             .from('plan_1603')
-            .select('id, actuacion_id')
+            .select('id, actuacion_id, justificado_traslado')
             .in('expediente_id', expIds);
           if (plan1603 && plan1603.length > 0) {
-            const realizadas = plan1603.filter(p => p.actuacion_id).length;
-            pe1603Cumplimiento = Math.round((realizadas / plan1603.length) * 100);
+            // Excluir bloques justificados por traslado del cálculo de cumplimiento
+            const bloquesComputables = plan1603.filter(p => !p.justificado_traslado);
+            const realizadas = bloquesComputables.filter(p => p.actuacion_id).length;
+            if (bloquesComputables.length > 0) {
+              pe1603Cumplimiento = Math.round((realizadas / bloquesComputables.length) * 100);
+            }
           }
         }
 
