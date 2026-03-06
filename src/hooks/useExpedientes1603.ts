@@ -34,6 +34,8 @@ export interface Plan1603DB {
   inicio_ventana: string | null;
   fin_ventana: string | null;
   estado: EstadoBloque1603;
+  justificado_traslado: boolean;
+  traslado_id: string | null;
   created_at: string;
 }
 
@@ -141,7 +143,9 @@ export function useExpedientes1603() {
         const planConEstado = planExpediente.map(bloque => {
           let estadoCalculado = 'pendiente';
           
-          if (bloque.actuacion_id) {
+          if (bloque.justificado_traslado) {
+            estadoCalculado = 'justificada';
+          } else if (bloque.actuacion_id) {
             estadoCalculado = 'realizado';
             cumplidas++;
           } else if (bloque.inicio_ventana && bloque.fin_ventana) {

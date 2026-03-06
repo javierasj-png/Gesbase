@@ -45,6 +45,19 @@ export interface PlanBloque1603 {
   orden?: number | null;
   inicio_ventana?: string | null;
   fin_ventana?: string | null;
+  justificado_traslado?: boolean;
+  traslado_id?: string | null;
+}
+
+export interface Traslado1603 {
+  id: string;
+  expediente_id: string;
+  fecha_traslado: string;
+  base_origen: string;
+  base_destino: string;
+  observaciones: string | null;
+  registrado_por: string | null;
+  created_at: string;
 }
 
 export function useMaquinistaDetail(id: string | undefined) {
@@ -52,6 +65,7 @@ export function useMaquinistaDetail(id: string | undefined) {
   const [maquinista, setMaquinista] = useState<MaquinistaDB | null>(null);
   const [expediente1603, setExpediente1603] = useState<Expediente1603Detail | null>(null);
   const [plan1603, setPlan1603] = useState<PlanBloque1603[]>([]);
+  const [traslados1603, setTraslados1603] = useState<Traslado1603[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,9 +149,19 @@ export function useMaquinistaDetail(id: string | undefined) {
           }));
           setPlan1603(planTyped);
         }
+
+        // Fetch traslados
+        const { data: trasladosData } = await supabase
+          .from('traslados_1603')
+          .select('*')
+          .eq('expediente_id', expData.id)
+          .order('fecha_traslado', { ascending: true });
+
+        setTraslados1603(trasladosData || []);
       } else {
         setExpediente1603(null);
         setPlan1603([]);
+        setTraslados1603([]);
       }
     } catch (err) {
       console.error('Error:', err);
@@ -155,6 +179,7 @@ export function useMaquinistaDetail(id: string | undefined) {
     maquinista,
     expediente1603,
     plan1603,
+    traslados1603,
     loading,
     error,
     refetch: fetchData,

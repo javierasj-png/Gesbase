@@ -46,7 +46,9 @@ import {
   User,
   CalendarClock,
   Pencil,
-  Trash2
+  Trash2,
+  ArrowRightLeft,
+  ShieldCheck
 } from 'lucide-react';
 import { format, addMonths, parseISO, isAfter, isBefore, addYears } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,7 +58,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Expediente1603Detail, 
   PlanBloque1603, 
-  TipoActuacion1603 
+  TipoActuacion1603,
+  Traslado1603 
 } from '@/hooks/useMaquinistaDetail';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -71,6 +74,7 @@ interface MaquinistaPE1603TabProps {
   };
   expediente1603: Expediente1603Detail | null;
   plan1603: PlanBloque1603[];
+  traslados1603: Traslado1603[];
   onRefetch: () => void;
 }
 
@@ -88,6 +92,7 @@ export function MaquinistaPE1603Tab({
   maquinista, 
   expediente1603, 
   plan1603,
+  traslados1603,
   onRefetch 
 }: MaquinistaPE1603TabProps) {
   const { toast } = useToast();
@@ -95,9 +100,16 @@ export function MaquinistaPE1603Tab({
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
+  const [trasladoOpen, setTrasladoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [editingActuacion, setEditingActuacion] = useState<any>(null);
+  
+  // Transfer form state
+  const [trasladoFecha, setTrasladoFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [trasladoBaseOrigen, setTrasladoBaseOrigen] = useState(maquinista.base);
+  const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
+  const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
@@ -139,7 +151,8 @@ export function MaquinistaPE1603Tab({
   }, [expediente1603, fechaFinPrevista]);
 
   // Calculate block state based on inicio_ventana/fin_ventana from DB
-  const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' => {
+  const getBlockState = (bloque: PlanBloque1603): 'pendiente' | 'en_ventana' | 'vencida' | 'cumplida' | 'justificada' => {
+    if (bloque.justificado_traslado) return 'justificada';
     if (bloque.actuacion_id) return 'cumplida';
     
     // Use DB dates if available
@@ -496,7 +509,74 @@ export function MaquinistaPE1603Tab({
     setEditarOpen(true);
   };
 
-  // Load actuacion and open edit modal for a completed block
+  // Handle registrar traslado
+  const handleRegistrarTraslado = async () => {
+    if (!expediente1603 || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino) return;
+
+    setSaving(true);
+    try {
+      // 1. Create traslado record
+      const { data: traslado, error: tError } = await supabase
+        .from('traslados_1603')
+        .insert({
+          expediente_id: expediente1603.id,
+          fecha_traslado: trasladoFecha,
+          base_origen: trasladoBaseOrigen,
+          base_destino: trasladoBaseDestino,
+          observaciones: trasladoObservaciones || null,
+          registrado_por: user?.id ?? null,
+        })
+        .select()
+        .single();
+
+      if (tError) throw tError;
+
+      // 2. Justify all overdue blocks up to the transfer date
+      const trasladoDate = parseISO(trasladoFecha);
+      const bloquesVencidos = plan1603.filter(b => {
+        if (b.actuacion_id || b.justificado_traslado) return false;
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      });
+
+      if (bloquesVencidos.length > 0) {
+        const { error: updateError } = await supabase
+          .from('plan_1603')
+          .update({
+            justificado_traslado: true,
+            traslado_id: traslado.id,
+          })
+          .in('id', bloquesVencidos.map(b => b.id));
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: 'Traslado registrado',
+        description: `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
+      });
+
+      // Reset form and close
+      setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseDestino('');
+      setTrasladoObservaciones('');
+      setTrasladoOpen(false);
+      
+      onRefetch();
+    } catch (err) {
+      console.error('Error registering traslado:', err);
+      toast({
+        title: 'Error',
+        description: (err as any)?.message || 'No se pudo registrar el traslado',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleBlockClick = async (bloque: PlanBloque1603) => {
     if (!puedeEditar) return;
     if (!bloque.actuacion_id) return; // Only editable if has actuacion
@@ -921,13 +1001,14 @@ export function MaquinistaPE1603Tab({
                         <div 
                           key={bloque.id} 
                           className={`timeline-block ${
+                            estado === 'justificada' ? 'bg-blue-50 border border-blue-300 dark:bg-blue-950/30 dark:border-blue-700' :
                             estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
                             estado === 'en_ventana' ? 'bg-status-proximo-bg border border-status-proximo animate-pulse-soft' :
                             estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
                             'bg-muted border border-border'
                           } ${isEditable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                           onClick={() => isEditable && handleBlockClick(bloque)}
-                          title={isEditable ? 'Clic para editar' : undefined}
+                          title={estado === 'justificada' ? 'Justificado por traslado' : isEditable ? 'Clic para editar' : undefined}
                         >
                           <p className="font-medium text-xs mb-1">{bloque.etiqueta || `Mes ${bloque.mes}`}</p>
                           {window && (
@@ -936,7 +1017,9 @@ export function MaquinistaPE1603Tab({
                             </p>
                           )}
                           <div className="mt-2 flex items-center justify-center gap-1">
-                            {estado === 'cumplida' ? (
+                            {estado === 'justificada' ? (
+                              <ShieldCheck className="w-4 h-4 text-blue-500" />
+                            ) : estado === 'cumplida' ? (
                               <>
                                 <CheckCircle2 className="w-4 h-4 text-status-ok" />
                                 {isEditable && <Pencil className="w-3 h-3 text-muted-foreground" />}
@@ -959,7 +1042,7 @@ export function MaquinistaPE1603Tab({
           </div>
 
           {/* Leyenda */}
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-status-cumplida-bg border border-status-ok"></span>
               Cumplida
@@ -976,7 +1059,26 @@ export function MaquinistaPE1603Tab({
               <span className="w-3 h-3 rounded-full bg-muted border border-border"></span>
               Pendiente
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-blue-50 border border-blue-300 dark:bg-blue-950/30 dark:border-blue-700"></span>
+              Justificada (traslado)
+            </div>
           </div>
+
+          {/* Traslados registrados */}
+          {traslados1603.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Traslados registrados</p>
+              {traslados1603.map(t => (
+                <div key={t.id} className="flex items-center gap-3 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
+                  <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
+                  <span className="text-muted-foreground">{t.base_origen} → {t.base_destino}</span>
+                  {t.observaciones && <span className="text-muted-foreground text-xs">— {t.observaciones}</span>}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Action buttons */}
           {puedeEditar && (
@@ -988,6 +1090,17 @@ export function MaquinistaPE1603Tab({
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Registrar Actuación
+              </Button>
+
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setTrasladoBaseOrigen(maquinista.base);
+                  setTrasladoOpen(true);
+                }}
+              >
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Registrar Traslado
               </Button>
               
               {puedeCerrarManual && (
@@ -1374,6 +1487,103 @@ export function MaquinistaPE1603Tab({
                 Guardar Cambios
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Registrar Traslado */}
+      <Dialog open={trasladoOpen} onOpenChange={setTrasladoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+              Registrar Traslado
+            </DialogTitle>
+            <DialogDescription>
+              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas y no penalizarán en la auditoría.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Fecha del traslado *</Label>
+              <Input
+                type="date"
+                value={trasladoFecha}
+                onChange={(e) => setTrasladoFecha(e.target.value)}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Base de origen *</Label>
+              <Input
+                value={trasladoBaseOrigen}
+                onChange={(e) => setTrasladoBaseOrigen(e.target.value)}
+                placeholder="Base de origen"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Base de destino *</Label>
+              <Input
+                value={trasladoBaseDestino}
+                onChange={(e) => setTrasladoBaseDestino(e.target.value)}
+                placeholder="Base de destino"
+              />
+            </div>
+
+            {/* Preview of blocks that will be justified */}
+            {trasladoFecha && (() => {
+              const trasladoDate = parseISO(trasladoFecha);
+              const bloquesAJustificar = plan1603.filter(b => {
+                if (b.actuacion_id || b.justificado_traslado) return false;
+                if (!b.fin_ventana) return false;
+                const fin = parseISO(b.fin_ventana);
+                return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+              });
+
+              return bloquesAJustificar.length > 0 ? (
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-500" />
+                    <span className="font-medium text-sm">{bloquesAJustificar.length} bloque(s) se justificarán</span>
+                  </div>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    {bloquesAJustificar.map(b => (
+                      <li key={b.id}>• {tipoLabels[b.tipo]} - {b.etiqueta || `Mes ${b.mes}`}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground">No hay bloques vencidos que justificar para esta fecha.</p>
+                </div>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <Label>Observaciones <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Textarea
+                value={trasladoObservaciones}
+                onChange={(e) => setTrasladoObservaciones(e.target.value)}
+                placeholder="Motivo del traslado, circunstancias..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrasladoOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleRegistrarTraslado} 
+              disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino}
+            >
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Registrar Traslado
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
