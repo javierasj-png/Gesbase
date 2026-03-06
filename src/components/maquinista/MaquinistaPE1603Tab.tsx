@@ -836,6 +836,46 @@ export function MaquinistaPE1603Tab({
       });
     }
 
+    // Traslados section
+    if (traslados1603 && traslados1603.length > 0) {
+      const finalY3 = (doc as any).lastAutoTable?.finalY || 200;
+      
+      let trasladoStartY = finalY3 + 18;
+      if (finalY3 > 240) {
+        doc.addPage();
+        doc.setFillColor(130, 0, 94);
+        doc.rect(0, 0, pageWidth, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.text('PE 16.03 - Continuación', pageWidth / 2, 8, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        trasladoStartY = 24;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(130, 0, 94);
+      doc.text('TRASLADOS REGISTRADOS', 14, trasladoStartY - 4);
+
+      const trasladosData = traslados1603.map(t => [
+        format(parseISO(t.fecha_traslado), 'dd/MM/yyyy'),
+        t.base_origen,
+        t.base_destino,
+        t.observaciones || '-',
+      ]);
+
+      autoTable(doc, {
+        startY: trasladoStartY,
+        head: [['Fecha Traslado', 'Base Origen', 'Base Destino', 'Observaciones']],
+        body: trasladosData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3, lineColor: [152, 153, 155], lineWidth: 0.5 },
+        bodyStyles: { textColor: [30, 41, 59] },
+        columnStyles: { 3: { cellWidth: 70 } },
+      });
+    }
+
     // Footer
     const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {

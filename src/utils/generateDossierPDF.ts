@@ -13,6 +13,7 @@ const CARD_BG: [number, number, number] = [248, 250, 252];
 const GREEN: [number, number, number] = [34, 197, 94];
 const YELLOW: [number, number, number] = [234, 179, 8];
 const RED: [number, number, number] = [239, 68, 68];
+const BLUE: [number, number, number] = [59, 130, 246];
 
 const PAGE_HEADER_H = 14;
 
