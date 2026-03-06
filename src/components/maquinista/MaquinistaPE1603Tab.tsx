@@ -104,11 +104,13 @@ export function MaquinistaPE1603Tab({
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [editingActuacion, setEditingActuacion] = useState<any>(null);
+  const [basesActivas, setBasesActivas] = useState<{ id: string; nombre: string }[]>([]);
   
   // Transfer form state
   const [trasladoFecha, setTrasladoFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [trasladoBaseOrigen, setTrasladoBaseOrigen] = useState(maquinista.base);
   const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
+  const [trasladoBaseDestinoOtra, setTrasladoBaseDestinoOtra] = useState('');
   const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
   
   // Form state
