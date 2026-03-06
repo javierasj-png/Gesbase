@@ -1739,7 +1739,10 @@ export function MaquinistaPE1603Tab({
 
             <div className="space-y-2">
               <Label>Base de origen *</Label>
-              <Select value={trasladoBaseOrigen} onValueChange={setTrasladoBaseOrigen}>
+              <Select value={trasladoBaseOrigen} onValueChange={(v) => {
+                setTrasladoBaseOrigen(v);
+                if (v !== '__otra__') setTrasladoBaseOrigenOtra('');
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar base de origen" />
                 </SelectTrigger>
@@ -1747,8 +1750,17 @@ export function MaquinistaPE1603Tab({
                   {basesActivas.map(b => (
                     <SelectItem key={b.id} value={b.nombre}>{b.nombre}</SelectItem>
                   ))}
+                  <SelectItem value="__otra__">Otra (no GESBASE)</SelectItem>
                 </SelectContent>
               </Select>
+              {trasladoBaseOrigen === '__otra__' && (
+                <Input
+                  value={trasladoBaseOrigenOtra}
+                  onChange={(e) => setTrasladoBaseOrigenOtra(e.target.value)}
+                  placeholder="Nombre de la base externa"
+                  className="mt-2"
+                />
+              )}
             </div>
 
             <div className="space-y-2">
