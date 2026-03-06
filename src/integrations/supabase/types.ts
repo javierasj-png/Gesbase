@@ -640,9 +640,11 @@ export type Database = {
           fin_ventana: string | null
           id: string
           inicio_ventana: string | null
+          justificado_traslado: boolean | null
           mes: number
           orden: number | null
           tipo: string
+          traslado_id: string | null
         }
         Insert: {
           actuacion_id?: string | null
@@ -653,9 +655,11 @@ export type Database = {
           fin_ventana?: string | null
           id?: string
           inicio_ventana?: string | null
+          justificado_traslado?: boolean | null
           mes: number
           orden?: number | null
           tipo: string
+          traslado_id?: string | null
         }
         Update: {
           actuacion_id?: string | null
@@ -666,9 +670,11 @@ export type Database = {
           fin_ventana?: string | null
           id?: string
           inicio_ventana?: string | null
+          justificado_traslado?: boolean | null
           mes?: number
           orden?: number | null
           tipo?: string
+          traslado_id?: string | null
         }
         Relationships: [
           {
@@ -683,6 +689,13 @@ export type Database = {
             columns: ["expediente_id"]
             isOneToOne: false
             referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_1603_traslado_id_fkey"
+            columns: ["traslado_id"]
+            isOneToOne: false
+            referencedRelation: "traslados_1603"
             referencedColumns: ["id"]
           },
         ]
@@ -719,6 +732,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      traslados_1603: {
+        Row: {
+          base_destino: string
+          base_origen: string
+          created_at: string
+          expediente_id: string
+          fecha_traslado: string
+          id: string
+          observaciones: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          base_destino: string
+          base_origen: string
+          created_at?: string
+          expediente_id: string
+          fecha_traslado: string
+          id?: string
+          observaciones?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          base_destino?: string
+          base_origen?: string
+          created_at?: string
+          expediente_id?: string
+          fecha_traslado?: string
+          id?: string
+          observaciones?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traslados_1603_expediente_id_fkey"
+            columns: ["expediente_id"]
+            isOneToOne: false
+            referencedRelation: "expedientes_1603"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
