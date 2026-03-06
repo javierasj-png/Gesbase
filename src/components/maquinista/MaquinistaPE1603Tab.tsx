@@ -1490,6 +1490,103 @@ export function MaquinistaPE1603Tab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Registrar Traslado */}
+      <Dialog open={trasladoOpen} onOpenChange={setTrasladoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+              Registrar Traslado
+            </DialogTitle>
+            <DialogDescription>
+              Registra un traslado de base. Las actuaciones vencidas hasta la fecha del traslado quedarán justificadas y no penalizarán en la auditoría.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Fecha del traslado *</Label>
+              <Input
+                type="date"
+                value={trasladoFecha}
+                onChange={(e) => setTrasladoFecha(e.target.value)}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Base de origen *</Label>
+              <Input
+                value={trasladoBaseOrigen}
+                onChange={(e) => setTrasladoBaseOrigen(e.target.value)}
+                placeholder="Base de origen"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Base de destino *</Label>
+              <Input
+                value={trasladoBaseDestino}
+                onChange={(e) => setTrasladoBaseDestino(e.target.value)}
+                placeholder="Base de destino"
+              />
+            </div>
+
+            {/* Preview of blocks that will be justified */}
+            {trasladoFecha && (() => {
+              const trasladoDate = parseISO(trasladoFecha);
+              const bloquesAJustificar = plan1603.filter(b => {
+                if (b.actuacion_id || b.justificado_traslado) return false;
+                if (!b.fin_ventana) return false;
+                const fin = parseISO(b.fin_ventana);
+                return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+              });
+
+              return bloquesAJustificar.length > 0 ? (
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShieldCheck className="w-4 h-4 text-blue-500" />
+                    <span className="font-medium text-sm">{bloquesAJustificar.length} bloque(s) se justificarán</span>
+                  </div>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    {bloquesAJustificar.map(b => (
+                      <li key={b.id}>• {tipoLabels[b.tipo]} - {b.etiqueta || `Mes ${b.mes}`}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground">No hay bloques vencidos que justificar para esta fecha.</p>
+                </div>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <Label>Observaciones <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Textarea
+                value={trasladoObservaciones}
+                onChange={(e) => setTrasladoObservaciones(e.target.value)}
+                placeholder="Motivo del traslado, circunstancias..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTrasladoOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleRegistrarTraslado} 
+              disabled={saving || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino}
+            >
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Registrar Traslado
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
