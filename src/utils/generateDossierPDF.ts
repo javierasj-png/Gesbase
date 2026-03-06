@@ -114,6 +114,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   const [
     { data: plans1603 },
     { data: acts1603 },
+    { data: traslados1603 },
     { data: plans1201 },
     { data: acts1201 },
   ] = await Promise.all([
@@ -122,6 +123,9 @@ export async function generateDossierPDF(maquinistaId: string) {
       : Promise.resolve({ data: [] }),
     exp1603Ids.length > 0
       ? supabase.from('actuaciones_1603').select('*').in('expediente_id', exp1603Ids).order('fecha_real')
+      : Promise.resolve({ data: [] }),
+    exp1603Ids.length > 0
+      ? supabase.from('traslados_1603').select('*').in('expediente_id', exp1603Ids).order('fecha_traslado')
       : Promise.resolve({ data: [] }),
     exp1201Ids.length > 0
       ? supabase.from('plan_1201').select('*').in('expediente_id', exp1201Ids).order('dia_desde_origen')
