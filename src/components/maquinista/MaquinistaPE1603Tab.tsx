@@ -46,7 +46,9 @@ import {
   User,
   CalendarClock,
   Pencil,
-  Trash2
+  Trash2,
+  ArrowRightLeft,
+  ShieldCheck
 } from 'lucide-react';
 import { format, addMonths, parseISO, isAfter, isBefore, addYears } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,7 +58,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Expediente1603Detail, 
   PlanBloque1603, 
-  TipoActuacion1603 
+  TipoActuacion1603,
+  Traslado1603 
 } from '@/hooks/useMaquinistaDetail';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -71,6 +74,7 @@ interface MaquinistaPE1603TabProps {
   };
   expediente1603: Expediente1603Detail | null;
   plan1603: PlanBloque1603[];
+  traslados1603: Traslado1603[];
   onRefetch: () => void;
 }
 
