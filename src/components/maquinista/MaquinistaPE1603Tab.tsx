@@ -639,7 +639,7 @@ export function MaquinistaPE1603Tab({
         .from('traslados_1603')
         .update({
           fecha_traslado: trasladoFecha,
-          base_origen: trasladoBaseOrigen,
+          base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
         })
@@ -689,6 +689,7 @@ export function MaquinistaPE1603Tab({
       setTrasladoOpen(false);
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
       setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
       setTrasladoBaseDestinoOtra('');
       setTrasladoObservaciones('');
@@ -1704,7 +1705,8 @@ export function MaquinistaPE1603Tab({
         if (!open) {
           setEditingTraslado(null);
           setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
-          setTrasladoBaseOrigen(maquinista.base);
+           setTrasladoBaseOrigen(maquinista.base);
+           setTrasladoBaseOrigenOtra('');
           setTrasladoBaseDestino('');
           setTrasladoBaseDestinoOtra('');
           setTrasladoObservaciones('');
