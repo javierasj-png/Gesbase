@@ -609,8 +609,122 @@ export function MaquinistaPE1603Tab({
       setSaving(false);
     }
   };
+  // Handle edit traslado - open modal prefilled
+  const handleEditTraslado = (traslado: Traslado1603) => {
+    setEditingTraslado(traslado);
+    setTrasladoFecha(traslado.fecha_traslado);
+    setTrasladoBaseOrigen(traslado.base_origen);
+    const isGesbase = basesActivas.some(b => b.nombre === traslado.base_destino);
+    setTrasladoBaseDestino(isGesbase ? traslado.base_destino : '__otra__');
+    setTrasladoBaseDestinoOtra(isGesbase ? '' : traslado.base_destino);
+    setTrasladoObservaciones(traslado.observaciones || '');
+    setTrasladoOpen(true);
+  };
 
-  const handleBlockClick = async (bloque: PlanBloque1603) => {
+  // Handle update existing traslado
+  const handleUpdateTraslado = async () => {
+    if (!editingTraslado || !trasladoFecha || !trasladoBaseOrigen) return;
+    const baseDestinoFinal = trasladoBaseDestino === '__otra__' ? trasladoBaseDestinoOtra : trasladoBaseDestino;
+    if (!baseDestinoFinal) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('traslados_1603')
+        .update({
+          fecha_traslado: trasladoFecha,
+          base_origen: trasladoBaseOrigen,
+          base_destino: baseDestinoFinal,
+          observaciones: trasladoObservaciones || null,
+        })
+        .eq('id', editingTraslado.id);
+
+      if (error) throw error;
+
+      // Re-justify: first un-justify all blocks linked to this traslado
+      await supabase
+        .from('plan_1603')
+        .update({ justificado_traslado: false, traslado_id: null })
+        .eq('traslado_id', editingTraslado.id);
+
+      // Then re-justify blocks overdue at the new transfer date
+      const trasladoDate = parseISO(trasladoFecha);
+      const bloquesVencidos = plan1603.filter(b => {
+        if (b.actuacion_id) return false;
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      });
+
+      // Filter out blocks already justified by OTHER traslados
+      const bloquesParaJustificar = bloquesVencidos.filter(b => 
+        !b.justificado_traslado || b.traslado_id === editingTraslado.id
+      );
+
+      if (bloquesParaJustificar.length > 0) {
+        await supabase
+          .from('plan_1603')
+          .update({ justificado_traslado: true, traslado_id: editingTraslado.id })
+          .in('id', bloquesParaJustificar.map(b => b.id));
+      }
+
+      // Update maquinista base if destination is a GESBASE base
+      const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
+      if (esBaseGesbase) {
+        await supabase
+          .from('maquinistas')
+          .update({ base: baseDestinoFinal })
+          .eq('id', maquinista.id);
+      }
+
+      toast({ title: 'Traslado actualizado', description: 'Los datos del traslado se han modificado correctamente' });
+
+      setEditingTraslado(null);
+      setTrasladoOpen(false);
+      setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoBaseOrigen(maquinista.base);
+      setTrasladoBaseDestino('');
+      setTrasladoBaseDestinoOtra('');
+      setTrasladoObservaciones('');
+      onRefetch();
+    } catch (err) {
+      console.error('Error updating traslado:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el traslado' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle delete traslado
+  const handleDeleteTraslado = async (trasladoId: string) => {
+    setSaving(true);
+    try {
+      // 1. Un-justify all blocks linked to this traslado
+      await supabase
+        .from('plan_1603')
+        .update({ justificado_traslado: false, traslado_id: null })
+        .eq('traslado_id', trasladoId);
+
+      // 2. Delete the traslado record
+      const { error } = await supabase
+        .from('traslados_1603')
+        .delete()
+        .eq('id', trasladoId);
+
+      if (error) throw error;
+
+      toast({ title: 'Traslado eliminado', description: 'Los bloques justificados han sido restaurados' });
+      setDeletingTrasladoId(null);
+      onRefetch();
+    } catch (err) {
+      console.error('Error deleting traslado:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el traslado' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
     if (!puedeEditar) return;
     if (!bloque.actuacion_id) return; // Only editable if has actuacion
     
