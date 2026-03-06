@@ -526,7 +526,10 @@ export function MaquinistaPE1603Tab({
 
   // Handle registrar traslado
   const handleRegistrarTraslado = async () => {
-    if (!expediente1603 || !trasladoFecha || !trasladoBaseOrigen || !trasladoBaseDestino) return;
+    const baseDestinoFinal = trasladoBaseDestino === '__otra__' ? trasladoBaseDestinoOtra : trasladoBaseDestino;
+    if (!expediente1603 || !trasladoFecha || !trasladoBaseOrigen || !baseDestinoFinal) return;
+
+    const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
 
     setSaving(true);
     try {
@@ -537,7 +540,7 @@ export function MaquinistaPE1603Tab({
           expediente_id: expediente1603.id,
           fecha_traslado: trasladoFecha,
           base_origen: trasladoBaseOrigen,
-          base_destino: trasladoBaseDestino,
+          base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
           registrado_por: user?.id ?? null,
         })
@@ -567,15 +570,28 @@ export function MaquinistaPE1603Tab({
         if (updateError) throw updateError;
       }
 
+      // 3. Update maquinista base to destination (if it's a GESBASE base)
+      if (esBaseGesbase) {
+        const { error: baseError } = await supabase
+          .from('maquinistas')
+          .update({ base: baseDestinoFinal })
+          .eq('id', maquinista.id);
+
+        if (baseError) throw baseError;
+      }
+
       toast({
         title: 'Traslado registrado',
-        description: `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
+        description: esBaseGesbase
+          ? `Base actualizada a ${baseDestinoFinal}. ${bloquesVencidos.length} bloque(s) justificado(s).`
+          : `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
       });
 
       // Reset form and close
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
       setTrasladoBaseOrigen(maquinista.base);
       setTrasladoBaseDestino('');
+      setTrasladoBaseDestinoOtra('');
       setTrasladoObservaciones('');
       setTrasladoOpen(false);
       
