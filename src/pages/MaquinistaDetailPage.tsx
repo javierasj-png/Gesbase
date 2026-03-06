@@ -30,7 +30,7 @@ export default function MaquinistaDetailPage() {
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const { toast } = useToast();
 
-  const { maquinista, expediente1603, plan1603, loading, error, refetch } = useMaquinistaDetail(id);
+  const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
 
   // Loading state
   if (loading) {
@@ -151,6 +151,7 @@ export default function MaquinistaDetailPage() {
               }}
               expediente1603={expediente1603}
               plan1603={plan1603}
+              traslados1603={traslados1603}
               onRefetch={refetch}
             />
           </TabsContent>
