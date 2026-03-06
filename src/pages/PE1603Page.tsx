@@ -172,7 +172,7 @@ export default function PE1603Page() {
                           <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              Inicio: {format(new Date(expediente.fecha_inicio), 'dd/MM/yyyy')}
+                              Inicio: {format(new Date(expediente.fecha_primer_servicio || expediente.fecha_inicio), 'dd/MM/yyyy')}
                             </span>
                             {fechaFinPrevista && (
                               <>

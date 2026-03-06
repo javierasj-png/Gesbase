@@ -856,7 +856,7 @@ export function MaquinistaPE1603Tab({
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     const fechaFinStr = fechaFinPrevista ? format(fechaFinPrevista, 'dd/MM/yyyy') : 'N/A';
-    doc.text(`Período: ${format(parseISO(expediente1603.fecha_inicio), 'dd/MM/yyyy')} - ${fechaFinStr}`, 20, 94);
+    doc.text(`Período: ${format(parseISO(expediente1603.fecha_primer_servicio || expediente1603.fecha_inicio), 'dd/MM/yyyy')} - ${fechaFinStr}`, 20, 94);
     
     // Estado badge
     const estadoLabel = expediente1603.estado === 'abierto' ? 'Activo' : 'Cerrado';
@@ -1130,7 +1130,7 @@ export function MaquinistaPE1603Tab({
             <div>
               <CardTitle className="text-base">Expediente PE 16.03</CardTitle>
               <CardDescription>
-                Inicio: {format(new Date(expediente1603.fecha_inicio), 'dd/MM/yyyy')} • 
+                Inicio: {format(new Date(expediente1603.fecha_primer_servicio || expediente1603.fecha_inicio), 'dd/MM/yyyy')} • 
                 Fin previsto: {fechaFinPrevista ? format(fechaFinPrevista, 'dd/MM/yyyy') : 'N/A'}
               </CardDescription>
             </div>
