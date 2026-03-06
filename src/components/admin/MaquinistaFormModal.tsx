@@ -221,8 +221,33 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
             </p>
           </div>
 
-          {/* PE 16.03 */}
+          {/* Fecha primer servicio + PE 16.03 */}
           <div className="border-t pt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fechaPrimerServicio">Fecha primer servicio en producción</Label>
+              <Input
+                id="fechaPrimerServicio"
+                type="date"
+                value={formData.fechaPrimerServicio}
+                onChange={(e) => {
+                  const fecha = e.target.value;
+                  let autoPE1603 = formData.bajoPE1603;
+                  if (fecha) {
+                    const threeYearsAgo = new Date();
+                    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+                    autoPE1603 = new Date(fecha) >= threeYearsAgo;
+                  } else {
+                    autoPE1603 = false;
+                  }
+                  setFormData({ ...formData, fechaPrimerServicio: fecha, bajoPE1603: autoPE1603 });
+                }}
+                max={format(new Date(), 'yyyy-MM-dd')}
+              />
+              <p className="text-xs text-muted-foreground">
+                Si está dentro de los últimos 3 años, se activa automáticamente PE 16.03
+              </p>
+            </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="bajoPE1603" className="font-medium">Bajo PE 16.03</Label>
@@ -231,24 +256,15 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
               <Switch
                 id="bajoPE1603"
                 checked={formData.bajoPE1603}
-                onCheckedChange={(checked) => setFormData({ ...formData, bajoPE1603: checked, fechaPrimerServicio: checked ? formData.fechaPrimerServicio : '' })}
+                onCheckedChange={(checked) => setFormData({ ...formData, bajoPE1603: checked })}
+                disabled={!formData.fechaPrimerServicio}
               />
             </div>
 
             {formData.bajoPE1603 && (
-              <div className="space-y-2">
-                <Label htmlFor="fechaPrimerServicio">Fecha primer servicio en producción *</Label>
-                <Input
-                  id="fechaPrimerServicio"
-                  type="date"
-                  value={formData.fechaPrimerServicio}
-                  onChange={(e) => setFormData({ ...formData, fechaPrimerServicio: e.target.value })}
-                  max={format(new Date(), 'yyyy-MM-dd')}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Se generará el plan de vigilancia de 3 años desde esta fecha
-                </p>
-              </div>
+              <p className="text-xs text-primary font-medium">
+                ✓ Se generará el plan de vigilancia de 3 años desde la fecha indicada
+              </p>
             )}
           </div>
 
