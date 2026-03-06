@@ -109,6 +109,7 @@ export function MaquinistaPE1603Tab({
   // Transfer form state
   const [trasladoFecha, setTrasladoFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [trasladoBaseOrigen, setTrasladoBaseOrigen] = useState(maquinista.base);
+  const [trasladoBaseOrigenOtra, setTrasladoBaseOrigenOtra] = useState('');
   const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
   const [trasladoBaseDestinoOtra, setTrasladoBaseDestinoOtra] = useState('');
   const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
