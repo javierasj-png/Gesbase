@@ -1304,6 +1304,7 @@ export function MaquinistaPE1603Tab({
                 variant="outline"
                 onClick={() => {
                   setTrasladoBaseOrigen(maquinista.base);
+                  setTrasladoBaseOrigenOtra('');
                   setTrasladoOpen(true);
                 }}
               >
