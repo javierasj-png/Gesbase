@@ -116,6 +116,24 @@ Analiza el documento y:
 
 Responde siempre en español. Sé conciso y práctico. Usa formato markdown con tablas cuando sea útil. Si no conoces un dato concreto de la base de datos, indica al usuario dónde encontrarlo en la aplicación.`;
 
+function createSseMessageResponse(message: string) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      const payload = JSON.stringify({
+        choices: [{ delta: { content: message } }],
+      });
+      controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -125,8 +143,20 @@ serve(async (req) => {
     const { messages } = await req.json();
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    const response = await fetch(
+    const requestMessages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...messages,
+    ];
+
+    const geminiPayload = {
+      model: "gemini-2.0-flash-lite",
+      messages: requestMessages,
+      stream: true,
+    };
+
+    let response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       {
         method: "POST",
@@ -134,36 +164,44 @@ serve(async (req) => {
           Authorization: `Bearer ${GEMINI_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "gemini-2.0-flash-lite",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            ...messages,
-          ],
-          stream: true,
-        }),
+        body: JSON.stringify(geminiPayload),
       }
     );
 
+    if (!response.ok && response.status === 429 && LOVABLE_API_KEY) {
+      const geminiErrorBody = await response.text();
+      console.error("Gemini API error:", response.status, geminiErrorBody);
+      console.warn("Gemini con cuota agotada, usando fallback Lovable AI...");
+
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: requestMessages,
+          stream: true,
+        }),
+      });
+    }
+
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error("Gemini API error:", response.status, errorBody);
+      console.error("AI provider error:", response.status, errorBody);
+
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Cuota de Gemini agotada. Inténtalo más tarde o revisa tu plan en Google AI Studio." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createSseMessageResponse("⚠️ Servicio de IA temporalmente limitado. Reinténtalo en 1 minuto.");
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos de IA agotados. Contacta con el administrador." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createSseMessageResponse("⚠️ El proveedor de respaldo no tiene créditos disponibles ahora mismo.");
       }
-      return new Response(
-        JSON.stringify({ error: "Error del servicio de IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (response.status === 401 || response.status === 403) {
+        return createSseMessageResponse("⚠️ La API key de Gemini no es válida o no tiene permisos.");
+      }
+
+      return createSseMessageResponse("⚠️ Ha ocurrido un error en el servicio de IA. Inténtalo de nuevo.");
     }
 
     return new Response(response.body, {
@@ -171,9 +209,6 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("chat-gesbase error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Error desconocido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createSseMessageResponse("⚠️ Error interno del asistente. Inténtalo de nuevo en unos segundos.");
   }
 });
