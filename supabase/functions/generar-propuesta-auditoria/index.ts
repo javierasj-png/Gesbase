@@ -199,7 +199,7 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.0-flash",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 10000,
       }),
