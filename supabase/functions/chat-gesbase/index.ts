@@ -146,9 +146,11 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Gemini API error:", response.status, errorBody);
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Demasiadas solicitudes, inténtalo de nuevo en unos segundos." }),
+          JSON.stringify({ error: "Cuota de Gemini agotada. Inténtalo más tarde o revisa tu plan en Google AI Studio." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -158,8 +160,6 @@ serve(async (req) => {
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
       return new Response(
         JSON.stringify({ error: "Error del servicio de IA" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
