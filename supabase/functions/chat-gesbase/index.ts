@@ -116,6 +116,24 @@ Analiza el documento y:
 
 Responde siempre en español. Sé conciso y práctico. Usa formato markdown con tablas cuando sea útil. Si no conoces un dato concreto de la base de datos, indica al usuario dónde encontrarlo en la aplicación.`;
 
+function createSseMessageResponse(message: string) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      const payload = JSON.stringify({
+        choices: [{ delta: { content: message } }],
+      });
+      controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -174,28 +192,16 @@ serve(async (req) => {
       console.error("AI provider error:", response.status, errorBody);
 
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Servicio de IA temporalmente limitado. Reinténtalo en unos segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createSseMessageResponse("⚠️ Servicio de IA temporalmente limitado. Reinténtalo en 1 minuto.");
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "El proveedor de respaldo no tiene créditos disponibles." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createSseMessageResponse("⚠️ El proveedor de respaldo no tiene créditos disponibles ahora mismo.");
       }
       if (response.status === 401 || response.status === 403) {
-        return new Response(
-          JSON.stringify({ error: "La API key de Gemini no es válida o no tiene permisos." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createSseMessageResponse("⚠️ La API key de Gemini no es válida o no tiene permisos.");
       }
 
-      return new Response(
-        JSON.stringify({ error: "Error del servicio de IA" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createSseMessageResponse("⚠️ Ha ocurrido un error en el servicio de IA. Inténtalo de nuevo.");
     }
 
     return new Response(response.body, {
@@ -203,9 +209,6 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("chat-gesbase error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Error desconocido" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createSseMessageResponse("⚠️ Error interno del asistente. Inténtalo de nuevo en unos segundos.");
   }
 });
