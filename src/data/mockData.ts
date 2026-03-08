@@ -261,8 +261,8 @@ export function asignarCertificacionAMaquinista(
 export const plantilla1603Mock: Plantilla1603[] = [
   // ACOMPAÑAMIENTOS (5 bloques)
   { id: 'pl1', tipo: 'Acompañamiento', etiqueta: 'Primera Quincena', orden: 1, offsetInicioDias: 0, offsetFinDias: 15 },
-  { id: 'pl2', tipo: 'Acompañamiento', etiqueta: 'Primer Trimestre', orden: 2, offsetInicioDias: 16, offsetFinDias: 90 },
-  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: 'Primer Semestre', orden: 3, offsetInicioDias: 91, offsetFinDias: 182 },
+  { id: 'pl2', tipo: 'Acompañamiento', etiqueta: 'Primer Trimestre', orden: 2, offsetInicioDias: 0, offsetFinDias: 90 },
+  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: 'Primer Semestre', orden: 3, offsetInicioDias: 0, offsetFinDias: 182 },
   { id: 'pl4', tipo: 'Acompañamiento', etiqueta: 'Segundo Semestre', orden: 4, offsetInicioDias: 183, offsetFinDias: 365 },
   { id: 'pl5', tipo: 'Acompañamiento', etiqueta: 'Tercer Semestre', orden: 5, offsetInicioDias: 366, offsetFinDias: 547 },
   
