@@ -192,16 +192,19 @@ serve(async (req) => {
     const base64 = btoa(binary);
     const mimeType = fileData.type || "application/pdf";
 
-    console.log("Enviando documento a IA para análisis de auditoría...");
+    console.log("Enviando documento a Groq para análisis de auditoría...");
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // Groq vision model supports base64 images
+    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.0-flash",
+        model: "llama-3.2-90b-vision-preview",
         messages: [
           {
             role: "user",
@@ -217,6 +220,34 @@ serve(async (req) => {
         max_tokens: 8000,
       }),
     });
+
+    // Fallback to Lovable AI on 429
+    if (response.status === 429 && LOVABLE_API_KEY) {
+      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: ANALYSIS_PROMPT },
+                {
+                  type: "image_url",
+                  image_url: { url: `data:${mimeType};base64,${base64}` },
+                },
+              ],
+            },
+          ],
+          max_tokens: 8000,
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

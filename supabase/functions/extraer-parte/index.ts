@@ -224,25 +224,43 @@ serve(async (req) => {
       );
     }
 
-    console.log("Enviando documento a Lovable AI para extracción...");
+    console.log("Enviando documento a Groq para extracción...");
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // Use vision model for images, text model for extracted PDF text
+    const hasImageContent = messageContent.some((c: any) => c.type === "image_url");
+    const groqModel = hasImageContent ? "llama-3.2-90b-vision-preview" : "llama-3.3-70b-versatile";
+
+    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gemini-2.0-flash",
-        messages: [
-          {
-            role: "user",
-            content: messageContent
-          }
-        ],
+        model: groqModel,
+        messages: [{ role: "user", content: messageContent }],
         max_tokens: 4000,
       }),
     });
+
+    // Fallback to Lovable AI on 429
+    if (response.status === 429 && LOVABLE_API_KEY) {
+      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: messageContent }],
+          max_tokens: 4000,
+        }),
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
