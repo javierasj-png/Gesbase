@@ -23,8 +23,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada");
 
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -193,18 +193,17 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
     console.log("Generando propuesta de auditoría con IA...");
 
     const aiMessages = [{ role: "user", content: prompt }];
-    const aiBody = JSON.stringify({ model: "gemini-2.0-flash", messages: aiMessages, max_tokens: 10000 });
 
-    // Try Gemini first
-    let response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    // Primary: Groq
+    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
-      body: aiBody,
+      headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: aiMessages, max_tokens: 10000 }),
     });
 
     // Fallback to Lovable AI on 429
     if (response.status === 429) {
-      console.warn("Gemini cuota agotada, usando fallback Lovable AI...");
+      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
         response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
