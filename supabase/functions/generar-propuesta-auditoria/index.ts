@@ -193,13 +193,12 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
     console.log("Generando propuesta de auditoría con IA...");
 
     const aiMessages = [{ role: "user", content: prompt }];
-    const aiBody = JSON.stringify({ model: "gemini-2.0-flash", messages: aiMessages, max_tokens: 10000 });
 
-    // Try Gemini first
-    let response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    // Primary: Groq
+    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
-      body: aiBody,
+      headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: aiMessages, max_tokens: 10000 }),
     });
 
     // Fallback to Lovable AI on 429
