@@ -203,7 +203,7 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
 
     // Fallback to Lovable AI on 429
     if (response.status === 429) {
-      console.warn("Gemini cuota agotada, usando fallback Lovable AI...");
+      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
         response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

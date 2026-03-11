@@ -141,8 +141,8 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY no configurada");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const requestMessages = [
@@ -150,29 +150,23 @@ serve(async (req) => {
       ...messages,
     ];
 
-    const geminiPayload = {
-      model: "gemini-2.0-flash-lite",
-      messages: requestMessages,
-      stream: true,
-    };
+    // Primary: Groq
+    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: requestMessages,
+        stream: true,
+      }),
+    });
 
-    let response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${GEMINI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(geminiPayload),
-      }
-    );
-
+    // Fallback to Lovable AI on 429
     if (!response.ok && response.status === 429 && LOVABLE_API_KEY) {
-      const geminiErrorBody = await response.text();
-      console.error("Gemini API error:", response.status, geminiErrorBody);
-      console.warn("Gemini con cuota agotada, usando fallback Lovable AI...");
-
+      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -198,7 +192,7 @@ serve(async (req) => {
         return createSseMessageResponse("⚠️ El proveedor de respaldo no tiene créditos disponibles ahora mismo.");
       }
       if (response.status === 401 || response.status === 403) {
-        return createSseMessageResponse("⚠️ La API key de Gemini no es válida o no tiene permisos.");
+        return createSseMessageResponse("⚠️ La API key no es válida o no tiene permisos.");
       }
 
       return createSseMessageResponse("⚠️ Ha ocurrido un error en el servicio de IA. Inténtalo de nuevo.");
