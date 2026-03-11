@@ -36,8 +36,16 @@ export function exportMarkdownToDoc(markdown: string, filename: string) {
           xmlns="http://www.w3.org/TR/REC-html40">
     <head>
       <meta charset="utf-8">
+      <!--[if gte mso 9]>
+      <xml>
+        <w:WordDocument>
+          <w:View>Print</w:View>
+        </w:WordDocument>
+      </xml>
+      <![endif]-->
       <style>
-        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; margin: 2cm; }
+        @page { margin: 1.5cm 1.5cm 1.5cm 1.5cm; size: A4; }
+        body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; margin: 0; padding: 0; }
         h1 { font-size: 18pt; color: #1a1a2e; border-bottom: 2px solid #1a1a2e; padding-bottom: 4pt; }
         h2 { font-size: 14pt; color: #16213e; margin-top: 16pt; }
         h3 { font-size: 12pt; color: #0f3460; margin-top: 12pt; }
@@ -46,6 +54,9 @@ export function exportMarkdownToDoc(markdown: string, filename: string) {
         li { margin-bottom: 4pt; }
         hr { border: none; border-top: 1px solid #ccc; margin: 12pt 0; }
         p { margin: 6pt 0; }
+        table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+        th, td { border: 1px solid #ccc; padding: 4pt 6pt; font-size: 10pt; text-align: left; }
+        th { background-color: #f0f0f0; font-weight: bold; }
       </style>
     </head>
     <body>${htmlBody}</body>
