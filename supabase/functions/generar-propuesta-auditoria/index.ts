@@ -192,18 +192,28 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
 
     console.log("Generando propuesta de auditoría con IA...");
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    const aiMessages = [{ role: "user", content: prompt }];
+    const aiBody = JSON.stringify({ model: "gemini-2.0-flash", messages: aiMessages, max_tokens: 10000 });
+
+    // Try Gemini first
+    let response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${GEMINI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gemini-2.0-flash",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 10000,
-      }),
+      headers: { Authorization: `Bearer ${GEMINI_API_KEY}`, "Content-Type": "application/json" },
+      body: aiBody,
     });
+
+    // Fallback to Lovable AI on 429
+    if (response.status === 429) {
+      console.warn("Gemini cuota agotada, usando fallback Lovable AI...");
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: aiMessages, max_tokens: 10000 }),
+        });
+      }
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -214,7 +224,7 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
+        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes. Añade créditos en Settings → Workspace → Usage." }), {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
