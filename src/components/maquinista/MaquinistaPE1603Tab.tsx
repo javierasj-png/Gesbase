@@ -1035,7 +1035,7 @@ export function MaquinistaPE1603Tab({
 
       autoTable(doc, {
         startY: trasladoStartY,
-        head: [['Fecha Traslado', 'Base Origen', 'Base Destino', 'Observaciones']],
+        head: [['Fecha 1er turno nueva residencia', 'Base Origen', 'Base Destino', 'Observaciones']],
         body: trasladosData,
         theme: 'grid',
         headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -1729,7 +1729,7 @@ export function MaquinistaPE1603Tab({
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Fecha del traslado *</Label>
+              <Label>Fecha primer turno en nueva residencia *</Label>
               <Input
                 type="date"
                 value={trasladoFecha}
