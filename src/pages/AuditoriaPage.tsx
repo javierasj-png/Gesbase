@@ -508,10 +508,12 @@ export default function AuditoriaPage() {
                       <TableRow>
                         <TableHead>Base</TableHead>
                         <TableHead className="text-center">Maquinistas</TableHead>
-                        <TableHead className="text-center">PE 16.03 Activos</TableHead>
-                        <TableHead className="text-center">% Cumplimiento</TableHead>
-                        <TableHead className="text-center">PE 12.01 Activos</TableHead>
-                        <TableHead className="text-center">% Cumplimiento</TableHead>
+                        <TableHead className="text-center">PE 16.03</TableHead>
+                        <TableHead className="text-center">% 16.03</TableHead>
+                        <TableHead className="text-center">PE 12.01</TableHead>
+                        <TableHead className="text-center">% 12.01</TableHead>
+                        <TableHead className="text-center">Plan Anual</TableHead>
+                        <TableHead className="text-center">Drogas</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -526,6 +528,12 @@ export default function AuditoriaPage() {
                           <TableCell className="text-center">{row.pe1201Activos}</TableCell>
                           <TableCell className="text-center">
                             {getCumplimientoBadge(row.pe1201Cumplimiento)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getCumplimientoBadge(row.planAnualPorcentaje)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getCumplimientoBadge(row.coberturaDrogas)}
                           </TableCell>
                         </TableRow>
                       ))}
