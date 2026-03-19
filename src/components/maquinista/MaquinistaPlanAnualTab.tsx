@@ -86,11 +86,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
       const km = kmRecorridos ? parseFloat(kmRecorridos.replace(',', '.')) : null;
       const prever = indicePrever ? parseFloat(indicePrever.replace(',', '.')) : null;
 
-      if (needsKm && km !== null && km < 100) {
-        toast({ title: 'Km insuficientes', description: 'El mínimo requerido es 100 km.', variant: 'destructive' });
-        setSaving(false);
-        return;
-      }
+      // No minimum per-action validation — 100km is cumulative across the year
 
       const { error } = await supabase
         .from('actuaciones_plan_anual')
@@ -305,7 +301,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                 <div className="flex items-center gap-2">
                   {criterio.requerido > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      {criterio.cumplido}/{criterio.requerido}
+                      {criterio.tipo === 'registro' ? `${criterio.cumplido} km / ${criterio.requerido} km` : `${criterio.cumplido}/${criterio.requerido}`}
                     </Badge>
                   )}
                   {criterio.tipo === 'drogas' && criterio.cumplido > 0 && (

@@ -226,21 +226,18 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
     for (const red of redes) {
       const redLabel = red === 'av' ? 'AV' : 'Convencional';
 
-      // Registro per network
+      // Registro per network — 100km is cumulative across all registros in the year
       const registrosRed = allActuaciones.filter(
         a => a.tipo === 'registro' && (a.red === red || (a.source === 'pe1603' && a.red === null))
       );
-      // For plan_anual registros, check km >= 100
-      const registrosValidos = registrosRed.filter(a =>
-        a.source === 'pe1603' || (a.km_recorridos !== null && a.km_recorridos >= 100)
-      );
+      const kmTotalRed = registrosRed.reduce((sum, a) => sum + (a.km_recorridos ?? 0), 0);
       result.push({
-        criterio: `Registro ${redLabel} (≥100 km)`,
+        criterio: `Registro ${redLabel} (≥100 km acumulados)`,
         tipo: 'registro',
         red,
-        requerido: 1,
-        cumplido: registrosValidos.length,
-        cumple: registrosValidos.length >= 1,
+        requerido: 100,
+        cumplido: kmTotalRed,
+        cumple: kmTotalRed >= 100,
         actuaciones: registrosRed,
       });
 
