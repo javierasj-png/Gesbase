@@ -1,0 +1,1 @@
+ALTER TABLE public.actuaciones_1603 ADD COLUMN km_recorridos numeric NULL;
