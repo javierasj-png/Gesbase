@@ -78,6 +78,17 @@ interface MaquinistaPE1603TabProps {
   onRefetch: () => void;
 }
 
+interface Actuacion1603 {
+  id: string;
+  expediente_id: string;
+  tipo: TipoActuacion1603;
+  fecha_real: string;
+  indice_prever: number | null;
+  observaciones: string | null;
+  resultado: string | null;
+  created_at: string | null;
+}
+
 // Map lowercase types to display labels
 const tipoLabels: Record<TipoActuacion1603, string> = {
   'acompanamiento': 'Acompañamiento',
@@ -103,7 +114,8 @@ export function MaquinistaPE1603Tab({
   const [trasladoOpen, setTrasladoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [editingActuacion, setEditingActuacion] = useState<any>(null);
+  const [editingActuacion, setEditingActuacion] = useState<Actuacion1603 | null>(null);
+  const [actuacionesRegistradas, setActuacionesRegistradas] = useState<Actuacion1603[]>([]);
   const [basesActivas, setBasesActivas] = useState<{ id: string; nombre: string }[]>([]);
   
   // Transfer form state
@@ -134,6 +146,16 @@ export function MaquinistaPE1603Tab({
     return val;
   };
 
+  const getActuacionSignature = (actuacion: Pick<Actuacion1603, 'tipo' | 'fecha_real' | 'indice_prever' | 'observaciones' | 'resultado'>) => {
+    return [
+      actuacion.tipo,
+      actuacion.fecha_real,
+      actuacion.indice_prever ?? '',
+      (actuacion.observaciones ?? '').trim(),
+      (actuacion.resultado ?? '').trim(),
+    ].join('|');
+  };
+
   // Fetch active bases for transfer selector
   useEffect(() => {
     const fetchBases = async () => {
@@ -146,6 +168,31 @@ export function MaquinistaPE1603Tab({
     };
     fetchBases();
   }, []);
+
+  useEffect(() => {
+    const fetchActuaciones = async () => {
+      if (!expediente1603?.id) {
+        setActuacionesRegistradas([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('actuaciones_1603')
+        .select('id, expediente_id, tipo, fecha_real, indice_prever, observaciones, resultado, created_at')
+        .eq('expediente_id', expediente1603.id)
+        .order('fecha_real', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading actuaciones_1603:', error);
+        return;
+      }
+
+      setActuacionesRegistradas((data ?? []) as Actuacion1603[]);
+    };
+
+    fetchActuaciones();
+  }, [expediente1603?.id]);
 
   // Check if expediente is closed
   const expedienteCerrado = expediente1603?.estado === 'cerrado';
