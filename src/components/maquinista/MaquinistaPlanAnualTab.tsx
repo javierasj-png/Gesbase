@@ -301,7 +301,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                 <div className="flex items-center gap-2">
                   {criterio.requerido > 0 && (
                     <Badge variant="outline" className="text-xs">
-                      {criterio.cumplido}/{criterio.requerido}
+                      {criterio.tipo === 'registro' ? `${criterio.cumplido} km / ${criterio.requerido} km` : `${criterio.cumplido}/${criterio.requerido}`}
                     </Badge>
                   )}
                   {criterio.tipo === 'drogas' && criterio.cumplido > 0 && (
