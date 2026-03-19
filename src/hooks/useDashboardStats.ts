@@ -26,6 +26,12 @@ interface DashboardStats {
   pe1201AccionesVencidas: number;
   pe1201AccionesPendientes: number;
   pe1201PorcentajeCumplimiento: number;
+  
+  // Plan de Acción Anual
+  planAnualMaquinistasCumplen: number;
+  planAnualTotalEvaluados: number;
+  planAnualPorcentaje: number;
+  planAnualCoberturaDrogas: number;
 }
 
 const initialStats: DashboardStats = {
