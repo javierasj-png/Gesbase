@@ -318,6 +318,22 @@ export function BasesManagement() {
                 maxLength={10}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="redes">Redes</Label>
+              <Select
+                value={formData.redes}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, redes: value }))}
+              >
+                <SelectTrigger id="redes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="convencional">Convencional</SelectItem>
+                  <SelectItem value="av">Alta Velocidad (AV)</SelectItem>
+                  <SelectItem value="ambas">Ambas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>
