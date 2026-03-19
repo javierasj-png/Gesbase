@@ -410,11 +410,6 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
         </Card>
       )}
 
-      {/* Register button */}
-      <Button variant="outline" onClick={() => { resetForm(); setRegistrarOpen(true); }}>
-        <Plus className="w-4 h-4 mr-2" />
-        Registrar Actuación
-      </Button>
 
       {/* Modal Registrar */}
       <Dialog open={registrarOpen} onOpenChange={setRegistrarOpen}>
