@@ -22,6 +22,7 @@ interface BaseConduccion {
   id: string;
   nombre: string;
   codigo: string | null;
+  redes: string;
   activa: boolean;
   created_at: string;
 }
