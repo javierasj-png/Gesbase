@@ -84,6 +84,7 @@ interface Actuacion1603 {
   tipo: TipoActuacion1603;
   fecha_real: string;
   indice_prever: number | null;
+  km_recorridos: number | null;
   observaciones: string | null;
   resultado: string | null;
   created_at: string | null;
@@ -133,6 +134,7 @@ export function MaquinistaPE1603Tab({
   const [selectedMes, setSelectedMes] = useState<number | null>(null);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [indicePrever, setIndicePrever] = useState('');
+  const [kmRecorridos, setKmRecorridos] = useState('');
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
@@ -178,7 +180,7 @@ export function MaquinistaPE1603Tab({
 
       const { data, error } = await supabase
         .from('actuaciones_1603')
-        .select('id, expediente_id, tipo, fecha_real, indice_prever, observaciones, resultado, created_at')
+        .select('id, expediente_id, tipo, fecha_real, indice_prever, km_recorridos, observaciones, resultado, created_at')
         .eq('expediente_id', expediente1603.id)
         .order('fecha_real', { ascending: false })
         .order('created_at', { ascending: false });
@@ -365,6 +367,7 @@ export function MaquinistaPE1603Tab({
       }
 
       // 1. Create actuacion
+      const kmValue = kmRecorridos.trim() ? parseFloat(kmRecorridos.replace(',', '.')) : null;
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1603')
         .insert({
@@ -373,6 +376,7 @@ export function MaquinistaPE1603Tab({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
           indice_prever: indicePreverValue,
+          km_recorridos: selectedTipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
           registrado_por: user?.id ?? null,
         })
@@ -404,6 +408,7 @@ export function MaquinistaPE1603Tab({
       setSelectedMes(null);
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
       setIndicePrever('');
+      setKmRecorridos('');
       setResultado('');
       setObservaciones('');
       setRegistrarOpen(false);
@@ -505,12 +510,14 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const kmValue = kmRecorridos.trim() ? parseFloat(kmRecorridos.replace(',', '.')) : null;
       const { error } = await supabase
         .from('actuaciones_1603')
         .update({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
           indice_prever: indicePreverValue,
+          km_recorridos: editingActuacion.tipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
         })
         .eq('id', editingActuacion.id);
@@ -528,6 +535,7 @@ export function MaquinistaPE1603Tab({
       setSelectedMes(null);
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
       setIndicePrever('');
+      setKmRecorridos('');
       setResultado('');
       setObservaciones('');
       setEditarOpen(false);
@@ -588,6 +596,7 @@ export function MaquinistaPE1603Tab({
       setSelectedMes(null);
       setFechaActuacion(format(new Date(), 'yyyy-MM-dd'));
       setIndicePrever('');
+      setKmRecorridos('');
       setResultado('');
       setObservaciones('');
       setEditarOpen(false);
@@ -612,6 +621,7 @@ export function MaquinistaPE1603Tab({
     setSelectedMes(null);
     setFechaActuacion(actuacion.fecha_real);
     setIndicePrever(actuacion.indice_prever?.toString() || '');
+    setKmRecorridos(actuacion.km_recorridos?.toString() || '');
     setObservaciones(actuacion.observaciones || '');
     setResultado(actuacion.resultado || '');
     setEditarOpen(true);
@@ -1628,6 +1638,20 @@ export function MaquinistaPE1603Tab({
               </div>
             )}
 
+            {/* Km recorridos (solo para registro) */}
+            {selectedTipo === 'registro' && (
+              <div className="space-y-2">
+                <Label>Km analizados <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Input
+                  type="text"
+                  value={kmRecorridos}
+                  onChange={(e) => setKmRecorridos(e.target.value)}
+                  placeholder="Ej: 45"
+                />
+                <p className="text-xs text-muted-foreground">Suma para el criterio de 100 km del Plan de Acción Anual</p>
+              </div>
+            )}
+
             {/* Índice PREVER (opcional) */}
             <div className="space-y-2">
               <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
@@ -1773,6 +1797,20 @@ export function MaquinistaPE1603Tab({
                 max={format(new Date(), 'yyyy-MM-dd')}
               />
             </div>
+
+            {/* Km recorridos (solo para registro) */}
+            {selectedTipo === 'registro' && (
+              <div className="space-y-2">
+                <Label>Km analizados <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Input
+                  type="text"
+                  value={kmRecorridos}
+                  onChange={(e) => setKmRecorridos(e.target.value)}
+                  placeholder="Ej: 45"
+                />
+                <p className="text-xs text-muted-foreground">Suma para el criterio de 100 km del Plan de Acción Anual</p>
+              </div>
+            )}
 
             {/* Índice PREVER (opcional) */}
             <div className="space-y-2">

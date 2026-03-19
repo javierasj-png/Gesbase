@@ -119,7 +119,7 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
           tipo: a.tipo as TipoActuacionPlanAnual,
           red: null, // PE 16.03 doesn't track per-network
           fecha_real: a.fecha_real || '',
-          km_recorridos: null,
+          km_recorridos: a.km_recorridos ? Number(a.km_recorridos) : null,
           indice_prever: a.indice_prever ? Number(a.indice_prever) : null,
           resultado: a.resultado,
           observaciones: a.observaciones,
