@@ -109,6 +109,7 @@ export function BasesManagement() {
           .insert({
             nombre: formData.nombre.trim(),
             codigo: formData.codigo.trim() || null,
+            redes: formData.redes,
           });
 
         if (error) throw error;
