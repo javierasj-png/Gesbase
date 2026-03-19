@@ -509,12 +509,14 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const kmValue = kmRecorridos.trim() ? parseFloat(kmRecorridos.replace(',', '.')) : null;
       const { error } = await supabase
         .from('actuaciones_1603')
         .update({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
           indice_prever: indicePreverValue,
+          km_recorridos: editingActuacion.tipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
         })
         .eq('id', editingActuacion.id);
