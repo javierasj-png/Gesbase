@@ -1729,7 +1729,7 @@ export function MaquinistaPE1603Tab({
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Fecha del traslado *</Label>
+              <Label>Fecha primer turno en nueva residencia *</Label>
               <Input
                 type="date"
                 value={trasladoFecha}
