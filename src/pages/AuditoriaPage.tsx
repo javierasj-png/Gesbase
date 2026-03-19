@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils';
 import type { Parte } from '@/types/partes';
 import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
 import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
-import { format, subMonths } from 'date-fns';
+import { format, subMonths, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
