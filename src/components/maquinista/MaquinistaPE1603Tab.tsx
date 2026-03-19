@@ -618,6 +618,7 @@ export function MaquinistaPE1603Tab({
     setSelectedMes(null);
     setFechaActuacion(actuacion.fecha_real);
     setIndicePrever(actuacion.indice_prever?.toString() || '');
+    setKmRecorridos(actuacion.km_recorridos?.toString() || '');
     setObservaciones(actuacion.observaciones || '');
     setResultado(actuacion.resultado || '');
     setEditarOpen(true);
