@@ -84,6 +84,7 @@ interface Actuacion1603 {
   tipo: TipoActuacion1603;
   fecha_real: string;
   indice_prever: number | null;
+  km_recorridos: number | null;
   observaciones: string | null;
   resultado: string | null;
   created_at: string | null;
