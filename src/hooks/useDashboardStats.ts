@@ -50,6 +50,10 @@ const initialStats: DashboardStats = {
   pe1201AccionesVencidas: 0,
   pe1201AccionesPendientes: 0,
   pe1201PorcentajeCumplimiento: 0,
+  planAnualMaquinistasCumplen: 0,
+  planAnualTotalEvaluados: 0,
+  planAnualPorcentaje: 0,
+  planAnualCoberturaDrogas: 0,
 };
 
 export function useDashboardStats(baseFilter?: string) {
