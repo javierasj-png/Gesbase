@@ -981,10 +981,22 @@ export function MaquinistaPE1603Tab({
       doc.setTextColor(130, 0, 94);
       doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
-      // Deduplicate actuaciones by id to avoid repeated entries
-      const uniqueActuaciones = actuaciones.filter((a, index, self) =>
-        index === self.findIndex(t => t.id === a.id)
-      );
+      // Deduplicate actuaciones by business signature to avoid repeated entries in the PDF
+      const uniqueActuaciones = actuaciones.filter((a, index, self) => {
+        const signature = [
+          a.tipo,
+          a.fecha_real,
+          a.indice_prever ?? '',
+          (a.observaciones ?? '').trim(),
+        ].join('|');
+
+        return index === self.findIndex(item => [
+          item.tipo,
+          item.fecha_real,
+          item.indice_prever ?? '',
+          (item.observaciones ?? '').trim(),
+        ].join('|') === signature);
+      });
 
       const actuacionesData = uniqueActuaciones.map(a => {
         return [
