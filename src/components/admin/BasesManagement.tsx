@@ -244,6 +244,11 @@ export function BasesManagement() {
                       <td className="p-3 text-sm text-muted-foreground font-mono">
                         {base.codigo || '-'}
                       </td>
+                      <td className="p-3 text-sm">
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted">
+                          {base.redes === 'ambas' ? 'Conv. + AV' : base.redes === 'av' ? 'AV' : 'Convencional'}
+                        </span>
+                      </td>
                       <td className="p-3">
                         <Switch
                           checked={base.activa}
