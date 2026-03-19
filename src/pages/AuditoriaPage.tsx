@@ -186,6 +186,87 @@ export default function AuditoriaPage() {
 
         const certTotal = maqCerts?.filter(c => c.obtenida).length || 0;
 
+        // Plan de Acción Anual
+        const currentYear = new Date().getFullYear();
+        const yearStart = `${currentYear}-01-01`;
+        const yearEnd = `${currentYear}-12-31`;
+
+        // Get base redes
+        const { data: baseInfo } = await supabase
+          .from('bases_conduccion')
+          .select('redes')
+          .eq('nombre', baseNombre)
+          .maybeSingle();
+        const baseRedes = baseInfo?.redes === 'ambas' ? ['convencional', 'av'] : baseInfo?.redes === 'av' ? ['av'] : ['convencional'];
+
+        // Plan anual actuaciones
+        const { data: planAnualActs } = await supabase
+          .from('actuaciones_plan_anual')
+          .select('maquinista_id, tipo, red, km_recorridos')
+          .in('maquinista_id', maqIds)
+          .eq('anio', currentYear);
+
+        // PE 16.03 actuaciones for plan anual
+        const { data: exps1603All } = await supabase
+          .from('expedientes_1603')
+          .select('id, maquinista_id')
+          .in('maquinista_id', maqIds);
+
+        let acts1603ForPlan: { expediente_id: string; tipo: string; km_recorridos: number | null }[] = [];
+        const expMaqMap = new Map<string, string>();
+        if (exps1603All && exps1603All.length > 0) {
+          exps1603All.forEach(e => expMaqMap.set(e.id, e.maquinista_id));
+          const { data: a1603 } = await supabase
+            .from('actuaciones_1603')
+            .select('expediente_id, tipo, km_recorridos')
+            .in('expediente_id', exps1603All.map(e => e.id))
+            .gte('fecha_real', yearStart)
+            .lte('fecha_real', yearEnd);
+          acts1603ForPlan = a1603 || [];
+        }
+
+        // PE 12.01 reciente (3 años)
+        const threeYearsAgo = `${currentYear - 3}-01-01`;
+        const { data: recientes1201 } = await supabase
+          .from('expedientes_1201')
+          .select('maquinista_id')
+          .in('maquinista_id', maqIds)
+          .gte('fecha_primer_servicio', threeYearsAgo);
+        const maqsCon1201 = new Set((recientes1201 || []).map(e => e.maquinista_id));
+
+        // Drug coverage
+        const maqsConDrogas = new Set<string>();
+        (planAnualActs || []).filter(a => a.tipo === 'drogas').forEach(a => maqsConDrogas.add(a.maquinista_id));
+        acts1603ForPlan.filter(a => a.tipo === 'drogas').forEach(a => {
+          const mid = expMaqMap.get(a.expediente_id);
+          if (mid) maqsConDrogas.add(mid);
+        });
+        const coberturaDrogas = maqIds.length > 0 ? Math.round((maqsConDrogas.size / maqIds.length) * 100) : 0;
+
+        // Per-maquinista evaluation
+        let planAnualCumplen = 0;
+        for (const maqId of maqIds) {
+          const acompReq = maqsCon1201.has(maqId) ? 2 : 1;
+          const maqPlan = (planAnualActs || []).filter(a => a.maquinista_id === maqId);
+          const maq1603 = acts1603ForPlan.filter(a => expMaqMap.get(a.expediente_id) === maqId);
+          const allActs = [
+            ...maqPlan.map(a => ({ tipo: a.tipo, red: a.red, km: a.km_recorridos ? Number(a.km_recorridos) : 0, src: 'plan' })),
+            ...maq1603.map(a => ({ tipo: a.tipo, red: null as string | null, km: a.km_recorridos ? Number(a.km_recorridos) : 0, src: 'pe1603' })),
+          ];
+
+          let cumple = true;
+          for (const red of baseRedes) {
+            const regs = allActs.filter(a => a.tipo === 'registro' && (a.red === red || (a.src === 'pe1603' && a.red === null)));
+            if (regs.reduce((s, a) => s + a.km, 0) < 100) cumple = false;
+            const acomps = allActs.filter(a => a.tipo === 'acompanamiento' && (a.red === red || (a.src === 'pe1603' && a.red === null)));
+            if (acomps.length < acompReq) cumple = false;
+          }
+          if (allActs.filter(a => a.tipo === 'alcohol').length < 1) cumple = false;
+          if (cumple) planAnualCumplen++;
+        }
+
+        const planAnualPorcentaje = maqIds.length > 0 ? Math.round((planAnualCumplen / maqIds.length) * 100) : 0;
+
         results.push({
           base: baseNombre,
           maquinistas: maqIds.length,
@@ -194,7 +275,10 @@ export default function AuditoriaPage() {
           pe1201Activos: exp1201?.length || 0,
           pe1201Cumplimiento,
           certVigentes: certTotal,
-          certTotal
+          certTotal,
+          planAnualCumplen,
+          planAnualPorcentaje,
+          coberturaDrogas,
         });
       }
 
