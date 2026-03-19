@@ -65,10 +65,10 @@ export function BasesManagement() {
   const handleOpenDialog = (base?: BaseConduccion) => {
     if (base) {
       setEditingBase(base);
-      setFormData({ nombre: base.nombre, codigo: base.codigo || '' });
+      setFormData({ nombre: base.nombre, codigo: base.codigo || '', redes: base.redes || 'convencional' });
     } else {
       setEditingBase(null);
-      setFormData({ nombre: '', codigo: '' });
+      setFormData({ nombre: '', codigo: '', redes: 'convencional' });
     }
     setDialogOpen(true);
   };
