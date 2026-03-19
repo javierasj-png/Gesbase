@@ -266,6 +266,116 @@ export function useDashboardStats(baseFilter?: string) {
               }
             }
           }
+          // 5. PLAN DE ACCIÓN ANUAL
+          const currentYear = new Date().getFullYear();
+          const yearStart = `${currentYear}-01-01`;
+          const yearEnd = `${currentYear}-12-31`;
+
+          // Get base redes config for each base
+          const { data: basesConduccion } = await supabase
+            .from('bases_conduccion')
+            .select('nombre, redes')
+            .in('nombre', [...new Set(maqsFiltrados.map(m => m.base))]);
+
+          const baseRedesMap = new Map<string, string[]>();
+          for (const b of basesConduccion || []) {
+            const r = b.redes === 'ambas' ? ['convencional', 'av'] : b.redes === 'av' ? ['av'] : ['convencional'];
+            baseRedesMap.set(b.nombre, r);
+          }
+
+          // Fetch all plan_anual actuaciones for filtered maquinistas in current year
+          const { data: allPlanAnual } = await supabase
+            .from('actuaciones_plan_anual')
+            .select('maquinista_id, tipo, red, km_recorridos')
+            .in('maquinista_id', maqIds)
+            .eq('anio', currentYear);
+
+          // Fetch all 1603 actuaciones in current year for filtered maquinistas
+          const { data: allExp1603ForPlan } = await supabase
+            .from('expedientes_1603')
+            .select('id, maquinista_id')
+            .in('maquinista_id', maqIds);
+
+          let all1603ActsForPlan: { expediente_id: string; tipo: string; km_recorridos: number | null }[] = [];
+          if (allExp1603ForPlan && allExp1603ForPlan.length > 0) {
+            const expIds1603Plan = allExp1603ForPlan.map(e => e.id);
+            const { data: acts1603Plan } = await supabase
+              .from('actuaciones_1603')
+              .select('expediente_id, tipo, km_recorridos')
+              .in('expediente_id', expIds1603Plan)
+              .gte('fecha_real', yearStart)
+              .lte('fecha_real', yearEnd);
+            all1603ActsForPlan = acts1603Plan || [];
+          }
+
+          // Map expediente_id -> maquinista_id
+          const expToMaqMap = new Map<string, string>();
+          (allExp1603ForPlan || []).forEach(e => expToMaqMap.set(e.id, e.maquinista_id));
+
+          // Check PE 12.01 in last 3 years per maquinista
+          const threeYearsAgo = `${currentYear - 3}-01-01`;
+          const { data: recientes1201 } = await supabase
+            .from('expedientes_1201')
+            .select('maquinista_id')
+            .in('maquinista_id', maqIds)
+            .gte('fecha_primer_servicio', threeYearsAgo);
+          const maqsCon1201Reciente = new Set((recientes1201 || []).map(e => e.maquinista_id));
+
+          // Drug coverage per base
+          const maqsConDrogas = new Set<string>();
+          (allPlanAnual || []).filter(a => a.tipo === 'drogas').forEach(a => maqsConDrogas.add(a.maquinista_id));
+          all1603ActsForPlan.filter(a => a.tipo === 'drogas').forEach(a => {
+            const maqId = expToMaqMap.get(a.expediente_id);
+            if (maqId) maqsConDrogas.add(maqId);
+          });
+
+          const totalActivosBase = maqsFiltrados.filter(m => m.activo).length;
+          const coberturaDrogas = totalActivosBase > 0 ? Math.round((maqsConDrogas.size / totalActivosBase) * 100) : 0;
+          newStats.planAnualCoberturaDrogas = coberturaDrogas;
+
+          // Evaluate per maquinista
+          let totalEvaluados = 0;
+          let maquinistasCumplen = 0;
+
+          for (const maq of maqsFiltrados.filter(m => m.activo)) {
+            const maqRedes = baseRedesMap.get(maq.base) || ['convencional'];
+            const acompRequeridos = maqsCon1201Reciente.has(maq.id) ? 2 : 1;
+
+            // Gather actuaciones for this maquinista
+            const planActs = (allPlanAnual || []).filter(a => a.maquinista_id === maq.id);
+            const pe1603Acts = all1603ActsForPlan
+              .filter(a => expToMaqMap.get(a.expediente_id) === maq.id)
+              .map(a => ({ ...a, red: null as string | null, source: 'pe1603' }));
+
+            const allActs = [
+              ...planActs.map(a => ({ tipo: a.tipo, red: a.red, km_recorridos: a.km_recorridos ? Number(a.km_recorridos) : null, source: 'plan_anual' })),
+              ...pe1603Acts.map(a => ({ tipo: a.tipo, red: a.red, km_recorridos: a.km_recorridos ? Number(a.km_recorridos) : null, source: a.source })),
+            ];
+
+            let cumpleTodo = true;
+            totalEvaluados++;
+
+            for (const red of maqRedes) {
+              // Registro: 100km cumulative
+              const registros = allActs.filter(a => a.tipo === 'registro' && (a.red === red || (a.source === 'pe1603' && a.red === null)));
+              const kmTotal = registros.reduce((sum, a) => sum + (a.km_recorridos ?? 0), 0);
+              if (kmTotal < 100) cumpleTodo = false;
+
+              // Acompañamiento
+              const acomps = allActs.filter(a => a.tipo === 'acompanamiento' && (a.red === red || (a.source === 'pe1603' && a.red === null)));
+              if (acomps.length < acompRequeridos) cumpleTodo = false;
+            }
+
+            // Alcohol
+            const alcohols = allActs.filter(a => a.tipo === 'alcohol');
+            if (alcohols.length < 1) cumpleTodo = false;
+
+            if (cumpleTodo) maquinistasCumplen++;
+          }
+
+          newStats.planAnualTotalEvaluados = totalEvaluados;
+          newStats.planAnualMaquinistasCumplen = maquinistasCumplen;
+          newStats.planAnualPorcentaje = totalEvaluados > 0 ? Math.round((maquinistasCumplen / totalEvaluados) * 100) : 0;
         }
       }
 
