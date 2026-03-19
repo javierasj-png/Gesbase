@@ -981,7 +981,12 @@ export function MaquinistaPE1603Tab({
       doc.setTextColor(130, 0, 94);
       doc.text('ACTUACIONES REGISTRADAS', 14, tableStartY - 4);
 
-      const actuacionesData = actuaciones.map(a => {
+      // Deduplicate actuaciones by id to avoid repeated entries
+      const uniqueActuaciones = actuaciones.filter((a, index, self) =>
+        index === self.findIndex(t => t.id === a.id)
+      );
+
+      const actuacionesData = uniqueActuaciones.map(a => {
         return [
           tipoLabels[a.tipo as TipoActuacion1603] || a.tipo,
           format(parseISO(a.fecha_real), 'dd/MM/yyyy'),
