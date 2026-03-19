@@ -1795,6 +1795,20 @@ export function MaquinistaPE1603Tab({
               />
             </div>
 
+            {/* Km recorridos (solo para registro) */}
+            {selectedTipo === 'registro' && (
+              <div className="space-y-2">
+                <Label>Km analizados <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Input
+                  type="text"
+                  value={kmRecorridos}
+                  onChange={(e) => setKmRecorridos(e.target.value)}
+                  placeholder="Ej: 45"
+                />
+                <p className="text-xs text-muted-foreground">Suma para el criterio de 100 km del Plan de Acción Anual</p>
+              </div>
+            )}
+
             {/* Índice PREVER (opcional) */}
             <div className="space-y-2">
               <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
