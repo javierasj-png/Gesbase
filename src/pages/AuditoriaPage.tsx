@@ -446,6 +446,21 @@ export default function AuditoriaPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
+                      <p className="text-sm text-muted-foreground">Maquinistas Activos</p>
+                      <p className="text-2xl font-bold">
+                        {cumplimientoData?.reduce((acc, c) => acc + c.maquinistas, 0) || 0}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
                       <p className="text-sm text-muted-foreground">Expedientes PE 16.03</p>
                       <p className="text-2xl font-bold">
                         {cumplimientoData?.reduce((acc, c) => acc + c.pe1603Activos, 0) || 0}
@@ -468,21 +483,6 @@ export default function AuditoriaPage() {
                     </div>
                     <div className="p-3 rounded-full bg-destructive/10">
                       <AlertTriangle className="w-5 h-5 text-destructive" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Maquinistas Activos</p>
-                      <p className="text-2xl font-bold">
-                        {cumplimientoData?.reduce((acc, c) => acc + c.maquinistas, 0) || 0}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
