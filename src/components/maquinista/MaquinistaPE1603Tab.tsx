@@ -849,7 +849,7 @@ export function MaquinistaPE1603Tab({
       
       if (error) throw error;
       if (actuacion) {
-        openEditModal(actuacion, bloque.tipo);
+        openEditModal(actuacion as Actuacion1603, bloque.tipo);
       }
     } catch (err) {
       console.error('Error loading actuacion:', err);
