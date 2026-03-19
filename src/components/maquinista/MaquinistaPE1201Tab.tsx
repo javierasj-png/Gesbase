@@ -919,32 +919,6 @@ export function MaquinistaPE1201Tab({
             </div>
           )}
 
-          {/* Action buttons */}
-          {puedeEditar && (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  resetForm();
-                  setRegistrarOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar Actuación
-              </Button>
-              
-              {!expedienteCerrado && (
-                <Button 
-                  variant="default"
-                  onClick={() => setCerrarOpen(true)}
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Cierre Manual
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
