@@ -367,6 +367,7 @@ export function MaquinistaPE1603Tab({
       }
 
       // 1. Create actuacion
+      const kmValue = kmRecorridos.trim() ? parseFloat(kmRecorridos.replace(',', '.')) : null;
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1603')
         .insert({
@@ -375,6 +376,7 @@ export function MaquinistaPE1603Tab({
           fecha_real: fechaActuacion,
           resultado: resultado || null,
           indice_prever: indicePreverValue,
+          km_recorridos: selectedTipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
           registrado_por: user?.id ?? null,
         })
