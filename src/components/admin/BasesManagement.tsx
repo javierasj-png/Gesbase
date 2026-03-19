@@ -230,10 +230,11 @@ export function BasesManagement() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-medium text-sm">Nombre</th>
-                    <th className="text-left p-3 font-medium text-sm">Código</th>
-                    <th className="text-left p-3 font-medium text-sm">Estado</th>
-                    <th className="text-left p-3 font-medium text-sm">Acciones</th>
+                     <th className="text-left p-3 font-medium text-sm">Nombre</th>
+                     <th className="text-left p-3 font-medium text-sm">Código</th>
+                     <th className="text-left p-3 font-medium text-sm">Redes</th>
+                     <th className="text-left p-3 font-medium text-sm">Estado</th>
+                     <th className="text-left p-3 font-medium text-sm">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
