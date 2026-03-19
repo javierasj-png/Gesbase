@@ -1396,6 +1396,51 @@ export function MaquinistaPE1603Tab({
             </div>
           )}
 
+          {/* Actuaciones registradas */}
+          {actuacionesRegistradas.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Actuaciones registradas</p>
+              <div className="space-y-2">
+                {actuacionesRegistradas.map((actuacion) => (
+                  <div key={actuacion.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium">{tipoLabels[actuacion.tipo]}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span>{format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy')}</span>
+                        {actuacion.indice_prever !== null && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span>PREVER {actuacion.indice_prever}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        {actuacion.observaciones ? <span>{actuacion.observaciones}</span> : <span>Sin observaciones</span>}
+                        {actuacion.resultado && (
+                          <>
+                            <span>•</span>
+                            <span>Resultado: {actuacion.resultado}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {puedeEditar && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => openEditModal(actuacion, actuacion.tipo)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Action buttons */}
           {puedeEditar && (
             <div className="grid grid-cols-3 gap-2">
