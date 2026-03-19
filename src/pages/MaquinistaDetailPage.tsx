@@ -123,6 +123,10 @@ export default function MaquinistaDetailPage() {
               <Train className="w-4 h-4" />
               Certificaciones
             </TabsTrigger>
+            <TabsTrigger value="plan-anual" className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" />
+              Plan Anual
+            </TabsTrigger>
             <TabsTrigger value="pe1603" className="flex items-center gap-2">
               <FileCheck className="w-4 h-4" />
               PE 16.03
@@ -130,10 +134,6 @@ export default function MaquinistaDetailPage() {
             <TabsTrigger value="pe1201" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               PE 12.01
-            </TabsTrigger>
-            <TabsTrigger value="plan-anual" className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4" />
-              Plan Anual
             </TabsTrigger>
           </TabsList>
 
