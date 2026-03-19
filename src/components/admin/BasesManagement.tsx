@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -21,6 +22,7 @@ interface BaseConduccion {
   id: string;
   nombre: string;
   codigo: string | null;
+  redes: string;
   activa: boolean;
   created_at: string;
 }
@@ -32,7 +34,7 @@ export function BasesManagement() {
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
-  const [formData, setFormData] = useState({ nombre: '', codigo: '' });
+  const [formData, setFormData] = useState({ nombre: '', codigo: '', redes: 'convencional' });
 
   useEffect(() => {
     fetchBases();
@@ -63,10 +65,10 @@ export function BasesManagement() {
   const handleOpenDialog = (base?: BaseConduccion) => {
     if (base) {
       setEditingBase(base);
-      setFormData({ nombre: base.nombre, codigo: base.codigo || '' });
+      setFormData({ nombre: base.nombre, codigo: base.codigo || '', redes: base.redes || 'convencional' });
     } else {
       setEditingBase(null);
-      setFormData({ nombre: '', codigo: '' });
+      setFormData({ nombre: '', codigo: '', redes: 'convencional' });
     }
     setDialogOpen(true);
   };
@@ -90,6 +92,7 @@ export function BasesManagement() {
           .update({
             nombre: formData.nombre.trim(),
             codigo: formData.codigo.trim() || null,
+            redes: formData.redes,
           })
           .eq('id', editingBase.id);
 
@@ -106,6 +109,7 @@ export function BasesManagement() {
           .insert({
             nombre: formData.nombre.trim(),
             codigo: formData.codigo.trim() || null,
+            redes: formData.redes,
           });
 
         if (error) throw error;
@@ -226,10 +230,11 @@ export function BasesManagement() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-3 font-medium text-sm">Nombre</th>
-                    <th className="text-left p-3 font-medium text-sm">Código</th>
-                    <th className="text-left p-3 font-medium text-sm">Estado</th>
-                    <th className="text-left p-3 font-medium text-sm">Acciones</th>
+                     <th className="text-left p-3 font-medium text-sm">Nombre</th>
+                     <th className="text-left p-3 font-medium text-sm">Código</th>
+                     <th className="text-left p-3 font-medium text-sm">Redes</th>
+                     <th className="text-left p-3 font-medium text-sm">Estado</th>
+                     <th className="text-left p-3 font-medium text-sm">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -238,6 +243,11 @@ export function BasesManagement() {
                       <td className="p-3 text-sm font-medium">{base.nombre}</td>
                       <td className="p-3 text-sm text-muted-foreground font-mono">
                         {base.codigo || '-'}
+                      </td>
+                      <td className="p-3 text-sm">
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted">
+                          {base.redes === 'ambas' ? 'Conv. + AV' : base.redes === 'av' ? 'AV' : 'Convencional'}
+                        </span>
                       </td>
                       <td className="p-3">
                         <Switch
@@ -307,6 +317,22 @@ export function BasesManagement() {
                 placeholder="Ej: MLG"
                 maxLength={10}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="redes">Redes</Label>
+              <Select
+                value={formData.redes}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, redes: value }))}
+              >
+                <SelectTrigger id="redes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="convencional">Convencional</SelectItem>
+                  <SelectItem value="av">Alta Velocidad (AV)</SelectItem>
+                  <SelectItem value="ambas">Ambas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
