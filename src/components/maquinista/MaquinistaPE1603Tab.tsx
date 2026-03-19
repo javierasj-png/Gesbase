@@ -343,6 +343,27 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const duplicateSignature = getActuacionSignature({
+        tipo: selectedTipo,
+        fecha_real: fechaActuacion,
+        indice_prever: indicePreverValue,
+        observaciones: observaciones || null,
+        resultado: resultado || null,
+      });
+
+      const existingDuplicate = actuacionesRegistradas.find(
+        (actuacion) => getActuacionSignature(actuacion) === duplicateSignature
+      );
+
+      if (existingDuplicate) {
+        toast({
+          title: 'Actuación duplicada',
+          description: 'Ya existe una actuación igual registrada en esta ficha.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // 1. Create actuacion
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1603')
@@ -375,7 +396,7 @@ export function MaquinistaPE1603Tab({
 
       toast({
         title: 'Actuación registrada',
-        description: `${tipoLabels[selectedTipo]} - Semestre ${selectedMes} marcado como cumplido`,
+        description: `${tipoLabels[selectedTipo]} registrada correctamente`,
       });
 
       // Reset form and close
@@ -463,6 +484,27 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const duplicateSignature = getActuacionSignature({
+        tipo: editingActuacion.tipo,
+        fecha_real: fechaActuacion,
+        indice_prever: indicePreverValue,
+        observaciones: observaciones || null,
+        resultado: resultado || null,
+      });
+
+      const existingDuplicate = actuacionesRegistradas.find(
+        (actuacion) => actuacion.id !== editingActuacion.id && getActuacionSignature(actuacion) === duplicateSignature
+      );
+
+      if (existingDuplicate) {
+        toast({
+          title: 'Actuación duplicada',
+          description: 'Ya existe otra actuación con esos mismos datos en esta ficha.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('actuaciones_1603')
         .update({
@@ -522,7 +564,7 @@ export function MaquinistaPE1603Tab({
       // Primero desvincular del plan_1603
       const { error: unlinkError } = await supabase
         .from('plan_1603')
-        .update({ actuacion_id: null })
+        .update({ actuacion_id: null, estado: 'pendiente' })
         .eq('actuacion_id', editingActuacion.id);
 
       if (unlinkError) throw unlinkError;
@@ -564,9 +606,10 @@ export function MaquinistaPE1603Tab({
     }
   };
 
-  const openEditModal = (actuacion: any, tipo: TipoActuacion1603) => {
+  const openEditModal = (actuacion: Actuacion1603, tipo: TipoActuacion1603) => {
     setEditingActuacion(actuacion);
     setSelectedTipo(tipo);
+    setSelectedMes(null);
     setFechaActuacion(actuacion.fecha_real);
     setIndicePrever(actuacion.indice_prever?.toString() || '');
     setObservaciones(actuacion.observaciones || '');
