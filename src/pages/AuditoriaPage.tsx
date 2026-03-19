@@ -60,6 +60,9 @@ interface CumplimientoBase {
   pe1201Cumplimiento: number;
   certVigentes: number;
   certTotal: number;
+  planAnualCumplen: number;
+  planAnualPorcentaje: number;
+  coberturaDrogas: number;
 }
 
 const tipoColors: Record<string, string> = {
