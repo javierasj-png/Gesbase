@@ -78,6 +78,17 @@ interface MaquinistaPE1603TabProps {
   onRefetch: () => void;
 }
 
+interface Actuacion1603 {
+  id: string;
+  expediente_id: string;
+  tipo: TipoActuacion1603;
+  fecha_real: string;
+  indice_prever: number | null;
+  observaciones: string | null;
+  resultado: string | null;
+  created_at: string | null;
+}
+
 // Map lowercase types to display labels
 const tipoLabels: Record<TipoActuacion1603, string> = {
   'acompanamiento': 'Acompañamiento',
@@ -103,7 +114,8 @@ export function MaquinistaPE1603Tab({
   const [trasladoOpen, setTrasladoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [editingActuacion, setEditingActuacion] = useState<any>(null);
+  const [editingActuacion, setEditingActuacion] = useState<Actuacion1603 | null>(null);
+  const [actuacionesRegistradas, setActuacionesRegistradas] = useState<Actuacion1603[]>([]);
   const [basesActivas, setBasesActivas] = useState<{ id: string; nombre: string }[]>([]);
   
   // Transfer form state
@@ -134,6 +146,16 @@ export function MaquinistaPE1603Tab({
     return val;
   };
 
+  const getActuacionSignature = (actuacion: Pick<Actuacion1603, 'tipo' | 'fecha_real' | 'indice_prever' | 'observaciones' | 'resultado'>) => {
+    return [
+      actuacion.tipo,
+      actuacion.fecha_real,
+      actuacion.indice_prever ?? '',
+      (actuacion.observaciones ?? '').trim(),
+      (actuacion.resultado ?? '').trim(),
+    ].join('|');
+  };
+
   // Fetch active bases for transfer selector
   useEffect(() => {
     const fetchBases = async () => {
@@ -146,6 +168,31 @@ export function MaquinistaPE1603Tab({
     };
     fetchBases();
   }, []);
+
+  useEffect(() => {
+    const fetchActuaciones = async () => {
+      if (!expediente1603?.id) {
+        setActuacionesRegistradas([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('actuaciones_1603')
+        .select('id, expediente_id, tipo, fecha_real, indice_prever, observaciones, resultado, created_at')
+        .eq('expediente_id', expediente1603.id)
+        .order('fecha_real', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading actuaciones_1603:', error);
+        return;
+      }
+
+      setActuacionesRegistradas((data ?? []) as Actuacion1603[]);
+    };
+
+    fetchActuaciones();
+  }, [expediente1603?.id]);
 
   // Check if expediente is closed
   const expedienteCerrado = expediente1603?.estado === 'cerrado';
@@ -296,6 +343,27 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const duplicateSignature = getActuacionSignature({
+        tipo: selectedTipo,
+        fecha_real: fechaActuacion,
+        indice_prever: indicePreverValue,
+        observaciones: observaciones || null,
+        resultado: resultado || null,
+      });
+
+      const existingDuplicate = actuacionesRegistradas.find(
+        (actuacion) => getActuacionSignature(actuacion) === duplicateSignature
+      );
+
+      if (existingDuplicate) {
+        toast({
+          title: 'Actuación duplicada',
+          description: 'Ya existe una actuación igual registrada en esta ficha.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // 1. Create actuacion
       const { data: actuacion, error: actError } = await supabase
         .from('actuaciones_1603')
@@ -328,7 +396,7 @@ export function MaquinistaPE1603Tab({
 
       toast({
         title: 'Actuación registrada',
-        description: `${tipoLabels[selectedTipo]} - Semestre ${selectedMes} marcado como cumplido`,
+        description: `${tipoLabels[selectedTipo]} registrada correctamente`,
       });
 
       // Reset form and close
@@ -416,6 +484,27 @@ export function MaquinistaPE1603Tab({
         return;
       }
 
+      const duplicateSignature = getActuacionSignature({
+        tipo: editingActuacion.tipo,
+        fecha_real: fechaActuacion,
+        indice_prever: indicePreverValue,
+        observaciones: observaciones || null,
+        resultado: resultado || null,
+      });
+
+      const existingDuplicate = actuacionesRegistradas.find(
+        (actuacion) => actuacion.id !== editingActuacion.id && getActuacionSignature(actuacion) === duplicateSignature
+      );
+
+      if (existingDuplicate) {
+        toast({
+          title: 'Actuación duplicada',
+          description: 'Ya existe otra actuación con esos mismos datos en esta ficha.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('actuaciones_1603')
         .update({
@@ -475,7 +564,7 @@ export function MaquinistaPE1603Tab({
       // Primero desvincular del plan_1603
       const { error: unlinkError } = await supabase
         .from('plan_1603')
-        .update({ actuacion_id: null })
+        .update({ actuacion_id: null, estado: 'pendiente' })
         .eq('actuacion_id', editingActuacion.id);
 
       if (unlinkError) throw unlinkError;
@@ -517,9 +606,10 @@ export function MaquinistaPE1603Tab({
     }
   };
 
-  const openEditModal = (actuacion: any, tipo: TipoActuacion1603) => {
+  const openEditModal = (actuacion: Actuacion1603, tipo: TipoActuacion1603) => {
     setEditingActuacion(actuacion);
     setSelectedTipo(tipo);
+    setSelectedMes(null);
     setFechaActuacion(actuacion.fecha_real);
     setIndicePrever(actuacion.indice_prever?.toString() || '');
     setObservaciones(actuacion.observaciones || '');
@@ -759,7 +849,7 @@ export function MaquinistaPE1603Tab({
       
       if (error) throw error;
       if (actuacion) {
-        openEditModal(actuacion, bloque.tipo);
+        openEditModal(actuacion as Actuacion1603, bloque.tipo);
       }
     } catch (err) {
       console.error('Error loading actuacion:', err);
@@ -1303,6 +1393,51 @@ export function MaquinistaPE1603Tab({
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Actuaciones registradas */}
+          {actuacionesRegistradas.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Actuaciones registradas</p>
+              <div className="space-y-2">
+                {actuacionesRegistradas.map((actuacion) => (
+                  <div key={actuacion.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="font-medium">{tipoLabels[actuacion.tipo]}</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span>{format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy')}</span>
+                        {actuacion.indice_prever !== null && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span>PREVER {actuacion.indice_prever}</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        {actuacion.observaciones ? <span>{actuacion.observaciones}</span> : <span>Sin observaciones</span>}
+                        {actuacion.resultado && (
+                          <>
+                            <span>•</span>
+                            <span>Resultado: {actuacion.resultado}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {puedeEditar && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => openEditModal(actuacion, actuacion.tipo)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
