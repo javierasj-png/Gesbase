@@ -1268,6 +1268,41 @@ export function MaquinistaPE1603Tab({
           )}
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Action buttons - arriba para acceso rápido */}
+          {puedeEditar && (
+            <div className="grid grid-cols-3 gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setRegistrarOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar Actuación
+              </Button>
+
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setTrasladoBaseOrigen(maquinista.base);
+                  setTrasladoBaseOrigenOtra('');
+                  setTrasladoOpen(true);
+                }}
+              >
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Registrar Traslado
+              </Button>
+              
+              {puedeCerrarManual && (
+                <Button 
+                  variant="default"
+                  onClick={() => setCerrarOpen(true)}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Cierre Manual
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Timeline por bandas */}
           <div className="border rounded-lg overflow-hidden">
             {tiposActuacion.map((tipo) => {
@@ -1441,40 +1476,6 @@ export function MaquinistaPE1603Tab({
             </div>
           )}
 
-          {/* Action buttons */}
-          {puedeEditar && (
-            <div className="grid grid-cols-3 gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setRegistrarOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar Actuación
-              </Button>
-
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setTrasladoBaseOrigen(maquinista.base);
-                  setTrasladoBaseOrigenOtra('');
-                  setTrasladoOpen(true);
-                }}
-              >
-                <ArrowRightLeft className="w-4 h-4 mr-2" />
-                Registrar Traslado
-              </Button>
-              
-              {puedeCerrarManual && (
-                <Button 
-                  variant="default"
-                  onClick={() => setCerrarOpen(true)}
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Cierre Manual
-                </Button>
-              )}
-            </div>
-          )}
 
           {expedienteCerrado && !isAdmin && (
             <div className="p-3 rounded-lg bg-muted/50 border text-center">
