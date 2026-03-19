@@ -92,6 +92,7 @@ export function BasesManagement() {
           .update({
             nombre: formData.nombre.trim(),
             codigo: formData.codigo.trim() || null,
+            redes: formData.redes,
           })
           .eq('id', editingBase.id);
 
