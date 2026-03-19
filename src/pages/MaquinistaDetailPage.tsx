@@ -12,12 +12,14 @@ import {
   FileCheck, 
   AlertTriangle,
   Loader2,
-  FileDown
+  FileDown,
+  ClipboardList
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
 import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
+import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 
