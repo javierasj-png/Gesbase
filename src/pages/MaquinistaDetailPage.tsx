@@ -12,12 +12,14 @@ import {
   FileCheck, 
   AlertTriangle,
   Loader2,
-  FileDown
+  FileDown,
+  ClipboardList
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
 import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
+import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 
@@ -116,7 +118,7 @@ export default function MaquinistaDetailPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
+          <TabsList className="grid w-full grid-cols-4 max-w-[650px]">
             <TabsTrigger value="certificaciones" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
               Certificaciones
@@ -128,6 +130,10 @@ export default function MaquinistaDetailPage() {
             <TabsTrigger value="pe1201" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               PE 12.01
+            </TabsTrigger>
+            <TabsTrigger value="plan-anual" className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" />
+              Plan Anual
             </TabsTrigger>
           </TabsList>
 
@@ -162,6 +168,15 @@ export default function MaquinistaDetailPage() {
               maquinistaId={maquinista.id}
               maquinistaNombre={`${maquinista.nombre} ${maquinista.apellidos}`}
               onRefetch={refetch}
+            />
+          </TabsContent>
+
+          {/* Tab: Plan Anual */}
+          <TabsContent value="plan-anual">
+            <MaquinistaPlanAnualTab
+              maquinistaId={maquinista.id}
+              maquinistaNombre={`${maquinista.nombre} ${maquinista.apellidos}`}
+              baseName={maquinista.base}
             />
           </TabsContent>
         </Tabs>

@@ -124,6 +124,62 @@ export type Database = {
           },
         ]
       }
+      actuaciones_plan_anual: {
+        Row: {
+          anio: number
+          created_at: string | null
+          fecha_real: string
+          id: string
+          indice_prever: number | null
+          km_recorridos: number | null
+          maquinista_id: string
+          observaciones: string | null
+          red: string | null
+          registrado_por: string | null
+          resultado: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          anio: number
+          created_at?: string | null
+          fecha_real: string
+          id?: string
+          indice_prever?: number | null
+          km_recorridos?: number | null
+          maquinista_id: string
+          observaciones?: string | null
+          red?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          anio?: number
+          created_at?: string | null
+          fecha_real?: string
+          id?: string
+          indice_prever?: number | null
+          km_recorridos?: number | null
+          maquinista_id?: string
+          observaciones?: string | null
+          red?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actuaciones_plan_anual_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       base_assignments: {
         Row: {
           base_nombre: string
@@ -202,6 +258,7 @@ export type Database = {
           created_at: string | null
           id: string
           nombre: string
+          redes: string
           updated_at: string | null
         }
         Insert: {
@@ -210,6 +267,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           nombre: string
+          redes?: string
           updated_at?: string | null
         }
         Update: {
@@ -218,6 +276,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           nombre?: string
+          redes?: string
           updated_at?: string | null
         }
         Relationships: []
