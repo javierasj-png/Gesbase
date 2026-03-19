@@ -259,12 +259,14 @@ export function asignarCertificacionAMaquinista(
 
 // ===== PLANTILLA 16.03 =====
 export const plantilla1603Mock: Plantilla1603[] = [
-  // ACOMPAÑAMIENTOS (5 bloques)
+  // ACOMPAÑAMIENTOS: Quincena + Trimestre acumulativos, luego cada 6 meses hasta fin de 3 años
   { id: 'pl1', tipo: 'Acompañamiento', etiqueta: 'Primera Quincena', orden: 1, offsetInicioDias: 0, offsetFinDias: 15 },
   { id: 'pl2', tipo: 'Acompañamiento', etiqueta: 'Primer Trimestre', orden: 2, offsetInicioDias: 0, offsetFinDias: 90 },
-  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: 'Primer Semestre', orden: 3, offsetInicioDias: 0, offsetFinDias: 182 },
-  { id: 'pl4', tipo: 'Acompañamiento', etiqueta: 'Segundo Semestre', orden: 4, offsetInicioDias: 183, offsetFinDias: 365 },
-  { id: 'pl5', tipo: 'Acompañamiento', etiqueta: 'Tercer Semestre', orden: 5, offsetInicioDias: 366, offsetFinDias: 547 },
+  { id: 'pl3', tipo: 'Acompañamiento', etiqueta: '2º Semestre (Mes 4-9)', orden: 3, offsetInicioDias: 91, offsetFinDias: 273 },
+  { id: 'pl4', tipo: 'Acompañamiento', etiqueta: '3er Semestre (Mes 10-15)', orden: 4, offsetInicioDias: 274, offsetFinDias: 456 },
+  { id: 'pl5', tipo: 'Acompañamiento', etiqueta: '4º Semestre (Mes 16-21)', orden: 5, offsetInicioDias: 457, offsetFinDias: 639 },
+  { id: 'pl5b', tipo: 'Acompañamiento', etiqueta: '5º Semestre (Mes 22-27)', orden: 6, offsetInicioDias: 640, offsetFinDias: 822 },
+  { id: 'pl5c', tipo: 'Acompañamiento', etiqueta: '6º Semestre (Mes 28-36)', orden: 7, offsetInicioDias: 823, offsetFinDias: 1095 },
   
   // REGISTROS - Primer Año (4 trimestres)
   { id: 'pl6', tipo: 'Registro', etiqueta: 'Primer Trimestre', orden: 1, offsetInicioDias: 0, offsetFinDias: 90 },
