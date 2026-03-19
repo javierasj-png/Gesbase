@@ -758,6 +758,33 @@ export function MaquinistaPE1201Tab({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Action buttons - arriba para acceso rápido */}
+          {puedeEditar && (
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  resetForm();
+                  setRegistrarOpen(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Registrar Actuación
+              </Button>
+              
+              {!expedienteCerrado && (
+                <Button 
+                  variant="default"
+                  onClick={() => setCerrarOpen(true)}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Cierre Manual
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Cumplimiento */}
           <div className="p-4 rounded-lg border bg-muted/30">
             <div className="flex items-center justify-between mb-2">
@@ -919,32 +946,6 @@ export function MaquinistaPE1201Tab({
             </div>
           )}
 
-          {/* Action buttons */}
-          {puedeEditar && (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  resetForm();
-                  setRegistrarOpen(true);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar Actuación
-              </Button>
-              
-              {!expedienteCerrado && (
-                <Button 
-                  variant="default"
-                  onClick={() => setCerrarOpen(true)}
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Cierre Manual
-                </Button>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
 
