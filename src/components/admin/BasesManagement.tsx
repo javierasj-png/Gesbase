@@ -34,7 +34,7 @@ export function BasesManagement() {
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
-  const [formData, setFormData] = useState({ nombre: '', codigo: '' });
+  const [formData, setFormData] = useState({ nombre: '', codigo: '', redes: 'convencional' });
 
   useEffect(() => {
     fetchBases();
