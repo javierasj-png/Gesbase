@@ -180,7 +180,7 @@ export function MaquinistaPE1603Tab({
 
       const { data, error } = await supabase
         .from('actuaciones_1603')
-        .select('id, expediente_id, tipo, fecha_real, indice_prever, observaciones, resultado, created_at')
+        .select('id, expediente_id, tipo, fecha_real, indice_prever, km_recorridos, observaciones, resultado, created_at')
         .eq('expediente_id', expediente1603.id)
         .order('fecha_real', { ascending: false })
         .order('created_at', { ascending: false });
