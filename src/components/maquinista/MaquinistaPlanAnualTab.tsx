@@ -245,6 +245,14 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
           </div>
         </CardHeader>
         <CardContent>
+          {/* Botón registrar arriba */}
+          <div className="mb-4">
+            <Button variant="outline" onClick={() => { resetForm(); setRegistrarOpen(true); }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Registrar Actuación
+            </Button>
+          </div>
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Cumplimiento individual</span>
