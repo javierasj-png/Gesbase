@@ -134,6 +134,7 @@ export function MaquinistaPE1603Tab({
   const [selectedMes, setSelectedMes] = useState<number | null>(null);
   const [fechaActuacion, setFechaActuacion] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [indicePrever, setIndicePrever] = useState('');
+  const [kmRecorridos, setKmRecorridos] = useState('');
   const [resultado, setResultado] = useState<string>('');
   const [observaciones, setObservaciones] = useState('');
 
