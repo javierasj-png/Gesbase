@@ -15,6 +15,7 @@ export interface MaquinistaDB {
   email: string | null;
   telefono: string | null;
   fecha_ingreso: string | null;
+  fecha_licencia_conduccion: string | null;
   activo: boolean;
   created_at: string;
   updated_at: string;
