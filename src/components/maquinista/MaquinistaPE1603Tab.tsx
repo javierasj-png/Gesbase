@@ -872,6 +872,7 @@ export function MaquinistaPE1603Tab({
     }
   };
 
+  const handleBlockClick = async (bloque: PlanBloque1603) => {
     if (!puedeEditar) return;
     if (!bloque.actuacion_id) return; // Only editable if has actuacion
     
