@@ -26,6 +26,9 @@ import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, addYears, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +38,8 @@ export default function MaquinistaDetailPage() {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [renewingLicense, setRenewingLicense] = useState(false);
+  const [renewDate, setRenewDate] = useState<Date | undefined>(undefined);
+  const [renewPopoverOpen, setRenewPopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
@@ -51,17 +56,23 @@ export default function MaquinistaDetailPage() {
     return { fechaObtencion, fechaCaducidad, diasRestantes, estado };
   }, [maquinista?.fecha_licencia_conduccion]);
 
+  const handleOpenRenew = () => {
+    setRenewDate(new Date());
+    setRenewPopoverOpen(true);
+  };
+
   const handleRenovarLicencia = async () => {
-    if (!maquinista) return;
+    if (!maquinista || !renewDate) return;
     setRenewingLicense(true);
     try {
-      const nuevaFecha = format(new Date(), 'yyyy-MM-dd');
+      const nuevaFecha = format(renewDate, 'yyyy-MM-dd');
       const { error } = await supabase
         .from('maquinistas')
         .update({ fecha_licencia_conduccion: nuevaFecha })
         .eq('id', maquinista.id);
       if (error) throw error;
-      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(new Date(), 'dd/MM/yyyy')}. Válida hasta ${format(addYears(new Date(), 10), 'dd/MM/yyyy')}` });
+      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(renewDate, 'dd/MM/yyyy')}. Válida hasta ${format(addYears(renewDate, 10), 'dd/MM/yyyy')}` });
+      setRenewPopoverOpen(false);
       refetch();
     } catch (err) {
       console.error(err);
@@ -210,16 +221,45 @@ export default function MaquinistaDetailPage() {
                           : 'Caducada'}
                       </Badge>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      disabled={renewingLicense}
-                      onClick={handleRenovarLicencia}
-                    >
-                      {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                      Renovar (+10 años)
-                    </Button>
+                    <Popover open={renewPopoverOpen} onOpenChange={setRenewPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={handleOpenRenew}
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Renovar
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-4" align="end">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Nueva fecha de obtención</p>
+                          <Calendar
+                            mode="single"
+                            selected={renewDate}
+                            onSelect={setRenewDate}
+                            locale={es}
+                            className="p-3 pointer-events-auto"
+                          />
+                          {renewDate && (
+                            <p className="text-xs text-muted-foreground text-center">
+                              Válida hasta: {format(addYears(renewDate, 10), 'dd/MM/yyyy')}
+                            </p>
+                          )}
+                          <Button
+                            className="w-full gap-1"
+                            size="sm"
+                            disabled={!renewDate || renewingLicense}
+                            onClick={handleRenovarLicencia}
+                          >
+                            {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Guardar
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </CardContent>
