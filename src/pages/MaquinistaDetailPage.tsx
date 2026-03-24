@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   Loader2,
   FileDown,
-  ClipboardList
+  ClipboardList,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
@@ -22,6 +24,8 @@ import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab
 import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format, parseISO, addYears, differenceInDays } from 'date-fns';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
