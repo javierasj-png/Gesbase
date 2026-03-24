@@ -48,7 +48,8 @@ import {
   Pencil,
   Trash2,
   ArrowRightLeft,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
 import { format, addMonths, parseISO, isAfter, isBefore, addYears } from 'date-fns';
 import { es } from 'date-fns/locale';
