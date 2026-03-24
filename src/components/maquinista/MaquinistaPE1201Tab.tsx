@@ -130,6 +130,9 @@ export function MaquinistaPE1201Tab({
   const [editarExpedienteOpen, setEditarExpedienteOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [comentarioOpen, setComentarioOpen] = useState(false);
+  const [comentarioBloqueId, setComentarioBloqueId] = useState<string | null>(null);
+  const [comentarioTexto, setComentarioTexto] = useState('');
   
   // Form state for actuacion
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
