@@ -48,7 +48,8 @@ import {
   Ban,
   Trash2,
   Users,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { format, parseISO, addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
