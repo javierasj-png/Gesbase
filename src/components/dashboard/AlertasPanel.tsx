@@ -323,18 +323,21 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
               grupo="vencidas" 
               alertas={alertasVencidas} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
             <AlertasGrupo 
               grupo="proximas_3_meses" 
               alertas={alertasProximas3Meses} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
             <AlertasGrupo 
               grupo="resto_anio" 
               alertas={alertasRestoAnio} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
           </Accordion>
