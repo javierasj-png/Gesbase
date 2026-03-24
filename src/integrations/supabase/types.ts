@@ -641,6 +641,7 @@ export type Database = {
       plan_1201: {
         Row: {
           actuacion_id: string | null
+          comentario_vencida: string | null
           created_at: string | null
           dia_desde_origen: number
           estado: string | null
@@ -653,6 +654,7 @@ export type Database = {
         }
         Insert: {
           actuacion_id?: string | null
+          comentario_vencida?: string | null
           created_at?: string | null
           dia_desde_origen: number
           estado?: string | null
@@ -665,6 +667,7 @@ export type Database = {
         }
         Update: {
           actuacion_id?: string | null
+          comentario_vencida?: string | null
           created_at?: string | null
           dia_desde_origen?: number
           estado?: string | null
@@ -695,6 +698,7 @@ export type Database = {
       plan_1603: {
         Row: {
           actuacion_id: string | null
+          comentario_vencida: string | null
           created_at: string | null
           estado: string | null
           etiqueta: string | null
@@ -710,6 +714,7 @@ export type Database = {
         }
         Insert: {
           actuacion_id?: string | null
+          comentario_vencida?: string | null
           created_at?: string | null
           estado?: string | null
           etiqueta?: string | null
@@ -725,6 +730,7 @@ export type Database = {
         }
         Update: {
           actuacion_id?: string | null
+          comentario_vencida?: string | null
           created_at?: string | null
           estado?: string | null
           etiqueta?: string | null
