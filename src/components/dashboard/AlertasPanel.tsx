@@ -160,6 +160,7 @@ interface AlertasGrupoProps {
   grupo: GrupoAlerta;
   alertas: Alerta[];
   onAlertaClick: (alerta: Alerta) => void;
+  onExport: (grupo: GrupoAlerta, alertas: Alerta[]) => void;
   maxItems?: number;
 }
 
