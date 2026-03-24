@@ -76,8 +76,8 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
             Certificaciones de vehículos y líneas (vencimiento por inactividad)
           </p>
         </div>
-        <Button onClick={() => setRegistrarServicioOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => setRegistrarServicioOpen(true)}>
+          <Plus className="w-4 h-4" />
           Renovar Certificación
         </Button>
       </div>
