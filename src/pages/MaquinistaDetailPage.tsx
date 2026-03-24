@@ -235,7 +235,7 @@ export default function MaquinistaDetailPage() {
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-4" align="end">
                         <div className="space-y-3">
-                          <p className="text-sm font-medium">Nueva fecha de obtención</p>
+                          <p className="text-sm font-medium">Nueva fecha de licencia</p>
                           <Calendar
                             mode="single"
                             selected={renewDate}
