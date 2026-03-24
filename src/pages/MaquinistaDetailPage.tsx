@@ -38,6 +38,8 @@ export default function MaquinistaDetailPage() {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const [renewingLicense, setRenewingLicense] = useState(false);
+  const [renewDate, setRenewDate] = useState<Date | undefined>(undefined);
+  const [renewPopoverOpen, setRenewPopoverOpen] = useState(false);
   const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
