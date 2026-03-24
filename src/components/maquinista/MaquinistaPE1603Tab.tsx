@@ -1393,6 +1393,29 @@ export function MaquinistaPE1603Tab({
                               <Calendar className="w-4 h-4 text-muted-foreground" />
                             )}
                           </div>
+                          {/* Comment button for vencida blocks */}
+                          {estado === 'vencida' && puedeEditar && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="mt-1 text-xs h-5 px-1 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setComentarioBloqueId(bloque.id);
+                                setComentarioTexto(bloque.comentario_vencida || '');
+                                setComentarioOpen(true);
+                              }}
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              {bloque.comentario_vencida ? 'Editar' : 'Comentar'}
+                            </Button>
+                          )}
+                          {/* Show existing comment indicator */}
+                          {bloque.comentario_vencida && estado === 'vencida' && !puedeEditar && (
+                            <p className="text-[9px] text-muted-foreground mt-1 truncate max-w-full" title={bloque.comentario_vencida}>
+                              💬 {bloque.comentario_vencida}
+                            </p>
+                          )}
                         </div>
                       );
                     })}
