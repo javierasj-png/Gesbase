@@ -233,6 +233,29 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
     }
   };
 
+  const handleExport = (grupo: GrupoAlerta, alertas: Alerta[]) => {
+    const header = 'Maquinista;Base;Tipo;Descripción;Días;Estado';
+    const rows = alertas.map(a => {
+      const desc = a.tipo === 'certificacion' ? a.certificacion_nombre
+        : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
+        : a.hito;
+      const dias = a.dias_restantes === null ? 'Sin registro'
+        : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
+        : `${a.dias_restantes}d`;
+      const label = a.tipo === 'certificacion' ? `Cert. ${a.certificacion_tipo}`
+        : a.tipo === 'pe1603' ? 'PE 16.03' : 'PE 12.01';
+      return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
+    });
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `alertas_${grupo}_${format(new Date(), 'yyyyMMdd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <Card>
