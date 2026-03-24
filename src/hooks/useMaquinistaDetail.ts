@@ -47,6 +47,7 @@ export interface PlanBloque1603 {
   fin_ventana?: string | null;
   justificado_traslado?: boolean;
   traslado_id?: string | null;
+  comentario_vencida?: string | null;
 }
 
 export interface Traslado1603 {
