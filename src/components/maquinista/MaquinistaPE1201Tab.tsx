@@ -906,7 +906,7 @@ export function MaquinistaPE1201Tab({
                               {bloque.comentario_vencida ? 'Editar' : 'Comentar'}
                             </Button>
                           )}
-                          {bloque.comentario_vencida && estado === 'vencida' && !puedeEditar && (
+                          {bloque.comentario_vencida && estado === 'vencida' && (
                             <p className="text-[9px] text-muted-foreground mt-1 truncate max-w-full" title={bloque.comentario_vencida}>
                               💬 {bloque.comentario_vencida}
                             </p>

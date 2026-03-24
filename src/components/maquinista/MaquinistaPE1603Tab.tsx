@@ -1410,8 +1410,8 @@ export function MaquinistaPE1603Tab({
                               {bloque.comentario_vencida ? 'Editar' : 'Comentar'}
                             </Button>
                           )}
-                          {/* Show existing comment indicator */}
-                          {bloque.comentario_vencida && estado === 'vencida' && !puedeEditar && (
+                          {/* Show existing comment */}
+                          {bloque.comentario_vencida && estado === 'vencida' && (
                             <p className="text-[9px] text-muted-foreground mt-1 truncate max-w-full" title={bloque.comentario_vencida}>
                               💬 {bloque.comentario_vencida}
                             </p>
