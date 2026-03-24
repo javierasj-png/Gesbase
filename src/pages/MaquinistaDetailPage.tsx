@@ -221,16 +221,45 @@ export default function MaquinistaDetailPage() {
                           : 'Caducada'}
                       </Badge>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      disabled={renewingLicense}
-                      onClick={handleRenovarLicencia}
-                    >
-                      {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                      Renovar (+10 años)
-                    </Button>
+                    <Popover open={renewPopoverOpen} onOpenChange={setRenewPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={handleOpenRenew}
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Renovar
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-4" align="end">
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">Nueva fecha de obtención</p>
+                          <Calendar
+                            mode="single"
+                            selected={renewDate}
+                            onSelect={setRenewDate}
+                            locale={es}
+                            className="p-3 pointer-events-auto"
+                          />
+                          {renewDate && (
+                            <p className="text-xs text-muted-foreground text-center">
+                              Válida hasta: {format(addYears(renewDate, 10), 'dd/MM/yyyy')}
+                            </p>
+                          )}
+                          <Button
+                            className="w-full gap-1"
+                            size="sm"
+                            disabled={!renewDate || renewingLicense}
+                            onClick={handleRenovarLicencia}
+                          >
+                            {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Guardar
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </CardContent>
