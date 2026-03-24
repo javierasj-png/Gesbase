@@ -176,6 +176,54 @@ export default function MaquinistaDetailPage() {
 
           {/* Tab: Certificaciones */}
           <TabsContent value="certificaciones">
+            {/* Licencia de conducción */}
+            <Card className="mb-4">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold">Licencia de Conducción</h3>
+                      {licenciaStatus ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>Obtención: {format(licenciaStatus.fechaObtencion, 'dd/MM/yyyy')}</span>
+                          <span>•</span>
+                          <span>Caducidad: {format(licenciaStatus.fechaCaducidad, 'dd/MM/yyyy')}</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin fecha de obtención registrada</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {licenciaStatus && (
+                      <Badge variant={
+                        licenciaStatus.estado === 'vigente' ? 'default' :
+                        licenciaStatus.estado === 'proxima' ? 'secondary' : 'destructive'
+                      }>
+                        {licenciaStatus.estado === 'vigente' 
+                          ? `Vigente (${licenciaStatus.diasRestantes} días)` 
+                          : licenciaStatus.estado === 'proxima' 
+                          ? `Caduca en ${licenciaStatus.diasRestantes} días`
+                          : 'Caducada'}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      disabled={renewingLicense}
+                      onClick={handleRenovarLicencia}
+                    >
+                      {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      Renovar (+10 años)
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <MaquinistaCertificacionesTab 
               maquinistaId={maquinista.id} 
               baseName={maquinista.base} 
