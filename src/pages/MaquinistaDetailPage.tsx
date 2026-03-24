@@ -56,17 +56,23 @@ export default function MaquinistaDetailPage() {
     return { fechaObtencion, fechaCaducidad, diasRestantes, estado };
   }, [maquinista?.fecha_licencia_conduccion]);
 
+  const handleOpenRenew = () => {
+    setRenewDate(new Date());
+    setRenewPopoverOpen(true);
+  };
+
   const handleRenovarLicencia = async () => {
-    if (!maquinista) return;
+    if (!maquinista || !renewDate) return;
     setRenewingLicense(true);
     try {
-      const nuevaFecha = format(new Date(), 'yyyy-MM-dd');
+      const nuevaFecha = format(renewDate, 'yyyy-MM-dd');
       const { error } = await supabase
         .from('maquinistas')
         .update({ fecha_licencia_conduccion: nuevaFecha })
         .eq('id', maquinista.id);
       if (error) throw error;
-      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(new Date(), 'dd/MM/yyyy')}. Válida hasta ${format(addYears(new Date(), 10), 'dd/MM/yyyy')}` });
+      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(renewDate, 'dd/MM/yyyy')}. Válida hasta ${format(addYears(renewDate, 10), 'dd/MM/yyyy')}` });
+      setRenewPopoverOpen(false);
       refetch();
     } catch (err) {
       console.error(err);
