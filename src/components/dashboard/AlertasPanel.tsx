@@ -164,7 +164,7 @@ interface AlertasGrupoProps {
   maxItems?: number;
 }
 
-function AlertasGrupo({ grupo, alertas, onAlertaClick, maxItems = 5 }: AlertasGrupoProps) {
+function AlertasGrupo({ grupo, alertas, onAlertaClick, onExport, maxItems = 5 }: AlertasGrupoProps) {
   const styles = getGrupoStyles(grupo);
   const alertasMostradas = alertas.slice(0, maxItems);
   const hayMas = alertas.length > maxItems;
@@ -173,17 +173,28 @@ function AlertasGrupo({ grupo, alertas, onAlertaClick, maxItems = 5 }: AlertasGr
 
   return (
     <AccordionItem value={grupo} className="border-b-0">
-      <AccordionTrigger className="py-2 hover:no-underline">
-        <div className="flex items-center gap-2">
-          <div className={`w-6 h-6 rounded flex items-center justify-center ${styles.iconBg}`}>
-            {getGrupoIcon(grupo)}
+      <div className="flex items-center">
+        <AccordionTrigger className="py-2 hover:no-underline flex-1">
+          <div className="flex items-center gap-2">
+            <div className={`w-6 h-6 rounded flex items-center justify-center ${styles.iconBg}`}>
+              {getGrupoIcon(grupo)}
+            </div>
+            <span className="font-medium text-sm">{getGrupoLabel(grupo)}</span>
+            <Badge className={`ml-1 ${styles.badge}`}>
+              {alertas.length}
+            </Badge>
           </div>
-          <span className="font-medium text-sm">{getGrupoLabel(grupo)}</span>
-          <Badge className={`ml-1 ${styles.badge}`}>
-            {alertas.length}
-          </Badge>
-        </div>
-      </AccordionTrigger>
+        </AccordionTrigger>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={(e) => { e.stopPropagation(); onExport(grupo, alertas); }}
+          title={`Exportar ${getGrupoLabel(grupo)}`}
+        >
+          <Download className="w-3.5 h-3.5" />
+        </Button>
+      </div>
       <AccordionContent className="pb-2">
         <div className="space-y-2">
           {alertasMostradas.map((alerta, idx) => (
