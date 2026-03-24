@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   AlertTriangle, 
   Train, 
@@ -11,10 +12,12 @@ import {
   ChevronRight,
   Clock,
   Calendar,
-  CalendarDays
+  CalendarDays,
+  Download,
 } from 'lucide-react';
 import { useDashboardAlertas, Alerta, GrupoAlerta } from '@/hooks/useDashboardAlertas';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { format } from 'date-fns';
 
 interface AlertasPanelProps {
   baseFilter?: string;
@@ -157,10 +160,11 @@ interface AlertasGrupoProps {
   grupo: GrupoAlerta;
   alertas: Alerta[];
   onAlertaClick: (alerta: Alerta) => void;
+  onExport: (grupo: GrupoAlerta, alertas: Alerta[]) => void;
   maxItems?: number;
 }
 
-function AlertasGrupo({ grupo, alertas, onAlertaClick, maxItems = 5 }: AlertasGrupoProps) {
+function AlertasGrupo({ grupo, alertas, onAlertaClick, onExport, maxItems = 5 }: AlertasGrupoProps) {
   const styles = getGrupoStyles(grupo);
   const alertasMostradas = alertas.slice(0, maxItems);
   const hayMas = alertas.length > maxItems;
@@ -169,17 +173,28 @@ function AlertasGrupo({ grupo, alertas, onAlertaClick, maxItems = 5 }: AlertasGr
 
   return (
     <AccordionItem value={grupo} className="border-b-0">
-      <AccordionTrigger className="py-2 hover:no-underline">
-        <div className="flex items-center gap-2">
-          <div className={`w-6 h-6 rounded flex items-center justify-center ${styles.iconBg}`}>
-            {getGrupoIcon(grupo)}
+      <div className="flex items-center">
+        <AccordionTrigger className="py-2 hover:no-underline flex-1">
+          <div className="flex items-center gap-2">
+            <div className={`w-6 h-6 rounded flex items-center justify-center ${styles.iconBg}`}>
+              {getGrupoIcon(grupo)}
+            </div>
+            <span className="font-medium text-sm">{getGrupoLabel(grupo)}</span>
+            <Badge className={`ml-1 ${styles.badge}`}>
+              {alertas.length}
+            </Badge>
           </div>
-          <span className="font-medium text-sm">{getGrupoLabel(grupo)}</span>
-          <Badge className={`ml-1 ${styles.badge}`}>
-            {alertas.length}
-          </Badge>
-        </div>
-      </AccordionTrigger>
+        </AccordionTrigger>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          onClick={(e) => { e.stopPropagation(); onExport(grupo, alertas); }}
+          title={`Exportar ${getGrupoLabel(grupo)}`}
+        >
+          <Download className="w-3.5 h-3.5" />
+        </Button>
+      </div>
       <AccordionContent className="pb-2">
         <div className="space-y-2">
           {alertasMostradas.map((alerta, idx) => (
@@ -216,6 +231,29 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         navigate(`/maquinistas/${alerta.maquinista_id}?tab=pe1201`);
         break;
     }
+  };
+
+  const handleExport = (grupo: GrupoAlerta, alertas: Alerta[]) => {
+    const header = 'Maquinista;Base;Tipo;Descripción;Días;Estado';
+    const rows = alertas.map(a => {
+      const desc = a.tipo === 'certificacion' ? a.certificacion_nombre
+        : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
+        : a.hito;
+      const dias = a.dias_restantes === null ? 'Sin registro'
+        : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
+        : `${a.dias_restantes}d`;
+      const label = a.tipo === 'certificacion' ? `Cert. ${a.certificacion_tipo}`
+        : a.tipo === 'pe1603' ? 'PE 16.03' : 'PE 12.01';
+      return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
+    });
+    const csv = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `alertas_${grupo}_${format(new Date(), 'yyyyMMdd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -285,18 +323,21 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
               grupo="vencidas" 
               alertas={alertasVencidas} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
             <AlertasGrupo 
               grupo="proximas_3_meses" 
               alertas={alertasProximas3Meses} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
             <AlertasGrupo 
               grupo="resto_anio" 
               alertas={alertasRestoAnio} 
               onAlertaClick={handleAlertaClick}
+              onExport={handleExport}
               maxItems={maxItems}
             />
           </Accordion>
