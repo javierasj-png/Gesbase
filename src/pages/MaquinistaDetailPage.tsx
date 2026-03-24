@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   Loader2,
   FileDown,
-  ClipboardList
+  ClipboardList,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
@@ -22,6 +24,8 @@ import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab
 import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format, parseISO, addYears, differenceInDays } from 'date-fns';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,9 +34,42 @@ export default function MaquinistaDetailPage() {
   const defaultTab = searchParams.get('tab') || 'certificaciones';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [renewingLicense, setRenewingLicense] = useState(false);
   const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
+
+  // License status
+  const licenciaStatus = useMemo(() => {
+    if (!maquinista?.fecha_licencia_conduccion) return null;
+    const fechaObtencion = parseISO(maquinista.fecha_licencia_conduccion);
+    const fechaCaducidad = addYears(fechaObtencion, 10);
+    const diasRestantes = differenceInDays(fechaCaducidad, new Date());
+    let estado: 'vigente' | 'proxima' | 'caducada' = 'vigente';
+    if (diasRestantes < 0) estado = 'caducada';
+    else if (diasRestantes <= 180) estado = 'proxima';
+    return { fechaObtencion, fechaCaducidad, diasRestantes, estado };
+  }, [maquinista?.fecha_licencia_conduccion]);
+
+  const handleRenovarLicencia = async () => {
+    if (!maquinista) return;
+    setRenewingLicense(true);
+    try {
+      const nuevaFecha = format(new Date(), 'yyyy-MM-dd');
+      const { error } = await supabase
+        .from('maquinistas')
+        .update({ fecha_licencia_conduccion: nuevaFecha })
+        .eq('id', maquinista.id);
+      if (error) throw error;
+      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(new Date(), 'dd/MM/yyyy')}. Válida hasta ${format(addYears(new Date(), 10), 'dd/MM/yyyy')}` });
+      refetch();
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo renovar la licencia' });
+    } finally {
+      setRenewingLicense(false);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -139,6 +176,54 @@ export default function MaquinistaDetailPage() {
 
           {/* Tab: Certificaciones */}
           <TabsContent value="certificaciones">
+            {/* Licencia de conducción */}
+            <Card className="mb-4">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold">Licencia de Conducción</h3>
+                      {licenciaStatus ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>Obtención: {format(licenciaStatus.fechaObtencion, 'dd/MM/yyyy')}</span>
+                          <span>•</span>
+                          <span>Caducidad: {format(licenciaStatus.fechaCaducidad, 'dd/MM/yyyy')}</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Sin fecha de obtención registrada</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {licenciaStatus && (
+                      <Badge variant={
+                        licenciaStatus.estado === 'vigente' ? 'default' :
+                        licenciaStatus.estado === 'proxima' ? 'secondary' : 'destructive'
+                      }>
+                        {licenciaStatus.estado === 'vigente' 
+                          ? `Vigente (${licenciaStatus.diasRestantes} días)` 
+                          : licenciaStatus.estado === 'proxima' 
+                          ? `Caduca en ${licenciaStatus.diasRestantes} días`
+                          : 'Caducada'}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      disabled={renewingLicense}
+                      onClick={handleRenovarLicencia}
+                    >
+                      {renewingLicense ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      Renovar (+10 años)
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <MaquinistaCertificacionesTab 
               maquinistaId={maquinista.id} 
               baseName={maquinista.base} 

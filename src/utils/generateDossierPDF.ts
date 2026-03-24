@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, parseISO, addMonths, differenceInDays } from 'date-fns';
+import { format, parseISO, addMonths, addYears, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -156,7 +156,9 @@ export async function generateDossierPDF(maquinistaId: string) {
   // ── Ficha del maquinista ──
   let y = 42;
   doc.setFillColor(...CARD_BG);
-  const fichaH = maq.fecha_ingreso || maq.email ? 24 : 16;
+  const hasExtraLine = maq.fecha_ingreso || maq.email;
+  const hasLicencia = !!maq.fecha_licencia_conduccion;
+  const fichaH = (hasExtraLine ? 24 : 16) + (hasLicencia ? 6 : 0);
   doc.roundedRect(14, y, pw - 28, fichaH, 2, 2, 'F');
 
   doc.setFontSize(9);
@@ -170,10 +172,26 @@ export async function generateDossierPDF(maquinistaId: string) {
   doc.text(`Matrícula: ${maq.matricula}`, 18, y + 12);
   doc.text(`Base: ${maq.base}`, 75, y + 12);
   doc.text(`Estado: ${maq.activo ? 'Activo' : 'Inactivo'}`, 130, y + 12);
+  
+  let fichaLineY = y + 18;
   if (maq.fecha_ingreso) {
-    doc.text(`Ingreso: ${format(parseISO(maq.fecha_ingreso), 'dd/MM/yyyy')}`, 18, y + 18);
+    doc.text(`Ingreso: ${format(parseISO(maq.fecha_ingreso), 'dd/MM/yyyy')}`, 18, fichaLineY);
   }
-  if (maq.email) doc.text(`Email: ${maq.email}`, 75, y + 18);
+  if (maq.email) doc.text(`Email: ${maq.email}`, 75, fichaLineY);
+  if (hasExtraLine) fichaLineY += 6;
+
+  if (hasLicencia) {
+    const fechaLic = parseISO(maq.fecha_licencia_conduccion!);
+    const fechaCad = addYears(fechaLic, 10);
+    const diasRest = differenceInDays(fechaCad, new Date());
+    const estadoLic = diasRest < 0 ? 'Caducada' : diasRest <= 180 ? `Caduca en ${diasRest} días` : 'Vigente';
+    const colorLic = diasRest < 0 ? RED : diasRest <= 180 ? YELLOW : GREEN;
+    doc.text(`Licencia: ${format(fechaLic, 'dd/MM/yyyy')}`, 18, fichaLineY);
+    doc.text(`Caducidad: ${format(fechaCad, 'dd/MM/yyyy')}`, 75, fichaLineY);
+    doc.setTextColor(...colorLic);
+    doc.text(`(${estadoLic})`, 130, fichaLineY);
+    doc.setTextColor(...DARK);
+  }
 
   y += fichaH + 4;
 
