@@ -129,6 +129,9 @@ export function MaquinistaPE1603Tab({
   const [trasladoObservaciones, setTrasladoObservaciones] = useState('');
   const [editingTraslado, setEditingTraslado] = useState<Traslado1603 | null>(null);
   const [deletingTrasladoId, setDeletingTrasladoId] = useState<string | null>(null);
+  const [comentarioOpen, setComentarioOpen] = useState(false);
+  const [comentarioBloqueId, setComentarioBloqueId] = useState<string | null>(null);
+  const [comentarioTexto, setComentarioTexto] = useState('');
   
   // Form state
   const [selectedTipo, setSelectedTipo] = useState<TipoActuacion1603 | ''>('');
