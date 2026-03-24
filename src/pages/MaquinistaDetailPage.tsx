@@ -34,9 +34,42 @@ export default function MaquinistaDetailPage() {
   const defaultTab = searchParams.get('tab') || 'certificaciones';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [renewingLicense, setRenewingLicense] = useState(false);
   const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
+
+  // License status
+  const licenciaStatus = useMemo(() => {
+    if (!maquinista?.fecha_licencia_conduccion) return null;
+    const fechaObtencion = parseISO(maquinista.fecha_licencia_conduccion);
+    const fechaCaducidad = addYears(fechaObtencion, 10);
+    const diasRestantes = differenceInDays(fechaCaducidad, new Date());
+    let estado: 'vigente' | 'proxima' | 'caducada' = 'vigente';
+    if (diasRestantes < 0) estado = 'caducada';
+    else if (diasRestantes <= 180) estado = 'proxima';
+    return { fechaObtencion, fechaCaducidad, diasRestantes, estado };
+  }, [maquinista?.fecha_licencia_conduccion]);
+
+  const handleRenovarLicencia = async () => {
+    if (!maquinista) return;
+    setRenewingLicense(true);
+    try {
+      const nuevaFecha = format(new Date(), 'yyyy-MM-dd');
+      const { error } = await supabase
+        .from('maquinistas')
+        .update({ fecha_licencia_conduccion: nuevaFecha })
+        .eq('id', maquinista.id);
+      if (error) throw error;
+      toast({ title: 'Licencia renovada', description: `Nueva fecha de obtención: ${format(new Date(), 'dd/MM/yyyy')}. Válida hasta ${format(addYears(new Date(), 10), 'dd/MM/yyyy')}` });
+      refetch();
+    } catch (err) {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo renovar la licencia' });
+    } finally {
+      setRenewingLicense(false);
+    }
+  };
 
   // Loading state
   if (loading) {
