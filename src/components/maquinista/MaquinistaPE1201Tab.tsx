@@ -511,6 +511,7 @@ export function MaquinistaPE1201Tab({
     }
   };
 
+  const handleCerrar = async () => {
     if (!expediente) return;
 
     setSaving(true);
