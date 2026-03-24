@@ -460,8 +460,10 @@ export async function generateDossierPDF(maquinistaId: string) {
       const planRows = expPlan.map(b => {
         const act = expActs.find(a => a.id === (b as any).actuacion_id);
         let estado = b.estado as string;
+        const isVencida = estado === 'vencida' || (!act && b.fecha_objetivo && new Date(b.fecha_objetivo) < new Date() && estado !== 'no_procede');
         if (estado === 'no_procede') estado = 'No planificar';
         else if ((b as any).actuacion_id) estado = 'Realizado';
+        else if (isVencida) estado = 'Vencida';
         else estado = 'Pendiente';
 
         return [
@@ -471,22 +473,25 @@ export async function generateDossierPDF(maquinistaId: string) {
           estado,
           act?.fecha_real ? format(parseISO(act.fecha_real), 'dd/MM/yyyy') : '-',
           act?.resultado || '-',
+          (isVencida && b.comentario_vencida) ? b.comentario_vencida : '-',
         ];
       });
 
       autoTable(doc, {
         startY: y,
-        head: [['Tipo', 'Hito', 'F. Objetivo', 'Estado', 'F. Real', 'Resultado']],
+        head: [['Tipo', 'Hito', 'F. Objetivo', 'Estado', 'F. Real', 'Resultado', 'Comentario']],
         body: planRows,
         theme: 'grid',
         headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
         styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
         bodyStyles: { textColor: DARK },
+        columnStyles: { 6: { cellWidth: 28 } },
         didParseCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 3) {
             const val = data.cell.raw as string;
             if (val === 'Realizado') data.cell.styles.textColor = GREEN;
-            else if (val === 'Pendiente') data.cell.styles.textColor = RED;
+            else if (val === 'Vencida') data.cell.styles.textColor = RED;
+            else if (val === 'Pendiente') data.cell.styles.textColor = COOL_GRAY;
             else data.cell.styles.textColor = COOL_GRAY;
           }
         },

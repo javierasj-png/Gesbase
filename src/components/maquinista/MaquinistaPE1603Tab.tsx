@@ -1057,23 +1057,25 @@ export function MaquinistaPE1603Tab({
           window ? `${format(window.inicio, 'dd/MM/yy')} - ${format(window.fin, 'dd/MM/yy')}` : 'N/A',
           estadoLabel,
           actuacion ? format(parseISO(actuacion.fecha_real), 'dd/MM/yyyy') : '-',
-          actuacion?.indice_prever?.toString() || '-'
+          actuacion?.indice_prever?.toString() || '-',
+          (estado === 'vencida' && b.comentario_vencida) ? b.comentario_vencida : '-',
         ];
       });
 
     autoTable(doc, {
       startY: finalY + 18,
-      head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Índice PREVER']],
+      head: [['Tipo', 'Bloque', 'Ventana', 'Estado', 'Fecha Real', 'Índ. PREVER', 'Comentario']],
       body: bloquesData,
       theme: 'grid',
       headStyles: { fillColor: [130, 0, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 3, lineColor: [152, 153, 155], lineWidth: 0.5 },
+      styles: { fontSize: 7, cellPadding: 2, lineColor: [152, 153, 155], lineWidth: 0.5 },
       bodyStyles: { textColor: [30, 41, 59] },
       tableLineColor: [130, 0, 94],
       tableLineWidth: 0.75,
       columnStyles: {
-        2: { cellWidth: 32 },
-        5: { halign: 'center' },
+        2: { cellWidth: 30 },
+        5: { halign: 'center', cellWidth: 18 },
+        6: { cellWidth: 36 },
       },
       didParseCell: (data: any) => {
         if (data.section === 'body' && data.column.index === 3) {
