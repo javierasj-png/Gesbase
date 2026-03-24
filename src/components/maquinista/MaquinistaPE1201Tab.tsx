@@ -489,7 +489,28 @@ export function MaquinistaPE1201Tab({
     }
   };
 
-  const handleCerrar = async () => {
+  const handleGuardarComentarioVencida = async () => {
+    if (!comentarioBloqueId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('plan_1201')
+        .update({ comentario_vencida: comentarioTexto.trim() || null })
+        .eq('id', comentarioBloqueId);
+      if (error) throw error;
+      toast({ title: 'Comentario guardado' });
+      setComentarioOpen(false);
+      setComentarioBloqueId(null);
+      setComentarioTexto('');
+      fetchData();
+    } catch (err) {
+      console.error('Error saving comment:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el comentario' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
     if (!expediente) return;
 
     setSaving(true);
