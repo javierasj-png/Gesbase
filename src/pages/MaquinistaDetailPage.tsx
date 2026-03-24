@@ -204,7 +204,7 @@ export default function MaquinistaDetailPage() {
                           <span>Caducidad: {format(licenciaStatus.fechaCaducidad, 'dd/MM/yyyy')}</span>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Sin fecha de obtención registrada</p>
+                        <p className="text-sm text-muted-foreground">Sin fecha de licencia registrada</p>
                       )}
                     </div>
                   </div>
