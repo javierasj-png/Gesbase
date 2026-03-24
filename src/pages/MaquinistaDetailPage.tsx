@@ -199,12 +199,12 @@ export default function MaquinistaDetailPage() {
                       <h3 className="text-sm font-semibold">Licencia de Conducción</h3>
                       {licenciaStatus ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>Obtención: {format(licenciaStatus.fechaObtencion, 'dd/MM/yyyy')}</span>
+                          <span>Fecha licencia: {format(licenciaStatus.fechaObtencion, 'dd/MM/yyyy')}</span>
                           <span>•</span>
                           <span>Caducidad: {format(licenciaStatus.fechaCaducidad, 'dd/MM/yyyy')}</span>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Sin fecha de obtención registrada</p>
+                        <p className="text-sm text-muted-foreground">Sin fecha de licencia registrada</p>
                       )}
                     </div>
                   </div>
@@ -235,7 +235,7 @@ export default function MaquinistaDetailPage() {
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-4" align="end">
                         <div className="space-y-3">
-                          <p className="text-sm font-medium">Nueva fecha de obtención</p>
+                          <p className="text-sm font-medium">Nueva fecha de licencia</p>
                           <Calendar
                             mode="single"
                             selected={renewDate}
