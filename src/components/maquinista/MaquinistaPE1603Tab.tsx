@@ -2095,6 +2095,34 @@ export function MaquinistaPE1603Tab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Dialog: Comentar acción vencida */}
+      <Dialog open={comentarioOpen} onOpenChange={setComentarioOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Comentar acción vencida</DialogTitle>
+            <DialogDescription>
+              Añade un comentario explicando el motivo del vencimiento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={comentarioTexto}
+              onChange={(e) => setComentarioTexto(e.target.value)}
+              placeholder="Ej: Maquinista de baja médica, pendiente de reincorporación..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComentarioOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleGuardarComentarioVencida} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
