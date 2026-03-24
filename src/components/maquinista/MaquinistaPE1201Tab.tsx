@@ -48,7 +48,8 @@ import {
   Ban,
   Trash2,
   Users,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { format, parseISO, addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -90,6 +91,7 @@ interface PlanBloque1201 {
   fecha_objetivo: string | null;
   estado: EstadoBloque1201;
   obligatorio: boolean;
+  comentario_vencida?: string | null;
 }
 
 interface Actuacion1201 {
@@ -128,6 +130,9 @@ export function MaquinistaPE1201Tab({
   const [editarExpedienteOpen, setEditarExpedienteOpen] = useState(false);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [comentarioOpen, setComentarioOpen] = useState(false);
+  const [comentarioBloqueId, setComentarioBloqueId] = useState<string | null>(null);
+  const [comentarioTexto, setComentarioTexto] = useState('');
   
   // Form state for actuacion
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -479,6 +484,28 @@ export function MaquinistaPE1201Tab({
         description: (err as any)?.message || 'No se pudo eliminar la actuación',
         variant: 'destructive',
       });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGuardarComentarioVencida = async () => {
+    if (!comentarioBloqueId) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('plan_1201')
+        .update({ comentario_vencida: comentarioTexto.trim() || null })
+        .eq('id', comentarioBloqueId);
+      if (error) throw error;
+      toast({ title: 'Comentario guardado' });
+      setComentarioOpen(false);
+      setComentarioBloqueId(null);
+      setComentarioTexto('');
+      fetchData();
+    } catch (err) {
+      console.error('Error saving comment:', err);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el comentario' });
     } finally {
       setSaving(false);
     }
@@ -862,7 +889,28 @@ export function MaquinistaPE1201Tab({
                               <Calendar className="w-4 h-4 text-muted-foreground" />
                             )}
                           </div>
-                          {/* Mark as no procede */}
+                          {/* Comment button for vencida blocks */}
+                          {estado === 'vencida' && puedeEditar && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="mt-1 text-xs h-5 px-1 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setComentarioBloqueId(bloque.id);
+                                setComentarioTexto(bloque.comentario_vencida || '');
+                                setComentarioOpen(true);
+                              }}
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              {bloque.comentario_vencida ? 'Editar' : 'Comentar'}
+                            </Button>
+                          )}
+                          {bloque.comentario_vencida && estado === 'vencida' && (
+                            <p className="text-[9px] text-muted-foreground mt-1 truncate max-w-full" title={bloque.comentario_vencida}>
+                              💬 {bloque.comentario_vencida}
+                            </p>
+                          )}
                           {puedeEditar && !bloque.actuacion_id && bloque.estado !== 'no_procede' && (
                             <Button 
                               variant="ghost" 
@@ -1282,6 +1330,34 @@ export function MaquinistaPE1201Tab({
             <Button onClick={handleEditarExpediente} disabled={saving || !editIdSuceso.trim() || !editFechaPrimerServicio}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Guardar cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog: Comentar acción vencida */}
+      <Dialog open={comentarioOpen} onOpenChange={setComentarioOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Comentar acción vencida</DialogTitle>
+            <DialogDescription>
+              Añade un comentario explicando el motivo del vencimiento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={comentarioTexto}
+              onChange={(e) => setComentarioTexto(e.target.value)}
+              placeholder="Ej: Maquinista de baja médica, pendiente de reincorporación..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setComentarioOpen(false)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleGuardarComentarioVencida} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Guardar
             </Button>
           </DialogFooter>
         </DialogContent>
