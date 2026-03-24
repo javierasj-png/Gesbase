@@ -90,6 +90,7 @@ interface PlanBloque1201 {
   fecha_objetivo: string | null;
   estado: EstadoBloque1201;
   obligatorio: boolean;
+  comentario_vencida?: string | null;
 }
 
 interface Actuacion1201 {
