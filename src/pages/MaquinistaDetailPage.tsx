@@ -26,6 +26,9 @@ import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, addYears, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
