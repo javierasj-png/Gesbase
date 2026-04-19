@@ -5,6 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 import { 
   Users, 
@@ -27,6 +37,8 @@ import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { useMaquinistas, MaquinistaConNombre, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const { isAdmin, isGestor } = useAuth();
@@ -42,6 +54,50 @@ export default function AdminPage() {
 
   // Estado para modal de certificaciones de maquinista
   const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaConNombre | null>(null);
+
+  // Estado para borrado de certificación del catálogo
+  const { toast } = useToast();
+  const [deletingCert, setDeletingCert] = useState<CertificacionDB | null>(null);
+  const [isDeletingCert, setIsDeletingCert] = useState(false);
+
+  const handleDeleteCertificacionCatalogo = async () => {
+    if (!deletingCert) return;
+    setIsDeletingCert(true);
+    try {
+      // 1. Borrar de maquinista_certificaciones (todos los maquinistas)
+      const { error: errMaq } = await supabase
+        .from('maquinista_certificaciones')
+        .delete()
+        .eq('certificacion_id', deletingCert.id);
+      if (errMaq) throw errMaq;
+
+      // 2. Borrar de base_certificaciones (todas las bases)
+      const { error: errBase } = await supabase
+        .from('base_certificaciones')
+        .delete()
+        .eq('certificacion_id', deletingCert.id);
+      if (errBase) throw errBase;
+
+      // 3. Borrar del catálogo
+      const ok = await deleteCertificacion(deletingCert.id);
+      if (!ok) throw new Error('No se pudo eliminar del catálogo');
+
+      toast({
+        title: 'Certificación eliminada del catálogo',
+        description: `Se eliminó "${deletingCert.nombre}" del catálogo, de todas las bases y de los perfiles de maquinistas.`,
+      });
+      setDeletingCert(null);
+    } catch (error) {
+      console.error('Error deleting certificacion del catálogo:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo eliminar la certificación',
+      });
+    } finally {
+      setIsDeletingCert(false);
+    }
+  };
 
   const handleSaveCertificacion = async (input: CertificacionInput, id?: string): Promise<boolean> => {
     if (id) {
@@ -279,8 +335,18 @@ export default function AdminPage() {
                                   size="icon" 
                                   className="h-8 w-8"
                                   onClick={() => handleEditCertificacion(cert)}
+                                  title="Editar"
                                 >
                                   <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeletingCert(cert)}
+                                  title="Eliminar del catálogo"
+                                >
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               </div>
                             </td>
@@ -328,6 +394,34 @@ export default function AdminPage() {
           onSave={handleSaveCertificacion}
           isNew={isNewCertificacion}
         />
+
+        {/* Confirmación de borrado de certificación del catálogo */}
+        <AlertDialog open={!!deletingCert} onOpenChange={(open) => !open && !isDeletingCert && setDeletingCert(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar certificación del catálogo?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará <strong>"{deletingCert?.nombre}"</strong> ({deletingCert?.id}) del catálogo,
+                de <strong>todas las bases</strong> donde esté asignada y de los <strong>perfiles de todos los maquinistas</strong>
+                que la tengan. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingCert}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDeleteCertificacionCatalogo();
+                }}
+                disabled={isDeletingCert}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeletingCert && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Modal de maquinista */}
         <MaquinistaFormModal
