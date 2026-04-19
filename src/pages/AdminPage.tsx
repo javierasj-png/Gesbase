@@ -395,6 +395,34 @@ export default function AdminPage() {
           isNew={isNewCertificacion}
         />
 
+        {/* Confirmación de borrado de certificación del catálogo */}
+        <AlertDialog open={!!deletingCert} onOpenChange={(open) => !open && !isDeletingCert && setDeletingCert(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar certificación del catálogo?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará <strong>"{deletingCert?.nombre}"</strong> ({deletingCert?.id}) del catálogo,
+                de <strong>todas las bases</strong> donde esté asignada y de los <strong>perfiles de todos los maquinistas</strong>
+                que la tengan. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingCert}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDeleteCertificacionCatalogo();
+                }}
+                disabled={isDeletingCert}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeletingCert && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Modal de maquinista */}
         <MaquinistaFormModal
           open={!!editingMaquinista || isNewMaquinista}
