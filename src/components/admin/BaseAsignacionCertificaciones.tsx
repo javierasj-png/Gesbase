@@ -289,6 +289,34 @@ export function BaseAsignacionCertificaciones() {
           setEditingBase(null);
         }}
       />
+
+      {/* Confirmación de borrado */}
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && !isDeleting && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar certificación de la base?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>"{deleting?.cert.certificacion_nombre}"</strong> de la base{' '}
+              <strong>{deleting?.base.nombre}</strong> y también de los perfiles de todos los maquinistas
+              asociados a esta base. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteCertificacion();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
