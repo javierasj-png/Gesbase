@@ -12,7 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Eye, EyeOff, Pencil, Loader2, Building2, Train } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Eye, EyeOff, Pencil, Loader2, Building2, Train, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCertificaciones, CertificacionDB } from '@/hooks/useCertificaciones';
 import { useAuth } from '@/contexts/AuthContext';
