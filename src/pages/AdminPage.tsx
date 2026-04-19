@@ -55,6 +55,50 @@ export default function AdminPage() {
   // Estado para modal de certificaciones de maquinista
   const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaConNombre | null>(null);
 
+  // Estado para borrado de certificación del catálogo
+  const { toast } = useToast();
+  const [deletingCert, setDeletingCert] = useState<CertificacionDB | null>(null);
+  const [isDeletingCert, setIsDeletingCert] = useState(false);
+
+  const handleDeleteCertificacionCatalogo = async () => {
+    if (!deletingCert) return;
+    setIsDeletingCert(true);
+    try {
+      // 1. Borrar de maquinista_certificaciones (todos los maquinistas)
+      const { error: errMaq } = await supabase
+        .from('maquinista_certificaciones')
+        .delete()
+        .eq('certificacion_id', deletingCert.id);
+      if (errMaq) throw errMaq;
+
+      // 2. Borrar de base_certificaciones (todas las bases)
+      const { error: errBase } = await supabase
+        .from('base_certificaciones')
+        .delete()
+        .eq('certificacion_id', deletingCert.id);
+      if (errBase) throw errBase;
+
+      // 3. Borrar del catálogo
+      const ok = await deleteCertificacion(deletingCert.id);
+      if (!ok) throw new Error('No se pudo eliminar del catálogo');
+
+      toast({
+        title: 'Certificación eliminada del catálogo',
+        description: `Se eliminó "${deletingCert.nombre}" del catálogo, de todas las bases y de los perfiles de maquinistas.`,
+      });
+      setDeletingCert(null);
+    } catch (error) {
+      console.error('Error deleting certificacion del catálogo:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo eliminar la certificación',
+      });
+    } finally {
+      setIsDeletingCert(false);
+    }
+  };
+
   const handleSaveCertificacion = async (input: CertificacionInput, id?: string): Promise<boolean> => {
     if (id) {
       return await updateCertificacion(id, input);
