@@ -215,37 +215,48 @@ export function BaseAsignacionCertificaciones() {
                 </CardHeader>
                 <CardContent>
                   {baseAsignaciones.length > 0 ? (
-                    <div className="space-y-2">
-                      {baseAsignaciones.map(cert => (
-                        <div 
-                          key={cert.id} 
-                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {cert.certificacion_tipo}
-                            </Badge>
-                            <span className="text-sm">{cert.certificacion_nombre}</span>
-                            {cert.obligatoria && (
-                              <Badge variant="secondary" className="text-[10px]">Obligatoria</Badge>
-                            )}
+                    <ScrollArea className="h-[280px] pr-3">
+                      <div className="space-y-2">
+                        {baseAsignaciones.map(cert => (
+                          <div
+                            key={cert.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-muted/50 gap-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <Badge variant="outline" className="text-xs capitalize shrink-0">
+                                {cert.certificacion_tipo}
+                              </Badge>
+                              <span className="text-sm truncate">{cert.certificacion_nombre}</span>
+                              {cert.obligatoria && (
+                                <Badge variant="secondary" className="text-[10px] shrink-0">Obligatoria</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {cert.vigilar_vencimiento ? (
+                                <span className="flex items-center gap-1 text-xs text-primary">
+                                  <Eye className="w-3 h-3" />
+                                  {cert.periodo_inactividad_meses}m / {cert.aviso_dias}d
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <EyeOff className="w-3 h-3" />
+                                  No vigilar
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleting({ base, cert })}
+                                title="Eliminar certificación de esta base"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            {cert.vigilar_vencimiento ? (
-                              <span className="flex items-center gap-1 text-xs text-primary">
-                                <Eye className="w-3 h-3" />
-                                {cert.periodo_inactividad_meses}m / {cert.aviso_dias}d
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <EyeOff className="w-3 h-3" />
-                                No vigilar
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   ) : (
                     <div className="text-center py-4">
                       <Train className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
