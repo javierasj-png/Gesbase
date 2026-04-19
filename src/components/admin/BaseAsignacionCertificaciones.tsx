@@ -54,6 +54,53 @@ export function BaseAsignacionCertificaciones() {
   const [loading, setLoading] = useState(true);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
   const [asignaciones, setAsignaciones] = useState<Record<string, BaseCertificacionDB[]>>({});
+  const [deleting, setDeleting] = useState<{ base: BaseConduccion; cert: BaseCertificacionDB } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteCertificacion = async () => {
+    if (!deleting) return;
+    setIsDeleting(true);
+    try {
+      const { data: maquinistas, error: errMaqs } = await supabase
+        .from('maquinistas')
+        .select('id')
+        .eq('base', deleting.base.nombre);
+      if (errMaqs) throw errMaqs;
+
+      const maquinistaIds = (maquinistas || []).map(m => m.id);
+
+      if (maquinistaIds.length > 0) {
+        const { error: errMaqCerts } = await supabase
+          .from('maquinista_certificaciones')
+          .delete()
+          .in('maquinista_id', maquinistaIds)
+          .eq('certificacion_id', deleting.cert.certificacion_id);
+        if (errMaqCerts) throw errMaqCerts;
+      }
+
+      const { error: errBaseCert } = await supabase
+        .from('base_certificaciones')
+        .delete()
+        .eq('id', deleting.cert.id);
+      if (errBaseCert) throw errBaseCert;
+
+      toast({
+        title: 'Certificación eliminada',
+        description: `Se eliminó "${deleting.cert.certificacion_nombre}" de ${deleting.base.nombre} y de los maquinistas asociados.`,
+      });
+      setDeleting(null);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting certificacion from base:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo eliminar la certificación',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
