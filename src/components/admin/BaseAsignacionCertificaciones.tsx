@@ -12,7 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Eye, EyeOff, Pencil, Loader2, Building2, Train } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Eye, EyeOff, Pencil, Loader2, Building2, Train, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCertificaciones, CertificacionDB } from '@/hooks/useCertificaciones';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +54,53 @@ export function BaseAsignacionCertificaciones() {
   const [loading, setLoading] = useState(true);
   const [editingBase, setEditingBase] = useState<BaseConduccion | null>(null);
   const [asignaciones, setAsignaciones] = useState<Record<string, BaseCertificacionDB[]>>({});
+  const [deleting, setDeleting] = useState<{ base: BaseConduccion; cert: BaseCertificacionDB } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteCertificacion = async () => {
+    if (!deleting) return;
+    setIsDeleting(true);
+    try {
+      const { data: maquinistas, error: errMaqs } = await supabase
+        .from('maquinistas')
+        .select('id')
+        .eq('base', deleting.base.nombre);
+      if (errMaqs) throw errMaqs;
+
+      const maquinistaIds = (maquinistas || []).map(m => m.id);
+
+      if (maquinistaIds.length > 0) {
+        const { error: errMaqCerts } = await supabase
+          .from('maquinista_certificaciones')
+          .delete()
+          .in('maquinista_id', maquinistaIds)
+          .eq('certificacion_id', deleting.cert.certificacion_id);
+        if (errMaqCerts) throw errMaqCerts;
+      }
+
+      const { error: errBaseCert } = await supabase
+        .from('base_certificaciones')
+        .delete()
+        .eq('id', deleting.cert.id);
+      if (errBaseCert) throw errBaseCert;
+
+      toast({
+        title: 'Certificación eliminada',
+        description: `Se eliminó "${deleting.cert.certificacion_nombre}" de ${deleting.base.nombre} y de los maquinistas asociados.`,
+      });
+      setDeleting(null);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting certificacion from base:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo eliminar la certificación',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -157,37 +215,48 @@ export function BaseAsignacionCertificaciones() {
                 </CardHeader>
                 <CardContent>
                   {baseAsignaciones.length > 0 ? (
-                    <div className="space-y-2">
-                      {baseAsignaciones.map(cert => (
-                        <div 
-                          key={cert.id} 
-                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {cert.certificacion_tipo}
-                            </Badge>
-                            <span className="text-sm">{cert.certificacion_nombre}</span>
-                            {cert.obligatoria && (
-                              <Badge variant="secondary" className="text-[10px]">Obligatoria</Badge>
-                            )}
+                    <ScrollArea className="h-[280px] pr-3">
+                      <div className="space-y-2">
+                        {baseAsignaciones.map(cert => (
+                          <div
+                            key={cert.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-muted/50 gap-2"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <Badge variant="outline" className="text-xs capitalize shrink-0">
+                                {cert.certificacion_tipo}
+                              </Badge>
+                              <span className="text-sm truncate">{cert.certificacion_nombre}</span>
+                              {cert.obligatoria && (
+                                <Badge variant="secondary" className="text-[10px] shrink-0">Obligatoria</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {cert.vigilar_vencimiento ? (
+                                <span className="flex items-center gap-1 text-xs text-primary">
+                                  <Eye className="w-3 h-3" />
+                                  {cert.periodo_inactividad_meses}m / {cert.aviso_dias}d
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <EyeOff className="w-3 h-3" />
+                                  No vigilar
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleting({ base, cert })}
+                                title="Eliminar certificación de esta base"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            {cert.vigilar_vencimiento ? (
-                              <span className="flex items-center gap-1 text-xs text-primary">
-                                <Eye className="w-3 h-3" />
-                                {cert.periodo_inactividad_meses}m / {cert.aviso_dias}d
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <EyeOff className="w-3 h-3" />
-                                No vigilar
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   ) : (
                     <div className="text-center py-4">
                       <Train className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
@@ -220,6 +289,34 @@ export function BaseAsignacionCertificaciones() {
           setEditingBase(null);
         }}
       />
+
+      {/* Confirmación de borrado */}
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && !isDeleting && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar certificación de la base?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>"{deleting?.cert.certificacion_nombre}"</strong> de la base{' '}
+              <strong>{deleting?.base.nombre}</strong> y también de los perfiles de todos los maquinistas
+              asociados a esta base. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteCertificacion();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
