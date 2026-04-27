@@ -441,7 +441,14 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
             </div>
             <div className="space-y-2">
               <Label>Tipo de actuación *</Label>
-              <Select value={selectedTipo} onValueChange={v => setSelectedTipo(v as TipoActuacionPlanAnual)}>
+              <Select value={selectedTipo} onValueChange={v => {
+                const tipo = v as TipoActuacionPlanAnual;
+                setSelectedTipo(tipo);
+                const requiresRed = tipo === 'registro' || tipo === 'acompanamiento';
+                if (requiresRed && !selectedRed && defaultRed) {
+                  setSelectedRed(defaultRed);
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
                 <SelectContent>
                   {(['registro', 'acompanamiento', 'alcohol', 'drogas'] as TipoActuacionPlanAnual[]).map(t => (
