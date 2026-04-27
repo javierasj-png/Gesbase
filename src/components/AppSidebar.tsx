@@ -1,19 +1,22 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Train, 
-  Shield, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Train,
+  Shield,
+  Settings,
   LogOut,
   FileCheck,
   AlertTriangle,
   ClipboardList,
-  FileBarChart
+  FileBarChart,
+  Menu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const navItems = [
   { path: '/dashboard', label: 'Cuadro de Mando', icon: LayoutDashboard },
@@ -29,18 +32,18 @@ const adminItems = [
   { path: '/admin', label: 'Administración', icon: Settings },
 ];
 
-export function AppSidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { userAccess, signOut, isAdmin, isGestor } = useAuth();
 
-  const displayName = userAccess?.profile 
+  const displayName = userAccess?.profile
     ? `${userAccess.profile.nombre || ''} ${userAccess.profile.apellidos || ''}`.trim() || userAccess.profile.email
     : 'Usuario';
 
   const displayRole = isAdmin ? 'Administrador' : isGestor ? 'Gestor de Base' : 'Mando';
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col">
+    <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo / Header */}
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
@@ -60,16 +63,17 @@ export function AppSidebar() {
           Principal
         </p>
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
           return (
             <Link
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                isActive 
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' 
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                   : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
               )}
             >
@@ -90,10 +94,11 @@ export function AppSidebar() {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={onNavigate}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                    isActive 
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' 
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                       : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
                   )}
                 >
@@ -116,9 +121,9 @@ export function AppSidebar() {
             <p className="text-sm font-medium truncate">{displayName}</p>
             <p className="text-xs text-sidebar-foreground/60">{displayRole}</p>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={signOut}
           >
@@ -126,6 +131,45 @@ export function AppSidebar() {
           </Button>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export function AppSidebar() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop sidebar (≥ md) */}
+      <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile top bar with hamburger */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-sidebar text-sidebar-foreground border-b border-sidebar-border flex items-center justify-between px-3">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-sidebar-foreground hover:bg-sidebar-accent"
+              aria-label="Abrir menú"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64 bg-sidebar border-sidebar-border">
+            <SidebarContent onNavigate={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md bg-sidebar-primary flex items-center justify-center">
+            <Train className="w-4 h-4 text-sidebar-primary-foreground" />
+          </div>
+          <span className="font-semibold text-sm">Gestión de Base</span>
+        </div>
+        <div className="w-9" />
+      </div>
+    </>
   );
 }

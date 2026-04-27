@@ -18,7 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <main className="ml-64 min-h-screen overflow-y-auto">
+      <main className="md:ml-64 pt-14 md:pt-0 min-h-screen overflow-y-auto">
         {children}
       </main>
       <ChatBubble />
