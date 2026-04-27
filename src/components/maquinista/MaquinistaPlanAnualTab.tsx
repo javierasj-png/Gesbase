@@ -74,6 +74,12 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
   };
 
   const needsRed = selectedTipo === 'registro' || selectedTipo === 'acompanamiento';
+
+  // Default red: si la base trabaja en convencional (sola o junto a AV), preseleccionar convencional.
+  // Si solo trabaja en AV, preseleccionar AV. Facilita el registro masivo.
+  const defaultRed: RedType | '' = planAnual.redes.includes('convencional')
+    ? 'convencional'
+    : (planAnual.redes.length === 1 ? planAnual.redes[0] : '');
   const needsKm = selectedTipo === 'registro';
   const needsResultado = selectedTipo === 'alcohol' || selectedTipo === 'drogas';
 
@@ -435,7 +441,14 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
             </div>
             <div className="space-y-2">
               <Label>Tipo de actuación *</Label>
-              <Select value={selectedTipo} onValueChange={v => setSelectedTipo(v as TipoActuacionPlanAnual)}>
+              <Select value={selectedTipo} onValueChange={v => {
+                const tipo = v as TipoActuacionPlanAnual;
+                setSelectedTipo(tipo);
+                const requiresRed = tipo === 'registro' || tipo === 'acompanamiento';
+                if (requiresRed && !selectedRed && defaultRed) {
+                  setSelectedRed(defaultRed);
+                }
+              }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
                 <SelectContent>
                   {(['registro', 'acompanamiento', 'alcohol', 'drogas'] as TipoActuacionPlanAnual[]).map(t => (
