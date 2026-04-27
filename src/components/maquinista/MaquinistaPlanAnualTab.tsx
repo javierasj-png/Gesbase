@@ -74,6 +74,12 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
   };
 
   const needsRed = selectedTipo === 'registro' || selectedTipo === 'acompanamiento';
+
+  // Default red: si la base trabaja en convencional (sola o junto a AV), preseleccionar convencional.
+  // Si solo trabaja en AV, preseleccionar AV. Facilita el registro masivo.
+  const defaultRed: RedType | '' = planAnual.redes.includes('convencional')
+    ? 'convencional'
+    : (planAnual.redes.length === 1 ? planAnual.redes[0] : '');
   const needsKm = selectedTipo === 'registro';
   const needsResultado = selectedTipo === 'alcohol' || selectedTipo === 'drogas';
 
