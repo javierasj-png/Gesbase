@@ -55,7 +55,10 @@ interface CumplimientoBase {
   base: string;
   maquinistas: number;
   pe1603Activos: number;
-  pe1603Cumplimiento: number;
+  pe1603Cumplimiento: number; // total
+  pe1603CumplimientoHoy: number; // a fecha
+  pe1603ExigiblesHoy: number;
+  pe1603RealizadosHoy: number;
   pe1201Activos: number;
   pe1201Cumplimiento: number;
   certVigentes: number;
