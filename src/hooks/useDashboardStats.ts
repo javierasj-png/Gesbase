@@ -285,11 +285,26 @@ export function useDashboardStats(baseFilter?: string) {
                   }
                 }
 
-                // Porcentaje cumplimiento: acciones registradas / bloques que proceden
-                const bloquesQueProceden = planItems1201.filter(p => p.estado !== 'no_procede').length;
-                const accionesRegistradas = planItems1201.filter(p => p.actuacion_id && p.estado !== 'no_procede').length;
-                if (bloquesQueProceden > 0) {
-                  newStats.pe1201PorcentajeCumplimiento = Math.round((accionesRegistradas / bloquesQueProceden) * 100);
+                // Porcentaje cumplimiento TOTAL: acciones registradas / bloques que proceden
+                const bloquesProceden = planItems1201.filter(p => p.estado !== 'no_procede');
+                const accionesRegistradas = bloquesProceden.filter(p => p.actuacion_id).length;
+                if (bloquesProceden.length > 0) {
+                  newStats.pe1201PorcentajeCumplimiento = Math.round((accionesRegistradas / bloquesProceden.length) * 100);
+                }
+
+                // Porcentaje cumplimiento A DÍA DE HOY: realizadas / bloques exigibles (fecha_objetivo <= hoy o ya realizados)
+                const exigiblesHoy = bloquesProceden.filter(p => {
+                  if (p.actuacion_id) return true;
+                  if (!p.fecha_objetivo) return false;
+                  const fo = new Date(p.fecha_objetivo);
+                  fo.setHours(23, 59, 59, 999);
+                  return fo <= today;
+                });
+                const realizadasHoy1201 = exigiblesHoy.filter(p => p.actuacion_id).length;
+                newStats.pe1201BloquesExigiblesHoy = exigiblesHoy.length;
+                newStats.pe1201BloquesRealizadosHoy = realizadasHoy1201;
+                if (exigiblesHoy.length > 0) {
+                  newStats.pe1201PorcentajeCumplimientoHoy = Math.round((realizadasHoy1201 / exigiblesHoy.length) * 100);
                 }
               }
             }
