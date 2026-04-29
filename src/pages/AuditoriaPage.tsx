@@ -557,7 +557,8 @@ export default function AuditoriaPage() {
                         <TableHead className="text-center" title="Realizadas / total bloques planificados">% 16.03 Total</TableHead>
                         <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 16.03 Hoy</TableHead>
                         <TableHead className="text-center">PE 12.01</TableHead>
-                        <TableHead className="text-center">% 12.01</TableHead>
+                        <TableHead className="text-center" title="Realizadas / total bloques planificados">% 12.01 Total</TableHead>
+                        <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 12.01 Hoy</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
