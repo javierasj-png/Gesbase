@@ -144,11 +144,14 @@ export default function AuditoriaPage() {
           .eq('estado', 'abierto');
 
         let pe1603Cumplimiento = 0;
+        let pe1603CumplimientoHoy = 0;
+        let pe1603ExigiblesHoy = 0;
+        let pe1603RealizadosHoy = 0;
         if (exp1603 && exp1603.length > 0) {
           const expIds = exp1603.map(e => e.id);
           const { data: plan1603 } = await supabase
             .from('plan_1603')
-            .select('id, actuacion_id, justificado_traslado')
+            .select('id, actuacion_id, justificado_traslado, fin_ventana')
             .in('expediente_id', expIds);
           if (plan1603 && plan1603.length > 0) {
             // Excluir bloques justificados por traslado del cálculo de cumplimiento
@@ -156,6 +159,19 @@ export default function AuditoriaPage() {
             const realizadas = bloquesComputables.filter(p => p.actuacion_id).length;
             if (bloquesComputables.length > 0) {
               pe1603Cumplimiento = Math.round((realizadas / bloquesComputables.length) * 100);
+            }
+            // Cumplimiento a día de hoy
+            const hoy = new Date();
+            hoy.setHours(23, 59, 59, 999);
+            const exigibles = bloquesComputables.filter(p => {
+              if (p.actuacion_id) return true;
+              if (!p.fin_ventana) return false;
+              return new Date(p.fin_ventana) <= hoy;
+            });
+            pe1603ExigiblesHoy = exigibles.length;
+            pe1603RealizadosHoy = exigibles.filter(p => p.actuacion_id).length;
+            if (exigibles.length > 0) {
+              pe1603CumplimientoHoy = Math.round((pe1603RealizadosHoy / exigibles.length) * 100);
             }
           }
         }
