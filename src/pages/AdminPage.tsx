@@ -349,15 +349,32 @@ export default function AdminPage() {
                     Nueva Certificación
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {/* Filtro tipo */}
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Select value={certTipoFilter} onValueChange={setCertTipoFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los tipos</SelectItem>
+                        <SelectItem value="vehiculo">Vehículo</SelectItem>
+                        <SelectItem value="linea">Línea</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="text-sm text-muted-foreground ml-auto">
+                      {filteredCertificaciones.length} de {certificaciones.length}
+                    </div>
+                  </div>
+
                   {loadingCertificaciones ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                       <span className="ml-2 text-muted-foreground">Cargando certificaciones...</span>
                     </div>
-                  ) : certificaciones.length === 0 ? (
+                  ) : filteredCertificaciones.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      No hay certificaciones registradas
+                      {certificaciones.length === 0 ? 'No hay certificaciones registradas' : 'No hay certificaciones del tipo seleccionado'}
                     </div>
                   ) : (
                     <table className="w-full">
@@ -371,7 +388,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {certificaciones.map((cert) => (
+                        {filteredCertificaciones.map((cert) => (
                           <tr key={cert.id} className="border-b last:border-b-0">
                             <td className="p-3 font-mono text-xs">{cert.id}</td>
                             <td className="p-3 text-sm font-medium">{cert.nombre}</td>
