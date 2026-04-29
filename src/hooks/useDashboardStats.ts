@@ -19,7 +19,10 @@ interface DashboardStats {
   pe1603ExpedientesActivos: number;
   pe1603AccionesVencidas: number;
   pe1603AccionesPendientes: number;
-  pe1603PorcentajeCumplimiento: number;
+  pe1603PorcentajeCumplimiento: number; // total: realizadas / total bloques
+  pe1603PorcentajeCumplimientoHoy: number; // a fecha: realizadas / bloques con fin_ventana <= hoy
+  pe1603BloquesExigiblesHoy: number;
+  pe1603BloquesRealizadosHoy: number;
   
   // PE 12.01
   pe1201ExpedientesActivos: number;
