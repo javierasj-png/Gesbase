@@ -238,15 +238,39 @@ export default function AdminPage() {
                   Nuevo Maquinista
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Filtros */}
+                <div className="flex flex-wrap gap-3">
+                  <Input
+                    placeholder="Buscar por nombre o matrícula..."
+                    value={maqSearch}
+                    onChange={(e) => setMaqSearch(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Select value={maqBaseFilter} onValueChange={setMaqBaseFilter}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Todas las bases" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las bases</SelectItem>
+                      {basesMaquinistas.map(base => (
+                        <SelectItem key={base} value={base}>{base}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center text-sm text-muted-foreground ml-auto">
+                    {filteredMaquinistas.length} de {maquinistas.length}
+                  </div>
+                </div>
+
                 {loadingMaquinistas ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-muted-foreground">Cargando maquinistas...</span>
                   </div>
-                ) : maquinistas.length === 0 ? (
+                ) : filteredMaquinistas.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No hay maquinistas registrados
+                    {maquinistas.length === 0 ? 'No hay maquinistas registrados' : 'No hay maquinistas que coincidan con los filtros'}
                   </div>
                 ) : (
                   <table className="w-full">
@@ -260,7 +284,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {maquinistas.map((maquinista) => (
+                      {filteredMaquinistas.map((maquinista) => (
                         <tr key={maquinista.id} className="border-b last:border-b-0">
                           <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
                           <td className="p-3 text-sm">{maquinista.nombre_apellidos}</td>
