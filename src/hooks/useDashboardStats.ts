@@ -215,11 +215,27 @@ export function useDashboardStats(baseFilter?: string) {
                   }
                 }
 
-                // Porcentaje cumplimiento: excluir justificadas por traslado
+                // Porcentaje cumplimiento TOTAL: realizadas / total bloques computables (excl. justificadas por traslado)
                 const bloquesComputables = planItems.filter(p => !p.justificado_traslado);
                 const realizadas = bloquesComputables.filter(p => p.actuacion_id).length;
                 if (bloquesComputables.length > 0) {
                   newStats.pe1603PorcentajeCumplimiento = Math.round((realizadas / bloquesComputables.length) * 100);
+                }
+
+                // Porcentaje cumplimiento A DÍA DE HOY: realizadas / bloques cuya ventana ya cerró (fin_ventana <= hoy)
+                // Las realizadas siempre cuentan aunque su ventana sea futura.
+                const bloquesExigiblesHoy = bloquesComputables.filter(p => {
+                  if (p.actuacion_id) return true; // realizada antes de tiempo
+                  if (!p.fin_ventana) return false;
+                  const fin = new Date(p.fin_ventana);
+                  fin.setHours(23, 59, 59, 999);
+                  return fin <= today;
+                });
+                const realizadasHoy = bloquesExigiblesHoy.filter(p => p.actuacion_id).length;
+                newStats.pe1603BloquesExigiblesHoy = bloquesExigiblesHoy.length;
+                newStats.pe1603BloquesRealizadosHoy = realizadasHoy;
+                if (bloquesExigiblesHoy.length > 0) {
+                  newStats.pe1603PorcentajeCumplimientoHoy = Math.round((realizadasHoy / bloquesExigiblesHoy.length) * 100);
                 }
               }
             }
