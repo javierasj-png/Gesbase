@@ -60,7 +60,10 @@ interface CumplimientoBase {
   pe1603ExigiblesHoy: number;
   pe1603RealizadosHoy: number;
   pe1201Activos: number;
-  pe1201Cumplimiento: number;
+  pe1201Cumplimiento: number; // total
+  pe1201CumplimientoHoy: number;
+  pe1201ExigiblesHoy: number;
+  pe1201RealizadosHoy: number;
   certVigentes: number;
   certTotal: number;
   planAnualCumplen: number;
@@ -183,17 +186,32 @@ export default function AuditoriaPage() {
           .eq('estado', 'abierto');
 
         let pe1201Cumplimiento = 0;
+        let pe1201CumplimientoHoy = 0;
+        let pe1201ExigiblesHoy = 0;
+        let pe1201RealizadosHoy = 0;
         if (exp1201 && exp1201.length > 0) {
           const expIds = exp1201.map(e => e.id);
           const { data: plan1201 } = await supabase
             .from('plan_1201')
-            .select('id, actuacion_id, estado, obligatorio')
+            .select('id, actuacion_id, estado, obligatorio, fecha_objetivo')
             .in('expediente_id', expIds);
           if (plan1201) {
-            const bloquesQueProceden = plan1201.filter(p => p.estado !== 'no_procede').length;
-            const accionesRegistradas = plan1201.filter(p => p.actuacion_id && p.estado !== 'no_procede').length;
-            if (bloquesQueProceden > 0) {
-              pe1201Cumplimiento = Math.round((accionesRegistradas / bloquesQueProceden) * 100);
+            const bloquesProceden = plan1201.filter(p => p.estado !== 'no_procede');
+            const accionesRegistradas = bloquesProceden.filter(p => p.actuacion_id).length;
+            if (bloquesProceden.length > 0) {
+              pe1201Cumplimiento = Math.round((accionesRegistradas / bloquesProceden.length) * 100);
+            }
+            const hoy = new Date();
+            hoy.setHours(23, 59, 59, 999);
+            const exigibles = bloquesProceden.filter(p => {
+              if (p.actuacion_id) return true;
+              if (!p.fecha_objetivo) return false;
+              return new Date(p.fecha_objetivo) <= hoy;
+            });
+            pe1201ExigiblesHoy = exigibles.length;
+            pe1201RealizadosHoy = exigibles.filter(p => p.actuacion_id).length;
+            if (exigibles.length > 0) {
+              pe1201CumplimientoHoy = Math.round((pe1201RealizadosHoy / exigibles.length) * 100);
             }
           }
         }
@@ -296,6 +314,9 @@ export default function AuditoriaPage() {
           pe1603RealizadosHoy,
           pe1201Activos: exp1201?.length || 0,
           pe1201Cumplimiento,
+          pe1201CumplimientoHoy,
+          pe1201ExigiblesHoy,
+          pe1201RealizadosHoy,
           certVigentes: certTotal,
           certTotal,
           planAnualCumplen,
@@ -536,7 +557,8 @@ export default function AuditoriaPage() {
                         <TableHead className="text-center" title="Realizadas / total bloques planificados">% 16.03 Total</TableHead>
                         <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 16.03 Hoy</TableHead>
                         <TableHead className="text-center">PE 12.01</TableHead>
-                        <TableHead className="text-center">% 12.01</TableHead>
+                        <TableHead className="text-center" title="Realizadas / total bloques planificados">% 12.01 Total</TableHead>
+                        <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 12.01 Hoy</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -565,6 +587,14 @@ export default function AuditoriaPage() {
                           <TableCell className="text-center">{row.pe1201Activos}</TableCell>
                           <TableCell className="text-center">
                             {getCumplimientoBadge(row.pe1201Cumplimiento)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              {getCumplimientoBadge(row.pe1201CumplimientoHoy)}
+                              <span className="text-[10px] text-muted-foreground">
+                                {row.pe1201RealizadosHoy}/{row.pe1201ExigiblesHoy}
+                              </span>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
