@@ -60,7 +60,10 @@ interface CumplimientoBase {
   pe1603ExigiblesHoy: number;
   pe1603RealizadosHoy: number;
   pe1201Activos: number;
-  pe1201Cumplimiento: number;
+  pe1201Cumplimiento: number; // total
+  pe1201CumplimientoHoy: number;
+  pe1201ExigiblesHoy: number;
+  pe1201RealizadosHoy: number;
   certVigentes: number;
   certTotal: number;
   planAnualCumplen: number;
