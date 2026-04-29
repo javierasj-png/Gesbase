@@ -55,7 +55,10 @@ interface CumplimientoBase {
   base: string;
   maquinistas: number;
   pe1603Activos: number;
-  pe1603Cumplimiento: number;
+  pe1603Cumplimiento: number; // total
+  pe1603CumplimientoHoy: number; // a fecha
+  pe1603ExigiblesHoy: number;
+  pe1603RealizadosHoy: number;
   pe1201Activos: number;
   pe1201Cumplimiento: number;
   certVigentes: number;
@@ -141,11 +144,14 @@ export default function AuditoriaPage() {
           .eq('estado', 'abierto');
 
         let pe1603Cumplimiento = 0;
+        let pe1603CumplimientoHoy = 0;
+        let pe1603ExigiblesHoy = 0;
+        let pe1603RealizadosHoy = 0;
         if (exp1603 && exp1603.length > 0) {
           const expIds = exp1603.map(e => e.id);
           const { data: plan1603 } = await supabase
             .from('plan_1603')
-            .select('id, actuacion_id, justificado_traslado')
+            .select('id, actuacion_id, justificado_traslado, fin_ventana')
             .in('expediente_id', expIds);
           if (plan1603 && plan1603.length > 0) {
             // Excluir bloques justificados por traslado del cálculo de cumplimiento
@@ -153,6 +159,19 @@ export default function AuditoriaPage() {
             const realizadas = bloquesComputables.filter(p => p.actuacion_id).length;
             if (bloquesComputables.length > 0) {
               pe1603Cumplimiento = Math.round((realizadas / bloquesComputables.length) * 100);
+            }
+            // Cumplimiento a día de hoy
+            const hoy = new Date();
+            hoy.setHours(23, 59, 59, 999);
+            const exigibles = bloquesComputables.filter(p => {
+              if (p.actuacion_id) return true;
+              if (!p.fin_ventana) return false;
+              return new Date(p.fin_ventana) <= hoy;
+            });
+            pe1603ExigiblesHoy = exigibles.length;
+            pe1603RealizadosHoy = exigibles.filter(p => p.actuacion_id).length;
+            if (exigibles.length > 0) {
+              pe1603CumplimientoHoy = Math.round((pe1603RealizadosHoy / exigibles.length) * 100);
             }
           }
         }
@@ -272,6 +291,9 @@ export default function AuditoriaPage() {
           maquinistas: maqIds.length,
           pe1603Activos: exp1603?.length || 0,
           pe1603Cumplimiento,
+          pe1603CumplimientoHoy,
+          pe1603ExigiblesHoy,
+          pe1603RealizadosHoy,
           pe1201Activos: exp1201?.length || 0,
           pe1201Cumplimiento,
           certVigentes: certTotal,
@@ -511,7 +533,8 @@ export default function AuditoriaPage() {
                         <TableHead className="text-center">Plan Anual</TableHead>
                         <TableHead className="text-center">Drogas</TableHead>
                         <TableHead className="text-center">PE 16.03</TableHead>
-                        <TableHead className="text-center">% 16.03</TableHead>
+                        <TableHead className="text-center" title="Realizadas / total bloques planificados">% 16.03 Total</TableHead>
+                        <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 16.03 Hoy</TableHead>
                         <TableHead className="text-center">PE 12.01</TableHead>
                         <TableHead className="text-center">% 12.01</TableHead>
                       </TableRow>
@@ -530,6 +553,14 @@ export default function AuditoriaPage() {
                           <TableCell className="text-center">{row.pe1603Activos}</TableCell>
                           <TableCell className="text-center">
                             {getCumplimientoBadge(row.pe1603Cumplimiento)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              {getCumplimientoBadge(row.pe1603CumplimientoHoy)}
+                              <span className="text-[10px] text-muted-foreground">
+                                {row.pe1603RealizadosHoy}/{row.pe1603ExigiblesHoy}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">{row.pe1201Activos}</TableCell>
                           <TableCell className="text-center">

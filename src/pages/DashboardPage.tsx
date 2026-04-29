@@ -165,7 +165,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div 
                 className="p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => navigate('/pe-1603')}
@@ -200,15 +200,28 @@ export default function DashboardPage() {
                   {stats.pe1603AccionesPendientes}
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-muted/50">
+              <div className="p-4 rounded-lg bg-muted/50" title="Realizadas / total de bloques planificados">
                 <div className="flex items-center gap-2 mb-1">
                   <Percent className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Cumplimiento</span>
+                  <span className="text-sm text-muted-foreground">Cumplim. Total</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-2xl font-bold">{stats.pe1603PorcentajeCumplimiento}%</p>
                   <Progress value={stats.pe1603PorcentajeCumplimiento} className="flex-1 h-2" />
                 </div>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50" title="Realizadas hasta hoy / bloques que debían haberse realizado a fecha de hoy">
+                <div className="flex items-center gap-2 mb-1">
+                  <Percent className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Cumplim. a Hoy</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-2xl font-bold">{stats.pe1603PorcentajeCumplimientoHoy}%</p>
+                  <Progress value={stats.pe1603PorcentajeCumplimientoHoy} className="flex-1 h-2" />
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {stats.pe1603BloquesRealizadosHoy} / {stats.pe1603BloquesExigiblesHoy} exigibles
+                </p>
               </div>
             </div>
           </CardContent>
