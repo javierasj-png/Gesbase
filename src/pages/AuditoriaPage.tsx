@@ -533,7 +533,8 @@ export default function AuditoriaPage() {
                         <TableHead className="text-center">Plan Anual</TableHead>
                         <TableHead className="text-center">Drogas</TableHead>
                         <TableHead className="text-center">PE 16.03</TableHead>
-                        <TableHead className="text-center">% 16.03</TableHead>
+                        <TableHead className="text-center" title="Realizadas / total bloques planificados">% 16.03 Total</TableHead>
+                        <TableHead className="text-center" title="Realizadas / bloques exigibles a día de hoy">% 16.03 Hoy</TableHead>
                         <TableHead className="text-center">PE 12.01</TableHead>
                         <TableHead className="text-center">% 12.01</TableHead>
                       </TableRow>
@@ -552,6 +553,14 @@ export default function AuditoriaPage() {
                           <TableCell className="text-center">{row.pe1603Activos}</TableCell>
                           <TableCell className="text-center">
                             {getCumplimientoBadge(row.pe1603Cumplimiento)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              {getCumplimientoBadge(row.pe1603CumplimientoHoy)}
+                              <span className="text-[10px] text-muted-foreground">
+                                {row.pe1603RealizadosHoy}/{row.pe1603ExigiblesHoy}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">{row.pe1201Activos}</TableCell>
                           <TableCell className="text-center">
