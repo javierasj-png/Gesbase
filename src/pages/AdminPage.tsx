@@ -63,6 +63,27 @@ export default function AdminPage() {
   // Estado para modal de certificaciones de maquinista
   const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaConNombre | null>(null);
 
+  // Filtros tab Maquinistas
+  const [maqBaseFilter, setMaqBaseFilter] = useState<string>('all');
+  const [maqSearch, setMaqSearch] = useState('');
+
+  // Filtro tipo en tab Certificaciones
+  const [certTipoFilter, setCertTipoFilter] = useState<string>('all');
+
+  const basesMaquinistas = [...new Set(maquinistas.map(m => m.base))].filter(Boolean).sort();
+  const filteredMaquinistas = maquinistas.filter(m => {
+    if (maqBaseFilter !== 'all' && m.base !== maqBaseFilter) return false;
+    if (maqSearch) {
+      const q = maqSearch.toLowerCase();
+      if (!m.nombre_apellidos.toLowerCase().includes(q) && !m.matricula.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const filteredCertificaciones = certificaciones.filter(c =>
+    certTipoFilter === 'all' || c.tipo === certTipoFilter
+  );
+
   // Estado para borrado de certificación del catálogo
   const { toast } = useToast();
   const [deletingCert, setDeletingCert] = useState<CertificacionDB | null>(null);
