@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +62,27 @@ export default function AdminPage() {
 
   // Estado para modal de certificaciones de maquinista
   const [maquinistaCertsModal, setMaquinistaCertsModal] = useState<MaquinistaConNombre | null>(null);
+
+  // Filtros tab Maquinistas
+  const [maqBaseFilter, setMaqBaseFilter] = useState<string>('all');
+  const [maqSearch, setMaqSearch] = useState('');
+
+  // Filtro tipo en tab Certificaciones
+  const [certTipoFilter, setCertTipoFilter] = useState<string>('all');
+
+  const basesMaquinistas = [...new Set(maquinistas.map(m => m.base))].filter(Boolean).sort();
+  const filteredMaquinistas = maquinistas.filter(m => {
+    if (maqBaseFilter !== 'all' && m.base !== maqBaseFilter) return false;
+    if (maqSearch) {
+      const q = maqSearch.toLowerCase();
+      if (!m.nombre_apellidos.toLowerCase().includes(q) && !m.matricula.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const filteredCertificaciones = certificaciones.filter(c =>
+    certTipoFilter === 'all' || c.tipo === certTipoFilter
+  );
 
   // Estado para borrado de certificación del catálogo
   const { toast } = useToast();
@@ -209,15 +238,39 @@ export default function AdminPage() {
                   Nuevo Maquinista
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Filtros */}
+                <div className="flex flex-wrap gap-3">
+                  <Input
+                    placeholder="Buscar por nombre o matrícula..."
+                    value={maqSearch}
+                    onChange={(e) => setMaqSearch(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Select value={maqBaseFilter} onValueChange={setMaqBaseFilter}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Todas las bases" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las bases</SelectItem>
+                      {basesMaquinistas.map(base => (
+                        <SelectItem key={base} value={base}>{base}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center text-sm text-muted-foreground ml-auto">
+                    {filteredMaquinistas.length} de {maquinistas.length}
+                  </div>
+                </div>
+
                 {loadingMaquinistas ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-muted-foreground">Cargando maquinistas...</span>
                   </div>
-                ) : maquinistas.length === 0 ? (
+                ) : filteredMaquinistas.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No hay maquinistas registrados
+                    {maquinistas.length === 0 ? 'No hay maquinistas registrados' : 'No hay maquinistas que coincidan con los filtros'}
                   </div>
                 ) : (
                   <table className="w-full">
@@ -231,7 +284,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {maquinistas.map((maquinista) => (
+                      {filteredMaquinistas.map((maquinista) => (
                         <tr key={maquinista.id} className="border-b last:border-b-0">
                           <td className="p-3 font-mono text-sm">{maquinista.matricula}</td>
                           <td className="p-3 text-sm">{maquinista.nombre_apellidos}</td>
@@ -296,15 +349,32 @@ export default function AdminPage() {
                     Nueva Certificación
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {/* Filtro tipo */}
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <Select value={certTipoFilter} onValueChange={setCertTipoFilter}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos los tipos</SelectItem>
+                        <SelectItem value="vehiculo">Vehículo</SelectItem>
+                        <SelectItem value="linea">Línea</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="text-sm text-muted-foreground ml-auto">
+                      {filteredCertificaciones.length} de {certificaciones.length}
+                    </div>
+                  </div>
+
                   {loadingCertificaciones ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                       <span className="ml-2 text-muted-foreground">Cargando certificaciones...</span>
                     </div>
-                  ) : certificaciones.length === 0 ? (
+                  ) : filteredCertificaciones.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      No hay certificaciones registradas
+                      {certificaciones.length === 0 ? 'No hay certificaciones registradas' : 'No hay certificaciones del tipo seleccionado'}
                     </div>
                   ) : (
                     <table className="w-full">
@@ -318,7 +388,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {certificaciones.map((cert) => (
+                        {filteredCertificaciones.map((cert) => (
                           <tr key={cert.id} className="border-b last:border-b-0">
                             <td className="p-3 font-mono text-xs">{cert.id}</td>
                             <td className="p-3 text-sm font-medium">{cert.nombre}</td>
