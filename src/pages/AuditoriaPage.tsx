@@ -588,6 +588,14 @@ export default function AuditoriaPage() {
                           <TableCell className="text-center">
                             {getCumplimientoBadge(row.pe1201Cumplimiento)}
                           </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              {getCumplimientoBadge(row.pe1201CumplimientoHoy)}
+                              <span className="text-[10px] text-muted-foreground">
+                                {row.pe1201RealizadosHoy}/{row.pe1201ExigiblesHoy}
+                              </span>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
