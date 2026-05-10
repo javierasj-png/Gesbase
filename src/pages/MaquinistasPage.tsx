@@ -30,6 +30,7 @@ import { useExpedientes1201 } from '@/hooks/useExpedientes1201';
 import { useAuth } from '@/contexts/AuthContext';
 import { addYears, addMonths, differenceInDays, isBefore } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 function getLicenciaStatus(fechaObtencion: string | null) {
   if (!fechaObtencion) return { label: 'Sin dato', variant: 'default' as const, warn: false };
@@ -51,7 +52,7 @@ function getLicenciaStatus(fechaObtencion: string | null) {
 export default function MaquinistasPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const { maquinistas, loading } = useMaquinistas();

@@ -24,11 +24,12 @@ import {
 import { useExpedientes1603 } from '@/hooks/useExpedientes1603';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addYears } from 'date-fns';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function PE1603Page() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
   
   const { expedientes, loading, kpis } = useExpedientes1603();

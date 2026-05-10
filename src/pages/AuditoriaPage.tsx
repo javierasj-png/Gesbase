@@ -50,6 +50,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 interface CumplimientoBase {
   base: string;
@@ -95,7 +96,7 @@ export default function AuditoriaPage() {
   const [selectedTab, setSelectedTab] = useState('cumplimiento');
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // Partes search & detail state
