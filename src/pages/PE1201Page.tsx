@@ -39,6 +39,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useExpedientes1201 } from '@/hooks/useExpedientes1201';
 import { format, addDays, parseISO } from 'date-fns';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function PE1201Page() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function PE1201Page() {
   const { expedientes, loading, kpis, refetch } = useExpedientes1201();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
   const [bases, setBases] = useState<{id: string; nombre: string}[]>([]);
   
