@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { KPICard } from '@/components/KPICard';
@@ -31,7 +31,7 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   
   const { getAccessibleBases, isAdmin } = useBaseFilter();
   
