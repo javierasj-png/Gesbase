@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ExtraccionResult, Parte, EstadoParte, TipoInforme } from '@/types/partes';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 export default function PartesPage() {
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -51,6 +52,7 @@ export default function PartesPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
+  const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [fechaDesde, setFechaDesde] = useState<Date | undefined>(undefined);
   const [fechaHasta, setFechaHasta] = useState<Date | undefined>(undefined);
 
@@ -267,9 +269,10 @@ export default function PartesPage() {
       (p.maquinista_texto?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (p.base?.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesEstado = estadoFilter === 'all' || p.estado === estadoFilter;
+    const matchesBase = baseFilter === 'all' || p.base === baseFilter;
     const matchesFechaDesde = !fechaDesde || (p.fecha_parte && new Date(p.fecha_parte) >= fechaDesde);
     const matchesFechaHasta = !fechaHasta || (p.fecha_parte && new Date(p.fecha_parte) <= fechaHasta);
-    return matchesSearch && matchesEstado && matchesFechaDesde && matchesFechaHasta;
+    return matchesSearch && matchesEstado && matchesBase && matchesFechaDesde && matchesFechaHasta;
   });
 
   return (
@@ -356,6 +359,17 @@ export default function PartesPage() {
                   <SelectItem value="Nuevo">Nuevo</SelectItem>
                   <SelectItem value="En revisión">En revisión</SelectItem>
                   <SelectItem value="Cerrado">Cerrado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={baseFilter} onValueChange={setBaseFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Base" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las bases</SelectItem>
+                  {getAccessibleBases.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Popover>
