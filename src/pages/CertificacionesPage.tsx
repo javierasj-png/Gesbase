@@ -22,15 +22,30 @@ import {
   AlertTriangle as AlertTriangleIcon
 } from 'lucide-react';
 import { useBaseCertificaciones } from '@/hooks/useBaseCertificaciones';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function CertificacionesPage() {
   const navigate = useNavigate();
-  const [baseFilter, setBaseFilter] = useState<string>('all');
+  const [globalBaseName, setGlobalBaseName] = useGlobalBaseFilter();
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [soloVigiladas, setSoloVigiladas] = useState(false);
   const [soloObligatorias, setSoloObligatorias] = useState(false);
 
   const { certificacionesPorBase, loading, kpis, bases } = useBaseCertificaciones();
+
+  // Traducir filtro global (por nombre) ↔ id de base
+  const baseFilter = globalBaseName === 'all'
+    ? 'all'
+    : (bases.find(b => b.nombre === globalBaseName)?.id ?? 'all');
+
+  const setBaseFilter = (id: string) => {
+    if (id === 'all') {
+      setGlobalBaseName('all');
+    } else {
+      const found = bases.find(b => b.id === id);
+      setGlobalBaseName(found?.nombre ?? 'all');
+    }
+  };
 
   // Filtrar bases
   const filteredBases = certificacionesPorBase.filter(item => {
