@@ -1689,6 +1689,17 @@ export function MaquinistaPE1603Tab({
               </div>
             )}
 
+            {/* Índice PREVER (opcional) */}
+            <div className="space-y-2">
+              <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+              <Input
+                type="text"
+                value={indicePrever}
+                onChange={(e) => setIndicePrever(e.target.value)}
+                placeholder="Ej: 4.5"
+              />
+            </div>
+
             {/* Km recorridos (solo para registro) */}
             {selectedTipo === 'registro' && (
               <div className="space-y-2">
@@ -1702,17 +1713,6 @@ export function MaquinistaPE1603Tab({
                 <p className="text-xs text-muted-foreground">Suma para el criterio de 100 km del Plan de Acción Anual</p>
               </div>
             )}
-
-            {/* Índice PREVER (opcional) */}
-            <div className="space-y-2">
-              <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-              <Input
-                type="text"
-                value={indicePrever}
-                onChange={(e) => setIndicePrever(e.target.value)}
-                placeholder="Ej: 4.5"
-              />
-            </div>
 
             {/* Resultado (para Alcohol/Drogas) */}
             {selectedTipo && (selectedTipo === 'alcohol' || selectedTipo === 'drogas') && (
