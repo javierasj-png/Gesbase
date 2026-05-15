@@ -811,6 +811,7 @@ export type Database = {
           id: string
           observaciones: string | null
           registrado_por: string | null
+          tipo: string
         }
         Insert: {
           base_destino: string
@@ -821,6 +822,7 @@ export type Database = {
           id?: string
           observaciones?: string | null
           registrado_por?: string | null
+          tipo?: string
         }
         Update: {
           base_destino?: string
@@ -831,6 +833,7 @@ export type Database = {
           id?: string
           observaciones?: string | null
           registrado_por?: string | null
+          tipo?: string
         }
         Relationships: [
           {
