@@ -1966,8 +1966,9 @@ export function MaquinistaPE1603Tab({
         if (!open) {
           setEditingTraslado(null);
           setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
-           setTrasladoBaseOrigen(maquinista.base);
-           setTrasladoBaseOrigenOtra('');
+          setTrasladoTipo('entrada');
+          setTrasladoBaseOrigen(maquinista.base);
+          setTrasladoBaseOrigenOtra('');
           setTrasladoBaseDestino('');
           setTrasladoBaseDestinoOtra('');
           setTrasladoObservaciones('');
@@ -1980,22 +1981,59 @@ export function MaquinistaPE1603Tab({
               {editingTraslado ? 'Editar Traslado' : 'Registrar Traslado'}
             </DialogTitle>
             <DialogDescription>
-              {editingTraslado
-                ? 'Modifica los datos del traslado. Se recalcularán los bloques justificados.'
-                : 'Registra un traslado de base. Las actuaciones vencidas quedarán justificadas. Si la base de destino es GESBASE, se actualizará la base del maquinista.'
+              {trasladoTipo === 'entrada'
+                ? 'Traslado de entrada: el maquinista llega a esta base. Las acciones cuya ventana finalizó antes de la fecha quedarán justificadas.'
+                : 'Traslado de salida: el maquinista deja esta base. Las acciones cuya ventana comienza en o después de la fecha quedarán justificadas (incluidas las futuras).'
               }
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Tipo de traslado */}
             <div className="space-y-2">
-              <Label>Fecha primer turno en nueva residencia *</Label>
+              <Label>Tipo de traslado *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTrasladoTipo('entrada')}
+                  className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
+                    trasladoTipo === 'entrada'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background hover:bg-muted'
+                  }`}
+                >
+                  Entrada (llega)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrasladoTipo('salida')}
+                  className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
+                    trasladoTipo === 'salida'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background hover:bg-muted'
+                  }`}
+                >
+                  Salida (se va)
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                {trasladoTipo === 'entrada'
+                  ? 'Fecha primer turno en esta base *'
+                  : 'Fecha efectiva del traslado de salida *'}
+              </Label>
               <Input
                 type="date"
                 value={trasladoFecha}
                 onChange={(e) => setTrasladoFecha(e.target.value)}
-                max={format(new Date(), 'yyyy-MM-dd')}
               />
+              {trasladoTipo === 'salida' && (
+                <p className="text-xs text-muted-foreground">
+                  Puede ser una fecha futura. Se justificarán las acciones cuyo bloque comienza desde esa fecha.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -2053,23 +2091,28 @@ export function MaquinistaPE1603Tab({
             </div>
 
             {/* Info: base will be updated */}
-            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && (
+            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && trasladoFecha && !isBefore(new Date(), parseISO(trasladoFecha)) && (
               <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800">
                 <p className="text-sm text-emerald-700 dark:text-emerald-300">
                   ✓ La base del maquinista se actualizará automáticamente a <strong>{trasladoBaseDestino}</strong>
                 </p>
               </div>
             )}
+            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && trasladoFecha && isBefore(new Date(), parseISO(trasladoFecha)) && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  ⓘ La base del maquinista no se cambiará todavía (la fecha del traslado es futura).
+                </p>
+              </div>
+            )}
 
             {/* Preview of blocks that will be justified */}
             {trasladoFecha && (() => {
-              const trasladoDate = parseISO(trasladoFecha);
-              const bloquesAJustificar = plan1603.filter(b => {
-                if (b.actuacion_id || b.justificado_traslado) return false;
-                if (!b.fin_ventana) return false;
-                const fin = parseISO(b.fin_ventana);
-                return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-              });
+              const bloquesAJustificar = getBloquesJustificadosPorTraslado(
+                trasladoFecha,
+                trasladoTipo,
+                editingTraslado?.id
+              );
 
               return bloquesAJustificar.length > 0 ? (
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
@@ -2085,7 +2128,7 @@ export function MaquinistaPE1603Tab({
                 </div>
               ) : (
                 <div className="p-3 rounded-lg bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground">No hay bloques vencidos que justificar para esta fecha.</p>
+                  <p className="text-sm text-muted-foreground">No hay bloques que justificar para esta fecha y tipo.</p>
                 </div>
               );
             })()}
