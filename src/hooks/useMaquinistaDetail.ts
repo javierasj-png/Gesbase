@@ -57,6 +57,7 @@ export interface Traslado1603 {
   fecha_traslado: string;
   base_origen: string;
   base_destino: string;
+  tipo: 'entrada' | 'salida';
   observaciones: string | null;
   registrado_por: string | null;
   created_at: string;
