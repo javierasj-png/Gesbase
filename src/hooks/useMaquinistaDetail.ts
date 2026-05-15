@@ -57,6 +57,7 @@ export interface Traslado1603 {
   fecha_traslado: string;
   base_origen: string;
   base_destino: string;
+  tipo: 'entrada' | 'salida';
   observaciones: string | null;
   registrado_por: string | null;
   created_at: string;
@@ -159,7 +160,7 @@ export function useMaquinistaDetail(id: string | undefined) {
           .eq('expediente_id', expData.id)
           .order('fecha_traslado', { ascending: true });
 
-        setTraslados1603(trasladosData || []);
+        setTraslados1603((trasladosData || []) as Traslado1603[]);
       } else {
         setExpediente1603(null);
         setPlan1603([]);

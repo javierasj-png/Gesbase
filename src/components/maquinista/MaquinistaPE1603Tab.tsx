@@ -122,6 +122,7 @@ export function MaquinistaPE1603Tab({
   
   // Transfer form state
   const [trasladoFecha, setTrasladoFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [trasladoTipo, setTrasladoTipo] = useState<'entrada' | 'salida'>('entrada');
   const [trasladoBaseOrigen, setTrasladoBaseOrigen] = useState(maquinista.base);
   const [trasladoBaseOrigenOtra, setTrasladoBaseOrigenOtra] = useState('');
   const [trasladoBaseDestino, setTrasladoBaseDestino] = useState('');
@@ -631,6 +632,30 @@ export function MaquinistaPE1603Tab({
     setEditarOpen(true);
   };
 
+  // Helper: blocks justified by a traslado depending on direction
+  const getBloquesJustificadosPorTraslado = (
+    fechaISO: string,
+    tipo: 'entrada' | 'salida',
+    excludeTrasladoId?: string
+  ) => {
+    const trasladoDate = parseISO(fechaISO);
+    return plan1603.filter(b => {
+      if (b.actuacion_id) return false;
+      // Skip blocks already justified by a different traslado
+      if (b.justificado_traslado && b.traslado_id !== excludeTrasladoId) return false;
+      if (tipo === 'entrada') {
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      } else {
+        // salida: justify blocks whose window starts on/after the transfer date
+        if (!b.inicio_ventana) return false;
+        const ini = parseISO(b.inicio_ventana);
+        return !isBefore(ini, trasladoDate); // ini >= trasladoDate
+      }
+    });
+  };
+
   // Handle registrar traslado
   const handleRegistrarTraslado = async () => {
     const baseOrigenFinal = trasladoBaseOrigen === '__otra__' ? trasladoBaseOrigenOtra : trasladoBaseOrigen;
@@ -638,6 +663,8 @@ export function MaquinistaPE1603Tab({
     if (!expediente1603 || !trasladoFecha || !baseOrigenFinal || !baseDestinoFinal) return;
 
     const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
+    const trasladoDate = parseISO(trasladoFecha);
+    const yaPasado = !isBefore(new Date(), trasladoDate); // today >= trasladoDate
 
     setSaving(true);
     try {
@@ -647,6 +674,7 @@ export function MaquinistaPE1603Tab({
         .insert({
           expediente_id: expediente1603.id,
           fecha_traslado: trasladoFecha,
+          tipo: trasladoTipo,
           base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
@@ -657,29 +685,23 @@ export function MaquinistaPE1603Tab({
 
       if (tError) throw tError;
 
-      // 2. Justify all overdue blocks up to the transfer date
-      const trasladoDate = parseISO(trasladoFecha);
-      const bloquesVencidos = plan1603.filter(b => {
-        if (b.actuacion_id || b.justificado_traslado) return false;
-        if (!b.fin_ventana) return false;
-        const fin = parseISO(b.fin_ventana);
-        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-      });
+      // 2. Justify blocks based on direction
+      const bloquesAJustificar = getBloquesJustificadosPorTraslado(trasladoFecha, trasladoTipo);
 
-      if (bloquesVencidos.length > 0) {
+      if (bloquesAJustificar.length > 0) {
         const { error: updateError } = await supabase
           .from('plan_1603')
           .update({
             justificado_traslado: true,
             traslado_id: traslado.id,
           })
-          .in('id', bloquesVencidos.map(b => b.id));
+          .in('id', bloquesAJustificar.map(b => b.id));
 
         if (updateError) throw updateError;
       }
 
-      // 3. Update maquinista base to destination (if it's a GESBASE base)
-      if (esBaseGesbase) {
+      // 3. Update maquinista base to destination only if transfer already happened (entrada o salida con fecha pasada)
+      if (esBaseGesbase && yaPasado) {
         const { error: baseError } = await supabase
           .from('maquinistas')
           .update({ base: baseDestinoFinal })
@@ -690,13 +712,12 @@ export function MaquinistaPE1603Tab({
 
       toast({
         title: 'Traslado registrado',
-        description: esBaseGesbase
-          ? `Base actualizada a ${baseDestinoFinal}. ${bloquesVencidos.length} bloque(s) justificado(s).`
-          : `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
+        description: `${bloquesAJustificar.length} bloque(s) justificado(s)${esBaseGesbase && yaPasado ? `. Base actualizada a ${baseDestinoFinal}.` : ''}`,
       });
 
       // Reset form and close
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoTipo('entrada');
       setTrasladoBaseOrigen(maquinista.base);
       setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
@@ -720,6 +741,7 @@ export function MaquinistaPE1603Tab({
   const handleEditTraslado = (traslado: Traslado1603) => {
     setEditingTraslado(traslado);
     setTrasladoFecha(traslado.fecha_traslado);
+    setTrasladoTipo(traslado.tipo || 'entrada');
     const isOrigenGesbase = basesActivas.some(b => b.nombre === traslado.base_origen);
     setTrasladoBaseOrigen(isOrigenGesbase ? traslado.base_origen : '__otra__');
     setTrasladoBaseOrigenOtra(isOrigenGesbase ? '' : traslado.base_origen);
@@ -743,6 +765,7 @@ export function MaquinistaPE1603Tab({
         .from('traslados_1603')
         .update({
           fecha_traslado: trasladoFecha,
+          tipo: trasladoTipo,
           base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
@@ -757,18 +780,11 @@ export function MaquinistaPE1603Tab({
         .update({ justificado_traslado: false, traslado_id: null })
         .eq('traslado_id', editingTraslado.id);
 
-      // Then re-justify blocks overdue at the new transfer date
-      const trasladoDate = parseISO(trasladoFecha);
-      const bloquesVencidos = plan1603.filter(b => {
-        if (b.actuacion_id) return false;
-        if (!b.fin_ventana) return false;
-        const fin = parseISO(b.fin_ventana);
-        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-      });
-
-      // Filter out blocks already justified by OTHER traslados
-      const bloquesParaJustificar = bloquesVencidos.filter(b => 
-        !b.justificado_traslado || b.traslado_id === editingTraslado.id
+      // Recompute blocks to justify based on direction
+      const bloquesParaJustificar = getBloquesJustificadosPorTraslado(
+        trasladoFecha,
+        trasladoTipo,
+        editingTraslado.id
       );
 
       if (bloquesParaJustificar.length > 0) {
@@ -778,9 +794,10 @@ export function MaquinistaPE1603Tab({
           .in('id', bloquesParaJustificar.map(b => b.id));
       }
 
-      // Update maquinista base if destination is a GESBASE base
+      // Update maquinista base if destination is a GESBASE base and transfer date already passed
       const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
-      if (esBaseGesbase) {
+      const yaPasado = !isBefore(new Date(), parseISO(trasladoFecha));
+      if (esBaseGesbase && yaPasado) {
         await supabase
           .from('maquinistas')
           .update({ base: baseDestinoFinal })
@@ -792,6 +809,7 @@ export function MaquinistaPE1603Tab({
       setEditingTraslado(null);
       setTrasladoOpen(false);
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoTipo('entrada');
       setTrasladoBaseOrigen(maquinista.base);
       setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
@@ -1459,6 +1477,7 @@ export function MaquinistaPE1603Tab({
                 <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
                   <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
+                  <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded font-semibold ${t.tipo === 'salida' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'}`}>{t.tipo === 'salida' ? 'Salida' : 'Entrada'}</span>
                   <span className="text-muted-foreground flex-1">{t.base_origen} → {t.base_destino}</span>
                   {t.observaciones && <span className="text-muted-foreground text-xs truncate max-w-[120px]">— {t.observaciones}</span>}
                   {puedeEditar && (
@@ -1948,8 +1967,9 @@ export function MaquinistaPE1603Tab({
         if (!open) {
           setEditingTraslado(null);
           setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
-           setTrasladoBaseOrigen(maquinista.base);
-           setTrasladoBaseOrigenOtra('');
+          setTrasladoTipo('entrada');
+          setTrasladoBaseOrigen(maquinista.base);
+          setTrasladoBaseOrigenOtra('');
           setTrasladoBaseDestino('');
           setTrasladoBaseDestinoOtra('');
           setTrasladoObservaciones('');
@@ -1962,22 +1982,59 @@ export function MaquinistaPE1603Tab({
               {editingTraslado ? 'Editar Traslado' : 'Registrar Traslado'}
             </DialogTitle>
             <DialogDescription>
-              {editingTraslado
-                ? 'Modifica los datos del traslado. Se recalcularán los bloques justificados.'
-                : 'Registra un traslado de base. Las actuaciones vencidas quedarán justificadas. Si la base de destino es GESBASE, se actualizará la base del maquinista.'
+              {trasladoTipo === 'entrada'
+                ? 'Traslado de entrada: el maquinista llega a esta base. Las acciones cuya ventana finalizó antes de la fecha quedarán justificadas.'
+                : 'Traslado de salida: el maquinista deja esta base. Las acciones cuya ventana comienza en o después de la fecha quedarán justificadas (incluidas las futuras).'
               }
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Tipo de traslado */}
             <div className="space-y-2">
-              <Label>Fecha primer turno en nueva residencia *</Label>
+              <Label>Tipo de traslado *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTrasladoTipo('entrada')}
+                  className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
+                    trasladoTipo === 'entrada'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background hover:bg-muted'
+                  }`}
+                >
+                  Entrada (llega)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrasladoTipo('salida')}
+                  className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
+                    trasladoTipo === 'salida'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-background hover:bg-muted'
+                  }`}
+                >
+                  Salida (se va)
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                {trasladoTipo === 'entrada'
+                  ? 'Fecha primer turno en esta base *'
+                  : 'Fecha efectiva del traslado de salida *'}
+              </Label>
               <Input
                 type="date"
                 value={trasladoFecha}
                 onChange={(e) => setTrasladoFecha(e.target.value)}
-                max={format(new Date(), 'yyyy-MM-dd')}
               />
+              {trasladoTipo === 'salida' && (
+                <p className="text-xs text-muted-foreground">
+                  Puede ser una fecha futura. Se justificarán las acciones cuyo bloque comienza desde esa fecha.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -2035,23 +2092,28 @@ export function MaquinistaPE1603Tab({
             </div>
 
             {/* Info: base will be updated */}
-            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && (
+            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && trasladoFecha && !isBefore(new Date(), parseISO(trasladoFecha)) && (
               <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800">
                 <p className="text-sm text-emerald-700 dark:text-emerald-300">
                   ✓ La base del maquinista se actualizará automáticamente a <strong>{trasladoBaseDestino}</strong>
                 </p>
               </div>
             )}
+            {trasladoBaseDestino && trasladoBaseDestino !== '__otra__' && trasladoFecha && isBefore(new Date(), parseISO(trasladoFecha)) && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  ⓘ La base del maquinista no se cambiará todavía (la fecha del traslado es futura).
+                </p>
+              </div>
+            )}
 
             {/* Preview of blocks that will be justified */}
             {trasladoFecha && (() => {
-              const trasladoDate = parseISO(trasladoFecha);
-              const bloquesAJustificar = plan1603.filter(b => {
-                if (b.actuacion_id || b.justificado_traslado) return false;
-                if (!b.fin_ventana) return false;
-                const fin = parseISO(b.fin_ventana);
-                return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-              });
+              const bloquesAJustificar = getBloquesJustificadosPorTraslado(
+                trasladoFecha,
+                trasladoTipo,
+                editingTraslado?.id
+              );
 
               return bloquesAJustificar.length > 0 ? (
                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800">
@@ -2067,7 +2129,7 @@ export function MaquinistaPE1603Tab({
                 </div>
               ) : (
                 <div className="p-3 rounded-lg bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground">No hay bloques vencidos que justificar para esta fecha.</p>
+                  <p className="text-sm text-muted-foreground">No hay bloques que justificar para esta fecha y tipo.</p>
                 </div>
               );
             })()}
