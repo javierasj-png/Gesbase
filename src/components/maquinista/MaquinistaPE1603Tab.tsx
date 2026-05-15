@@ -1477,6 +1477,7 @@ export function MaquinistaPE1603Tab({
                 <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-800 text-sm">
                   <ArrowRightLeft className="w-4 h-4 text-blue-500 shrink-0" />
                   <span className="font-medium">{format(parseISO(t.fecha_traslado), 'dd/MM/yyyy')}</span>
+                  <span className={`text-[10px] uppercase px-1.5 py-0.5 rounded font-semibold ${t.tipo === 'salida' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'}`}>{t.tipo === 'salida' ? 'Salida' : 'Entrada'}</span>
                   <span className="text-muted-foreground flex-1">{t.base_origen} → {t.base_destino}</span>
                   {t.observaciones && <span className="text-muted-foreground text-xs truncate max-w-[120px]">— {t.observaciones}</span>}
                   {puedeEditar && (
