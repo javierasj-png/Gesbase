@@ -632,6 +632,30 @@ export function MaquinistaPE1603Tab({
     setEditarOpen(true);
   };
 
+  // Helper: blocks justified by a traslado depending on direction
+  const getBloquesJustificadosPorTraslado = (
+    fechaISO: string,
+    tipo: 'entrada' | 'salida',
+    excludeTrasladoId?: string
+  ) => {
+    const trasladoDate = parseISO(fechaISO);
+    return plan1603.filter(b => {
+      if (b.actuacion_id) return false;
+      // Skip blocks already justified by a different traslado
+      if (b.justificado_traslado && b.traslado_id !== excludeTrasladoId) return false;
+      if (tipo === 'entrada') {
+        if (!b.fin_ventana) return false;
+        const fin = parseISO(b.fin_ventana);
+        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
+      } else {
+        // salida: justify blocks whose window starts on/after the transfer date
+        if (!b.inicio_ventana) return false;
+        const ini = parseISO(b.inicio_ventana);
+        return !isBefore(ini, trasladoDate); // ini >= trasladoDate
+      }
+    });
+  };
+
   // Handle registrar traslado
   const handleRegistrarTraslado = async () => {
     const baseOrigenFinal = trasladoBaseOrigen === '__otra__' ? trasladoBaseOrigenOtra : trasladoBaseOrigen;
@@ -639,6 +663,8 @@ export function MaquinistaPE1603Tab({
     if (!expediente1603 || !trasladoFecha || !baseOrigenFinal || !baseDestinoFinal) return;
 
     const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
+    const trasladoDate = parseISO(trasladoFecha);
+    const yaPasado = !isBefore(new Date(), trasladoDate); // today >= trasladoDate
 
     setSaving(true);
     try {
@@ -648,6 +674,7 @@ export function MaquinistaPE1603Tab({
         .insert({
           expediente_id: expediente1603.id,
           fecha_traslado: trasladoFecha,
+          tipo: trasladoTipo,
           base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
@@ -658,29 +685,23 @@ export function MaquinistaPE1603Tab({
 
       if (tError) throw tError;
 
-      // 2. Justify all overdue blocks up to the transfer date
-      const trasladoDate = parseISO(trasladoFecha);
-      const bloquesVencidos = plan1603.filter(b => {
-        if (b.actuacion_id || b.justificado_traslado) return false;
-        if (!b.fin_ventana) return false;
-        const fin = parseISO(b.fin_ventana);
-        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-      });
+      // 2. Justify blocks based on direction
+      const bloquesAJustificar = getBloquesJustificadosPorTraslado(trasladoFecha, trasladoTipo);
 
-      if (bloquesVencidos.length > 0) {
+      if (bloquesAJustificar.length > 0) {
         const { error: updateError } = await supabase
           .from('plan_1603')
           .update({
             justificado_traslado: true,
             traslado_id: traslado.id,
           })
-          .in('id', bloquesVencidos.map(b => b.id));
+          .in('id', bloquesAJustificar.map(b => b.id));
 
         if (updateError) throw updateError;
       }
 
-      // 3. Update maquinista base to destination (if it's a GESBASE base)
-      if (esBaseGesbase) {
+      // 3. Update maquinista base to destination only if transfer already happened (entrada o salida con fecha pasada)
+      if (esBaseGesbase && yaPasado) {
         const { error: baseError } = await supabase
           .from('maquinistas')
           .update({ base: baseDestinoFinal })
@@ -691,13 +712,12 @@ export function MaquinistaPE1603Tab({
 
       toast({
         title: 'Traslado registrado',
-        description: esBaseGesbase
-          ? `Base actualizada a ${baseDestinoFinal}. ${bloquesVencidos.length} bloque(s) justificado(s).`
-          : `${bloquesVencidos.length} bloque(s) justificado(s) por traslado`,
+        description: `${bloquesAJustificar.length} bloque(s) justificado(s)${esBaseGesbase && yaPasado ? `. Base actualizada a ${baseDestinoFinal}.` : ''}`,
       });
 
       // Reset form and close
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoTipo('entrada');
       setTrasladoBaseOrigen(maquinista.base);
       setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
