@@ -741,6 +741,7 @@ export function MaquinistaPE1603Tab({
   const handleEditTraslado = (traslado: Traslado1603) => {
     setEditingTraslado(traslado);
     setTrasladoFecha(traslado.fecha_traslado);
+    setTrasladoTipo(traslado.tipo || 'entrada');
     const isOrigenGesbase = basesActivas.some(b => b.nombre === traslado.base_origen);
     setTrasladoBaseOrigen(isOrigenGesbase ? traslado.base_origen : '__otra__');
     setTrasladoBaseOrigenOtra(isOrigenGesbase ? '' : traslado.base_origen);
@@ -764,6 +765,7 @@ export function MaquinistaPE1603Tab({
         .from('traslados_1603')
         .update({
           fecha_traslado: trasladoFecha,
+          tipo: trasladoTipo,
           base_origen: baseOrigenFinal,
           base_destino: baseDestinoFinal,
           observaciones: trasladoObservaciones || null,
@@ -778,18 +780,11 @@ export function MaquinistaPE1603Tab({
         .update({ justificado_traslado: false, traslado_id: null })
         .eq('traslado_id', editingTraslado.id);
 
-      // Then re-justify blocks overdue at the new transfer date
-      const trasladoDate = parseISO(trasladoFecha);
-      const bloquesVencidos = plan1603.filter(b => {
-        if (b.actuacion_id) return false;
-        if (!b.fin_ventana) return false;
-        const fin = parseISO(b.fin_ventana);
-        return isBefore(fin, trasladoDate) || fin.getTime() === trasladoDate.getTime();
-      });
-
-      // Filter out blocks already justified by OTHER traslados
-      const bloquesParaJustificar = bloquesVencidos.filter(b => 
-        !b.justificado_traslado || b.traslado_id === editingTraslado.id
+      // Recompute blocks to justify based on direction
+      const bloquesParaJustificar = getBloquesJustificadosPorTraslado(
+        trasladoFecha,
+        trasladoTipo,
+        editingTraslado.id
       );
 
       if (bloquesParaJustificar.length > 0) {
@@ -799,9 +794,10 @@ export function MaquinistaPE1603Tab({
           .in('id', bloquesParaJustificar.map(b => b.id));
       }
 
-      // Update maquinista base if destination is a GESBASE base
+      // Update maquinista base if destination is a GESBASE base and transfer date already passed
       const esBaseGesbase = basesActivas.some(b => b.nombre === baseDestinoFinal);
-      if (esBaseGesbase) {
+      const yaPasado = !isBefore(new Date(), parseISO(trasladoFecha));
+      if (esBaseGesbase && yaPasado) {
         await supabase
           .from('maquinistas')
           .update({ base: baseDestinoFinal })
@@ -813,6 +809,7 @@ export function MaquinistaPE1603Tab({
       setEditingTraslado(null);
       setTrasladoOpen(false);
       setTrasladoFecha(format(new Date(), 'yyyy-MM-dd'));
+      setTrasladoTipo('entrada');
       setTrasladoBaseOrigen(maquinista.base);
       setTrasladoBaseOrigenOtra('');
       setTrasladoBaseDestino('');
