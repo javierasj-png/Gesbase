@@ -160,7 +160,7 @@ export function useMaquinistaDetail(id: string | undefined) {
           .eq('expediente_id', expData.id)
           .order('fecha_traslado', { ascending: true });
 
-        setTraslados1603(trasladosData || []);
+        setTraslados1603((trasladosData || []) as Traslado1603[]);
       } else {
         setExpediente1603(null);
         setPlan1603([]);
