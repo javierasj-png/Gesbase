@@ -1,3 +1,4 @@
+import { callGesbaseLLM } from "@/lib/callGesbaseLLM";
 import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +72,19 @@ interface CumplimientoBase {
   planAnualPorcentaje: number;
   coberturaDrogas: number;
 }
+const probarIA = async () => {
+  try {
+    const respuesta = await callGesbaseLLM({
+      prompt: "Responde solo: conexión correcta con Gesbase",
+    });
 
+    console.log("Respuesta IA:", respuesta);
+    alert(respuesta);
+  } catch (error) {
+    console.error(error);
+    alert("Error conectando con la IA de Gesbase");
+  }
+};
 const tipoColors: Record<string, string> = {
   'Incidencia': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   'Retraso': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
