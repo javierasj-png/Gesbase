@@ -23,23 +23,49 @@ import {
   Percent,
   CalendarCheck,
   Droplets,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useAuth } from '@/contexts/AuthContext';
+import { exportPlanAnualMatriz, type PlanAnualFiltro } from '@/utils/exportPlanAnualMatriz';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   
   const { getAccessibleBases, isAdmin } = useBaseFilter();
+  const { assignedBases } = useAuth();
+  const [exportingFiltro, setExportingFiltro] = useState<PlanAnualFiltro | null>(null);
   
   const effectiveBaseFilter = baseFilter === 'all' && !isAdmin && getAccessibleBases.length === 1 
     ? getAccessibleBases[0] 
     : baseFilter;
   
   const { stats, loading } = useDashboardStats(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter);
+
+  const handleExportPlanAnual = async (filtro: PlanAnualFiltro) => {
+    setExportingFiltro(filtro);
+    try {
+      await exportPlanAnualMatriz({
+        baseFilter: effectiveBaseFilter,
+        isAdmin,
+        assignedBases: assignedBases as string[],
+        filtro,
+      });
+      toast.success('Excel generado correctamente');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Error generando el Excel');
+    } finally {
+      setExportingFiltro(null);
+    }
+  };
 
   return (
     <AppLayout>
@@ -112,17 +138,41 @@ export default function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="w-4 h-4 text-status-ok" />
-                  <span className="text-sm text-muted-foreground">Maquinistas Cumplen</span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-status-ok" />
+                    <span className="text-sm text-muted-foreground">Maquinistas Cumplen</span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    title="Exportar Excel de maquinistas que cumplen"
+                    disabled={exportingFiltro !== null}
+                    onClick={() => handleExportPlanAnual('cumplen')}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
                 <p className="text-2xl font-bold">{stats.planAnualMaquinistasCumplen}</p>
                 <p className="text-xs text-muted-foreground mt-1">de {stats.planAnualTotalEvaluados} evaluados</p>
               </div>
               <div className="p-4 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-4 h-4 text-status-proximo" />
-                  <span className="text-sm text-muted-foreground">Pendientes</span>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-status-proximo" />
+                    <span className="text-sm text-muted-foreground">Pendientes</span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    title="Exportar Excel de maquinistas pendientes"
+                    disabled={exportingFiltro !== null}
+                    onClick={() => handleExportPlanAnual('pendientes')}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
                 <p className={`text-2xl font-bold ${(stats.planAnualTotalEvaluados - stats.planAnualMaquinistasCumplen) > 0 ? 'text-status-proximo' : ''}`}>
                   {stats.planAnualTotalEvaluados - stats.planAnualMaquinistasCumplen}
