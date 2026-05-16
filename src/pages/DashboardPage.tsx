@@ -23,11 +23,17 @@ import {
   Percent,
   CalendarCheck,
   Droplets,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useAuth } from '@/contexts/AuthContext';
+import { exportPlanAnualMatriz, type PlanAnualFiltro } from '@/utils/exportPlanAnualMatriz';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
