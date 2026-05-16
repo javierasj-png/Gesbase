@@ -40,12 +40,32 @@ export default function DashboardPage() {
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   
   const { getAccessibleBases, isAdmin } = useBaseFilter();
+  const { assignedBases } = useAuth();
+  const [exportingFiltro, setExportingFiltro] = useState<PlanAnualFiltro | null>(null);
   
   const effectiveBaseFilter = baseFilter === 'all' && !isAdmin && getAccessibleBases.length === 1 
     ? getAccessibleBases[0] 
     : baseFilter;
   
   const { stats, loading } = useDashboardStats(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter);
+
+  const handleExportPlanAnual = async (filtro: PlanAnualFiltro) => {
+    setExportingFiltro(filtro);
+    try {
+      await exportPlanAnualMatriz({
+        baseFilter: effectiveBaseFilter,
+        isAdmin,
+        assignedBases: assignedBases as string[],
+        filtro,
+      });
+      toast.success('Excel generado correctamente');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Error generando el Excel');
+    } finally {
+      setExportingFiltro(null);
+    }
+  };
 
   return (
     <AppLayout>
