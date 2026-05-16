@@ -517,12 +517,30 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
   } catch (error) {
     console.error("Error general en propuesta-auditoria:", error);
 
+    // Fallback graceful: devolver 200 con informe mínimo y warning,
+    // para que el frontend muestre el error real sin romper la UX.
+    const fecha = new Date().toISOString().split("T")[0];
+    const mensaje = error instanceof Error ? error.message : "Error desconocido";
+    const informeMinimo = `# INFORME DE PROPUESTA DE AUDITORÍA
+
+**Fecha:** ${fecha}
+
+## Aviso
+
+No se ha podido generar el informe completo por un error interno: ${mensaje}
+
+Revisa la configuración del entorno o vuelve a intentarlo más tarde.
+`;
+
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Error desconocido",
+        success: true,
+        informe: informeMinimo,
+        modo: "sin_ia",
+        warning: `Error al generar la propuesta: ${mensaje}`,
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
