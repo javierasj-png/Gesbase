@@ -378,6 +378,8 @@ serve(async (req) => {
       });
     }
 
+    console.log("Bases analizadas:", basesData.length, "Modo IA:", GROQ_API_KEY ? "groq" : (LOVABLE_API_KEY ? "lovable" : "sin_ia"));
+
     const prompt = `Eres un auditor jefe experto en Sistemas de Gestión de Seguridad (SGS) ferroviarios en España.
 
 Genera un INFORME DE PROPUESTA DE AUDITORÍA profesional y detallado basándote en los datos reales que se proporcionan a continuación. El informe debe incluir:
