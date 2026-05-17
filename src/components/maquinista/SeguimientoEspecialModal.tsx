@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Loader2 } from 'lucide-react';
+import { Mail, Loader2, Sparkles } from 'lucide-react';
 import { NuevoSeguimientoInput } from '@/hooks/useSeguimientosEspeciales';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   open: boolean;
