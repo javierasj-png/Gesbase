@@ -50,6 +50,13 @@ export default function PE1603Page() {
     return matchesSearch && matchesBase && matchesEstado;
   });
 
+  // KPIs recalculados sobre el resultado filtrado
+  const filteredKpis = {
+    totalActivos: filtered.filter(f => f.expediente.estado === 'abierto').length,
+    conVencidas: filtered.filter(f => f.resumen.vencidas > 0).length,
+    conEnVentana: filtered.filter(f => f.resumen.enVentana > 0).length,
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
