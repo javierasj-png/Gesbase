@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Buffer } from "node:buffer";
 import pdf from "npm:pdf-parse@1.1.1";
 
 const corsHeaders = {
@@ -231,7 +232,7 @@ serve(async (req) => {
 
     // Use vision model for images, text model for extracted PDF text
     const hasImageContent = messageContent.some((c: any) => c.type === "image_url");
-    const groqModel = hasImageContent ? "llama-3.2-90b-vision-preview" : "llama-3.1-8b-instant";
+    const groqModel = hasImageContent ? "meta-llama/llama-4-scout-17b-16e-instruct" : "llama-3.1-8b-instant";
 
     let response: Response;
     if (OPENAI_API_KEY) {
@@ -263,9 +264,9 @@ serve(async (req) => {
       });
     }
 
-    // Fallback to Lovable AI on 429
-    if (response.status === 429 && LOVABLE_API_KEY) {
-      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
+    // Fallback to Lovable AI on any Groq error (429, 400 modelo decomisionado, etc.)
+    if (!response.ok && LOVABLE_API_KEY) {
+      console.warn(`Groq devolvió ${response.status}, usando fallback Lovable AI...`);
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
