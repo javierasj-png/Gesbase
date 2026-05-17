@@ -51,10 +51,19 @@ export interface NuevoSeguimientoInput {
   email_asunto?: string | null;
   email_cuerpo?: string | null;
   marcar_email_enviado?: boolean;
-  plan: {
+  plan?: {
     tipo: TipoPlanAcciones;
     periodicidad: Periodicidad;
   };
+}
+
+export interface DisenarPlanInput {
+  seguimiento_id: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  tipo: Exclude<TipoPlanAcciones, 'ninguno'>;
+  periodicidad: Periodicidad;
+  reemplazar_pendientes?: boolean;
 }
 
 function generarFechasPlan(inicio: Date, fin: Date, periodicidad: Periodicidad): Date[] {
