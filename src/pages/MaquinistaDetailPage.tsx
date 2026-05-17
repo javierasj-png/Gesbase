@@ -168,7 +168,7 @@ export default function MaquinistaDetailPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-[650px]">
+          <TabsList className="grid w-full grid-cols-5 max-w-[820px]">
             <TabsTrigger value="certificaciones" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
               Certificaciones
@@ -176,6 +176,10 @@ export default function MaquinistaDetailPage() {
             <TabsTrigger value="plan-anual" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
               Plan Anual
+            </TabsTrigger>
+            <TabsTrigger value="seg-especial" className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4" />
+              Seg. Especial
             </TabsTrigger>
             <TabsTrigger value="pe1603" className="flex items-center gap-2">
               <FileCheck className="w-4 h-4" />
