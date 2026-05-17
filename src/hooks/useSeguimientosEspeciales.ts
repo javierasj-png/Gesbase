@@ -15,9 +15,10 @@ export interface BloquePlan {
   periodicidad?: Periodicidad;
   fecha_inicio?: string;
   fecha_fin?: string;
-  // Para formativa: fecha única + ID SAP SF
+  // Para formativa: fecha única + título + ID SAP SF
   fecha_unica?: string;
   id_sap_sf?: string;
+  titulo?: string;
 }
 
 export interface SeguimientoEspecial {
@@ -187,13 +188,16 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     const rows = input.bloques.flatMap(b => {
       if (b.tipo === 'formativa') {
         if (!b.fecha_unica) return [];
+        const meta: string[] = [];
+        if (b.titulo) meta.push(`Curso: ${b.titulo}`);
+        if (b.id_sap_sf) meta.push(`ID SAP SF: ${b.id_sap_sf}`);
         return [{
           seguimiento_id: input.seguimiento_id,
           tipo: 'formativa' as const,
           fecha_objetivo: b.fecha_unica,
           estado: 'pendiente',
           registrado_por: user.id,
-          observaciones: b.id_sap_sf ? `ID SAP SF: ${b.id_sap_sf}` : null,
+          observaciones: meta.length ? meta.join(' · ') : null,
         }];
       }
       if (!b.fecha_inicio || !b.fecha_fin || !b.periodicidad) return [];
