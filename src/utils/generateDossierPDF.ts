@@ -507,6 +507,104 @@ export async function generateDossierPDF(maquinistaId: string) {
     }
   }
 
+  // ═══════════════════════════════════════
+  // SECCIÓN 4: SEGUIMIENTOS ESPECIALES
+  // ═══════════════════════════════════════
+  const allSegsEsp = segsEsp || [];
+  const LABEL_SEG = 'Dossier — Seguimiento Especial';
+
+  y = needSpace(doc, y, 30, LABEL_SEG);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...MAGENTA);
+  doc.text('4. SEGUIMIENTO ESPECIAL', 14, y);
+  y += 4;
+
+  if (allSegsEsp.length === 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(...COOL_GRAY);
+    doc.text('No hay seguimientos especiales para este maquinista.', 18, y + 3);
+    y += 8;
+  }
+
+  const tipoLabelsSeg: Record<string, string> = {
+    acompanamiento: 'Acompañamiento',
+    registro: 'Registro',
+    formativa: 'Acción formativa',
+  };
+
+  for (const seg of allSegsEsp) {
+    y = needSpace(doc, y, 40, LABEL_SEG);
+
+    const motivoLines = doc.splitTextToSize(seg.motivo || '-', pw - 60);
+    const cardH = 18 + Math.max(0, motivoLines.length - 1) * 4;
+    doc.setFillColor(...CARD_BG);
+    doc.roundedRect(14, y, pw - 28, cardH, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...MAGENTA);
+    doc.text(`Seguimiento: ${format(parseISO(seg.fecha_inicio), 'dd/MM/yyyy')}`, 18, y + 6);
+
+    const estadoSeg = seg.estado === 'abierto' ? 'Abierto' : 'Cerrado';
+    doc.setFillColor(...(seg.estado === 'abierto' ? GREEN : COOL_GRAY));
+    doc.roundedRect(pw - 48, y + 2, 32, 6, 2, 2, 'F');
+    doc.setTextColor(...WHITE);
+    doc.setFontSize(7);
+    doc.text(estadoSeg, pw - 32, y + 6.5, { align: 'center' });
+
+    doc.setTextColor(...DARK);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const metaParts: string[] = [];
+    if (seg.fecha_anomalia) metaParts.push(`Anomalía: ${format(parseISO(seg.fecha_anomalia), 'dd/MM/yyyy')}`);
+    if (seg.indice_prever != null) metaParts.push(`PREVER: ${seg.indice_prever}`);
+    if (seg.fecha_fin) metaParts.push(`Fin: ${format(parseISO(seg.fecha_fin), 'dd/MM/yyyy')}`);
+    if (metaParts.length) doc.text(metaParts.join('  •  '), 18, y + 12);
+    doc.setFontSize(7);
+    doc.text(motivoLines, 18, y + (metaParts.length ? 16 : 12));
+
+    y += cardH + 2;
+
+    const acciones = (planSegEsp || []).filter((a: any) => a.seguimiento_id === seg.id);
+    if (acciones.length > 0) {
+      const rows = acciones.map((a: any) => {
+        let estado = a.estado as string;
+        const isVencida = estado === 'vencida' || (estado === 'pendiente' && a.fecha_objetivo && new Date(a.fecha_objetivo) < new Date());
+        if (estado === 'cumplida') estado = 'Cumplida';
+        else if (isVencida) estado = 'Vencida';
+        else estado = 'Pendiente';
+        return [
+          tipoLabelsSeg[a.tipo] || a.tipo,
+          a.fecha_objetivo ? format(parseISO(a.fecha_objetivo), 'dd/MM/yyyy') : '-',
+          estado,
+          a.fecha_real ? format(parseISO(a.fecha_real), 'dd/MM/yyyy') : '-',
+          a.resultado || '-',
+          a.observaciones || (isVencida && a.comentario_vencida ? a.comentario_vencida : '-'),
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Tipo', 'F. Objetivo', 'Estado', 'F. Real', 'Resultado', 'Notas']],
+        body: rows,
+        theme: 'grid',
+        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+        bodyStyles: { textColor: DARK },
+        columnStyles: { 5: { cellWidth: 40 } },
+        didParseCell: (data: any) => {
+          if (data.section === 'body' && data.column.index === 2) {
+            const val = data.cell.raw as string;
+            if (val === 'Cumplida') data.cell.styles.textColor = GREEN;
+            else if (val === 'Vencida') data.cell.styles.textColor = RED;
+            else data.cell.styles.textColor = COOL_GRAY;
+          }
+        },
+      });
+      y = tableEndY(doc, y) + 6;
+    }
+  }
+
   // ── Footers on all pages ──
   addFooters(doc);
 
