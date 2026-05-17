@@ -131,10 +131,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                           </div>
                           {s.estado === 'abierto' && a.estado === 'pendiente' && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => {
-                                const d = prompt('Fecha real de realización (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
-                                if (d) registrarAccion(a.id, d).then(() => toast({ title: 'Acción registrada' }));
-                              }}>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setAccionRegistro(a)}>
                                 Registrar
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => {
