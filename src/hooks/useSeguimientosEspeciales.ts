@@ -4,10 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 
 export type EstadoSeguimiento = 'abierto' | 'cerrado';
-export type TipoAccionSeg = 'acompanamiento' | 'registro';
+export type TipoAccionSeg = 'acompanamiento' | 'registro' | 'formativa';
 export type EstadoAccionSeg = 'pendiente' | 'cumplida' | 'vencida';
 export type Periodicidad = 'semanal' | 'quincenal' | 'mensual' | 'trimestral' | 'semestral';
-export type TipoPlanAcciones = 'acompanamiento' | 'registro' | 'ambos' | 'ninguno';
+export type TipoPlanAcciones = 'acompanamiento' | 'registro' | 'formativa' | 'ambos' | 'ninguno';
+
+export interface BloquePlan {
+  tipo: TipoAccionSeg;
+  periodicidad: Periodicidad;
+  fecha_inicio: string;
+  fecha_fin: string;
+}
 
 export interface SeguimientoEspecial {
   id: string;
