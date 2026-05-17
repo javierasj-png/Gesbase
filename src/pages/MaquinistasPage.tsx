@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -59,6 +60,21 @@ export default function MaquinistasPage() {
   const { expedientes } = useExpedientes1603();
   const { expedientes: expedientes1201 } = useExpedientes1201();
   const { isAdmin } = useAuth();
+  const [segEspByMaq, setSegEspByMaq] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('seguimientos_especiales')
+        .select('maquinista_id, estado')
+        .eq('estado', 'abierto');
+      const counts: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        counts[r.maquinista_id] = (counts[r.maquinista_id] || 0) + 1;
+      });
+      setSegEspByMaq(counts);
+    })();
+  }, []);
 
   // Obtener bases únicas de los maquinistas
   const getAccessibleBases = [...new Set(maquinistas.map(m => m.base))].sort();
@@ -157,6 +173,7 @@ export default function MaquinistasPage() {
                   <SortableTableHead sortKey="fecha_licencia_conduccion" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Licencia</SortableTableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
+                  <TableHead className="text-center">Seg. Especial</TableHead>
                   <TableHead>Estado General</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -164,7 +181,7 @@ export default function MaquinistasPage() {
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
@@ -229,6 +246,15 @@ export default function MaquinistasPage() {
                           {exp1201 > 0 ? (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-proximo-bg text-status-proximo text-xs font-medium">
                               {exp1201}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {(segEspByMaq[maquinista.id] || 0) > 0 ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-vencido-bg text-status-vencido text-xs font-medium">
+                              {segEspByMaq[maquinista.id]}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
