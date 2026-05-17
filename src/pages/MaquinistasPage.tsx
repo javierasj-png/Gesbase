@@ -173,6 +173,7 @@ export default function MaquinistasPage() {
                   <SortableTableHead sortKey="fecha_licencia_conduccion" currentSortKey={sortConfig.key as string} direction={sortConfig.direction} onSort={requestSort}>Licencia</SortableTableHead>
                   <TableHead className="text-center">PE 16.03</TableHead>
                   <TableHead className="text-center">PE 12.01</TableHead>
+                  <TableHead className="text-center">Seg. Especial</TableHead>
                   <TableHead>Estado General</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
