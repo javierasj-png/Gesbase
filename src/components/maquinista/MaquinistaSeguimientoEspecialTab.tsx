@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Clock, CalendarRange } from 'lucide-react';
 import { useSeguimientosEspeciales, type AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { SeguimientoEspecialModal } from './SeguimientoEspecialModal';
+import { DisenarPlanSeguimientoDialog } from './DisenarPlanSeguimientoDialog';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -25,8 +26,9 @@ function estadoCalc(a: AccionSeguimiento, hoy: Date): { label: string; icon: any
 
 export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombre, maquinistaEmail }: Props) {
   const { toast } = useToast();
-  const { seguimientos, acciones, loading, crear, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
+  const { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
   const [open, setOpen] = useState(false);
+  const [planDialog, setPlanDialog] = useState<{ id: string; fecha_inicio: string; hasPending: boolean } | null>(null);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
   if (loading) {
@@ -85,9 +87,14 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                 </div>
                 <div className="flex items-center gap-2">
                   {s.estado === 'abierto' && (
-                    <Button variant="outline" size="sm" onClick={() => cerrar(s.id)} className="gap-1">
-                      <Lock className="w-3 h-3" /> Cerrar
-                    </Button>
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => setPlanDialog({ id: s.id, fecha_inicio: s.fecha_inicio, hasPending: lista.some(a => a.estado === 'pendiente') })} className="gap-1">
+                        <CalendarRange className="w-3 h-3" /> {total > 0 ? 'Rediseñar plan' : 'Diseñar plan'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => cerrar(s.id)} className="gap-1">
+                        <Lock className="w-3 h-3" /> Cerrar
+                      </Button>
+                    </>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => {
                     if (confirm('Eliminar seguimiento y sus acciones?')) eliminar(s.id);
@@ -155,6 +162,17 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
         maquinistaEmail={maquinistaEmail}
         onCreate={crear}
       />
+
+      {planDialog && (
+        <DisenarPlanSeguimientoDialog
+          open={!!planDialog}
+          onOpenChange={(o) => { if (!o) setPlanDialog(null); }}
+          seguimientoId={planDialog.id}
+          fechaInicioDefault={planDialog.fecha_inicio}
+          hasPendingActions={planDialog.hasPending}
+          onDisenar={disenarPlan}
+        />
+      )}
     </div>
   );
 }
