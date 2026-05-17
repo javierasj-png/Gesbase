@@ -443,7 +443,7 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "llama-3.1-8b-instant",
           messages: aiMessages,
           max_tokens: 10000,
         }),

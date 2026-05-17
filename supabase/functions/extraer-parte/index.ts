@@ -231,7 +231,7 @@ serve(async (req) => {
 
     // Use vision model for images, text model for extracted PDF text
     const hasImageContent = messageContent.some((c: any) => c.type === "image_url");
-    const groqModel = hasImageContent ? "llama-3.2-90b-vision-preview" : "llama-3.3-70b-versatile";
+    const groqModel = hasImageContent ? "llama-3.2-90b-vision-preview" : "llama-3.1-8b-instant";
 
     let response: Response;
     if (OPENAI_API_KEY) {
