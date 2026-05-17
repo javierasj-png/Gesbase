@@ -483,23 +483,26 @@ REGLAS DE REDACCIÓN:
       );
     }
 
+    // Para este informe usamos Lovable AI (Gemini 2.5 Flash) como motor principal:
+    // el prompt + datos suele superar el límite TPM de llama-3.1-8b-instant en Groq.
+    // Groq queda como fallback si Lovable AI no está disponible o falla.
     let response: Response;
-    if (OPENAI_API_KEY) {
-      console.log("Generando propuesta de auditoría con OpenAI...");
-      response = await fetch("https://api.openai.com/v1/chat/completions", {
+    if (LOVABLE_API_KEY) {
+      console.log("Generando propuesta de auditoría con Lovable AI (gemini-2.5-flash)...");
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "google/gemini-2.5-flash",
           messages: aiMessages,
-          max_tokens: 10000,
+          max_tokens: 12000,
         }),
       });
     } else {
-      console.log("Generando propuesta de auditoría con Groq...");
+      console.log("Generando propuesta de auditoría con Groq (llama-3.3-70b-versatile)...");
       response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -507,46 +510,28 @@ REGLAS DE REDACCIÓN:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
+          model: "llama-3.3-70b-versatile",
           messages: aiMessages,
-          max_tokens: 10000,
+          max_tokens: 8000,
         }),
       });
     }
 
-    if (response.status === 429) {
-      console.warn("Groq cuota agotada. Intentando fallback Lovable AI...");
-
-      if (LOVABLE_API_KEY) {
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: aiMessages,
-            max_tokens: 10000,
-          }),
-        });
-      } else {
-        console.warn("LOVABLE_API_KEY no configurada. Generando informe básico sin IA.");
-
-        const informeBasico = generarInformeBasico(basesData);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            informe: informeBasico,
-            modo: "sin_ia",
-            warning: "Groq ha devuelto 429 y no hay LOVABLE_API_KEY. Se ha generado informe básico.",
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
+    // Si el motor principal falla, intentamos el otro como respaldo
+    if (!response.ok && LOVABLE_API_KEY && GROQ_API_KEY) {
+      console.warn(`Motor principal respondió ${response.status}. Intentando fallback Groq...`);
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: aiMessages,
+          max_tokens: 8000,
+        }),
+      });
     }
 
     if (!response.ok) {
