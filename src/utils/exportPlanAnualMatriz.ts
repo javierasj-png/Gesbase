@@ -170,13 +170,15 @@ function downloadCsv(rows: MaquinistaRow[], filtro: PlanAnualFiltro) {
     'Nombre',
     'Apellidos',
     'Base',
-    'Acomp. requeridos',
-    ...REDES_POSIBLES.flatMap((r) => [
-      `KM Registros ${r === 'av' ? 'AV' : 'Convencional'}`,
-      `KM ≥100 ${r === 'av' ? 'AV' : 'Convencional'}`,
-      `Acompañamientos ${r === 'av' ? 'AV' : 'Convencional'}`,
-      `Acomp. OK ${r === 'av' ? 'AV' : 'Convencional'}`,
-    ]),
+    ...REDES_POSIBLES.flatMap((r) => {
+      const label = r === 'av' ? 'AV' : 'Convencional';
+      return [
+        `Acompañamientos ${label}`,
+        `Acomp. OK ${label}`,
+        `KM Registros ${label}`,
+        `KM ≥100 ${label}`,
+      ];
+    }),
     'Alcohol (≥1)',
     'Alcohol OK',
     'CUMPLE',
@@ -188,13 +190,12 @@ function downloadCsv(rows: MaquinistaRow[], filtro: PlanAnualFiltro) {
       r.nombre,
       r.apellidos,
       r.base,
-      r.acompRequeridos,
     ];
     for (const red of REDES_POSIBLES) {
       if (r.redes.includes(red)) {
         const km = r.kmPorRed[red] ?? 0;
         const ac = r.acompPorRed[red] ?? 0;
-        cells.push(km, km >= 100 ? 'Sí' : 'No', ac, ac >= r.acompRequeridos ? 'Sí' : 'No');
+        cells.push(ac, ac >= r.acompRequeridos ? 'Sí' : 'No', km.toFixed(2), km >= 100 ? 'Sí' : 'No');
       } else {
         cells.push('N/A', 'N/A', 'N/A', 'N/A');
       }
