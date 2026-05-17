@@ -247,12 +247,20 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     await fetchData();
   };
 
-  const registrarAccion = async (accionId: string, fechaReal: string, resultado?: string) => {
-    await supabase.from('plan_seguimiento_especial').update({
+  const registrarAccion = async (
+    accionId: string,
+    fechaReal: string,
+    extras?: { resultado?: string | null; observaciones?: string | null; indice_prever?: number | null; tipo?: TipoAccionSeg }
+  ) => {
+    const payload: Record<string, unknown> = {
       estado: 'cumplida',
       fecha_real: fechaReal,
-      resultado: resultado ?? null,
-    }).eq('id', accionId);
+      resultado: extras?.resultado ?? null,
+    };
+    if (extras?.observaciones !== undefined) payload.observaciones = extras.observaciones;
+    if (extras?.indice_prever !== undefined) payload.indice_prever = extras.indice_prever;
+    if (extras?.tipo !== undefined) payload.tipo = extras.tipo;
+    await supabase.from('plan_seguimiento_especial').update(payload).eq('id', accionId);
     await fetchData();
   };
 
