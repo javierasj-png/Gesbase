@@ -119,7 +119,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                         <div key={a.id} className="flex items-center justify-between gap-2 text-sm">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <Badge variant="outline" className="text-xs">
-                              {a.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'}
+                              {a.tipo === 'acompanamiento' ? 'Acomp.' : a.tipo === 'registro' ? 'Reg.' : 'Form.'}
                             </Badge>
                             <span>{format(parseISO(a.fecha_objetivo), 'dd/MM/yyyy', { locale: es })}</span>
                             <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${st.cls}`}>
