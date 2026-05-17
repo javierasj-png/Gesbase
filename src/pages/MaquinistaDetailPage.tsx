@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 export default function MaquinistaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  usePageMeta({ title: 'Ficha del maquinista — Gestión de Base', description: 'Perfil del maquinista con certificaciones, planes SGS PE 16.03, PE 12.01 y seguimientos especiales.', path: '/maquinistas' });
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'certificaciones';

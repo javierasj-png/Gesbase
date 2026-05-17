@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -28,6 +29,7 @@ import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function PE1603Page() {
   const navigate = useNavigate();
+  usePageMeta({ title: 'PE 16.03 — Gestión de Base', description: 'Vigilancia trienal PE 16.03: acompañamientos, registros, alcohol y drogas.', path: '/pe-1603' });
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [estadoFilter, setEstadoFilter] = useState<string>('all');

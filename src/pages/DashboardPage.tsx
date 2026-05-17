@@ -1,4 +1,5 @@
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { KPICard } from '@/components/KPICard';
@@ -38,6 +39,7 @@ import { useState } from 'react';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  usePageMeta({ title: 'Cuadro de mando — Gestión de Base', description: 'Panel general con KPIs, alertas y planificación de vigilancia SGS para Renfe Viajeros.', path: '/dashboard' });
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   
   const { getAccessibleBases, isAdmin } = useBaseFilter();
