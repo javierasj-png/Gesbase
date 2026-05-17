@@ -11,9 +11,13 @@ export type TipoPlanAcciones = 'acompanamiento' | 'registro' | 'formativa' | 'am
 
 export interface BloquePlan {
   tipo: TipoAccionSeg;
-  periodicidad: Periodicidad;
-  fecha_inicio: string;
-  fecha_fin: string;
+  // Para acompañamiento / registro: rango con periodicidad
+  periodicidad?: Periodicidad;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  // Para formativa: fecha única + ID SAP SF
+  fecha_unica?: string;
+  id_sap_sf?: string;
 }
 
 export interface SeguimientoEspecial {
@@ -181,6 +185,18 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     }
 
     const rows = input.bloques.flatMap(b => {
+      if (b.tipo === 'formativa') {
+        if (!b.fecha_unica) return [];
+        return [{
+          seguimiento_id: input.seguimiento_id,
+          tipo: 'formativa' as const,
+          fecha_objetivo: b.fecha_unica,
+          estado: 'pendiente',
+          registrado_por: user.id,
+          observaciones: b.id_sap_sf ? `ID SAP SF: ${b.id_sap_sf}` : null,
+        }];
+      }
+      if (!b.fecha_inicio || !b.fecha_fin || !b.periodicidad) return [];
       const fechas = generarFechasPlan(new Date(b.fecha_inicio), new Date(b.fecha_fin), b.periodicidad);
       return fechas.map(f => ({
         seguimiento_id: input.seguimiento_id,
@@ -188,14 +204,18 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
         fecha_objetivo: f.toISOString().slice(0, 10),
         estado: 'pendiente',
         registrado_por: user.id,
+        observaciones: null,
       }));
     });
     if (rows.length) {
       await supabase.from('plan_seguimiento_especial').insert(rows);
     }
 
-    // Update fecha_fin del seguimiento al máximo fin de los bloques
-    const maxFin = input.bloques.reduce((max, b) => b.fecha_fin > max ? b.fecha_fin : max, '');
+    // Update fecha_fin del seguimiento al máximo fin de los bloques (incluida fecha única)
+    const maxFin = input.bloques.reduce((max, b) => {
+      const cand = b.fecha_fin || b.fecha_unica || '';
+      return cand > max ? cand : max;
+    }, '');
     if (maxFin) {
       await supabase.from('seguimientos_especiales').update({
         fecha_fin: maxFin,
