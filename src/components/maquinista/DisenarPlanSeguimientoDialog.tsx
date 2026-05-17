@@ -113,7 +113,19 @@ export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId
                   <Icon className={`w-4 h-4 ${t.color}`} />
                   <span className="font-medium">{t.label}</span>
                 </label>
-                {b.enabled && (
+                {b.enabled && t.key === 'formativa' && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 pl-6">
+                    <div>
+                      <Label className="text-xs">Fecha</Label>
+                      <Input type="date" value={b.fecha_unica} onChange={e => update(t.key, { fecha_unica: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">ID SAP SF</Label>
+                      <Input value={b.id_sap_sf} onChange={e => update(t.key, { id_sap_sf: e.target.value })} placeholder="p.ej. 1234567" />
+                    </div>
+                  </div>
+                )}
+                {b.enabled && t.key !== 'formativa' && (
                   <div className="grid grid-cols-3 gap-3 mt-3 pl-6">
                     <div>
                       <Label className="text-xs">Fecha inicio</Label>
