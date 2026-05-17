@@ -15,9 +15,10 @@ export interface BloquePlan {
   periodicidad?: Periodicidad;
   fecha_inicio?: string;
   fecha_fin?: string;
-  // Para formativa: fecha única + ID SAP SF
+  // Para formativa: fecha única + título + ID SAP SF
   fecha_unica?: string;
   id_sap_sf?: string;
+  titulo?: string;
 }
 
 export interface SeguimientoEspecial {
