@@ -11,9 +11,13 @@ export type TipoPlanAcciones = 'acompanamiento' | 'registro' | 'formativa' | 'am
 
 export interface BloquePlan {
   tipo: TipoAccionSeg;
-  periodicidad: Periodicidad;
-  fecha_inicio: string;
-  fecha_fin: string;
+  // Para acompañamiento / registro: rango con periodicidad
+  periodicidad?: Periodicidad;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  // Para formativa: fecha única + ID SAP SF
+  fecha_unica?: string;
+  id_sap_sf?: string;
 }
 
 export interface SeguimientoEspecial {
