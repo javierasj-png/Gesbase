@@ -66,10 +66,7 @@ export interface NuevoSeguimientoInput {
 
 export interface DisenarPlanInput {
   seguimiento_id: string;
-  fecha_inicio: string;
-  fecha_fin: string;
-  tipo: Exclude<TipoPlanAcciones, 'ninguno'>;
-  periodicidad: Periodicidad;
+  bloques: BloquePlan[];
   reemplazar_pendientes?: boolean;
 }
 
