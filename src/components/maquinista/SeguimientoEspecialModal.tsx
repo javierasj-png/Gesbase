@@ -84,13 +84,9 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
           {/* 1. Anomalía */}
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-primary">1. Anomalía detectada</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label>Motivo *</Label>
-                <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Descripción de la anomalía PREVER, suceso, etc." />
-              </div>
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label>Gestión de anomalías</Label>
+                <Label>Índice PREVER - Gestión de anomalías</Label>
                 <Input type="number" step="0.01" value={prever} onChange={e => setPrever(e.target.value)} />
               </div>
               <div>
@@ -101,9 +97,9 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
                 <Label>Fecha inicio seguimiento *</Label>
                 <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
               </div>
-              <div className="col-span-2">
-                <Label>Observaciones</Label>
-                <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={2} />
+              <div className="col-span-3">
+                <Label>Motivo *</Label>
+                <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Descripción de la anomalía PREVER, suceso, etc." />
               </div>
             </div>
           </section>
@@ -134,6 +130,12 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
                 Email enviado
               </label>
             </div>
+          </section>
+
+          {/* 3. Observaciones */}
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold text-primary">3. Observaciones</h3>
+            <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} />
           </section>
 
           <p className="text-xs text-muted-foreground border-t pt-3">
