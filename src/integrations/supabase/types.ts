@@ -768,6 +768,59 @@ export type Database = {
           },
         ]
       }
+      plan_seguimiento_especial: {
+        Row: {
+          comentario_vencida: string | null
+          created_at: string
+          estado: string
+          fecha_objetivo: string
+          fecha_real: string | null
+          id: string
+          observaciones: string | null
+          registrado_por: string | null
+          resultado: string | null
+          seguimiento_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          comentario_vencida?: string | null
+          created_at?: string
+          estado?: string
+          fecha_objetivo: string
+          fecha_real?: string | null
+          id?: string
+          observaciones?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          seguimiento_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          comentario_vencida?: string | null
+          created_at?: string
+          estado?: string
+          fecha_objetivo?: string
+          fecha_real?: string | null
+          id?: string
+          observaciones?: string | null
+          registrado_por?: string | null
+          resultado?: string | null
+          seguimiento_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_seguimiento_especial_seguimiento_id_fkey"
+            columns: ["seguimiento_id"]
+            isOneToOne: false
+            referencedRelation: "seguimientos_especiales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           apellidos: string | null
@@ -798,6 +851,72 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      seguimientos_especiales: {
+        Row: {
+          cerrado_por: string | null
+          created_at: string
+          created_by: string | null
+          email_asunto: string | null
+          email_cuerpo: string | null
+          email_destinatario: string | null
+          email_enviado_at: string | null
+          estado: string
+          fecha_anomalia: string | null
+          fecha_cierre: string | null
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: string
+          indice_prever: number | null
+          maquinista_id: string
+          motivo: string
+          observaciones: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cerrado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_asunto?: string | null
+          email_cuerpo?: string | null
+          email_destinatario?: string | null
+          email_enviado_at?: string | null
+          estado?: string
+          fecha_anomalia?: string | null
+          fecha_cierre?: string | null
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: string
+          indice_prever?: number | null
+          maquinista_id: string
+          motivo: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cerrado_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_asunto?: string | null
+          email_cuerpo?: string | null
+          email_destinatario?: string | null
+          email_enviado_at?: string | null
+          estado?: string
+          fecha_anomalia?: string | null
+          fecha_cierre?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: string
+          indice_prever?: number | null
+          maquinista_id?: string
+          motivo?: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
