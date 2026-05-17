@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Clock, CalendarRange } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Calendar, Clock, CalendarRange, Users, FileText, GraduationCap, MessageSquare } from 'lucide-react';
 import { useSeguimientosEspeciales, type AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { SeguimientoEspecialModal } from './SeguimientoEspecialModal';
 import { DisenarPlanSeguimientoDialog } from './DisenarPlanSeguimientoDialog';
