@@ -38,6 +38,15 @@ interface DashboardStats {
   planAnualTotalEvaluados: number;
   planAnualPorcentaje: number;
   planAnualCoberturaDrogas: number;
+
+  // Seguimientos Especiales
+  seguimientosMaquinistas: number;
+  seguimientosAbiertos: number;
+  seguimientosCerrados: number;
+  seguimientosAccionesPlanificadas: number;
+  seguimientosAccionesRealizadas: number;
+  seguimientosAccionesPendientes: number;
+  seguimientosPorcentajeCumplimiento: number;
 }
 
 const initialStats: DashboardStats = {
