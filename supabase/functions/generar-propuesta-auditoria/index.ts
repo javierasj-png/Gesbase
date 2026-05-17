@@ -381,23 +381,87 @@ serve(async (req) => {
 
     console.log("Bases analizadas:", basesData.length, "Modo IA:", GROQ_API_KEY ? "groq" : (LOVABLE_API_KEY ? "lovable" : "sin_ia"));
 
-    const prompt = `Eres un auditor jefe experto en Sistemas de Gestión de Seguridad (SGS) ferroviarios en España.
+    const fechaHoy = new Date().toISOString().split("T")[0];
 
-Genera un INFORME DE PROPUESTA DE AUDITORÍA profesional y detallado basándote en los datos reales que se proporcionan a continuación. El informe debe incluir:
+    const systemPrompt = `Eres el AUDITOR JEFE de Seguridad en la Circulación de Renfe, con más de 20 años de experiencia en Sistemas de Gestión de Seguridad (SGS) ferroviarios bajo el marco normativo de la AESF (Agencia Estatal de Seguridad Ferroviaria), el Reglamento UE 2018/762 y los procedimientos internos PE 12.01 (Factor Humano tras suceso) y PE 16.03 (Personal de Nuevo Acceso).
 
-1. RESUMEN EJECUTIVO.
-2. ANÁLISIS POR BASE.
-3. HALLAZGOS PRINCIPALES.
-4. PLAN DE ACCIÓN PROPUESTO.
-5. CALENDARIO PROPUESTO DE VISITAS Y AUDITORÍAS.
-6. CONCLUSIONES Y RECOMENDACIONES.
+Tu misión: redactar una PROPUESTA DE AUDITORÍA INTERNA rigurosa, accionable y defendible ante la AESF, lista para ser presentada al Comité de Seguridad. NO un resumen genérico: un documento de auditoría real.
 
-Fecha actual: ${new Date().toISOString().split("T")[0]}
+PRINCIPIOS:
+- Cero relleno: cada frase aporta un dato, un hallazgo o una acción concreta.
+- Trazabilidad: cita siempre los datos que respaldan cada hallazgo (nº de expedientes, % cumplimiento, NCs concretas, fechas).
+- Foco en riesgo: prioriza lo que pone en riesgo la circulación o el cumplimiento normativo.
+- Tono técnico-profesional, en español de España, sin anglicismos innecesarios.`;
 
-DATOS DEL SISTEMA:
+    const userPrompt = `Fecha de emisión: ${fechaHoy}
+Bases incluidas en el alcance: ${basesData.map((b: any) => b.base).join(", ")}
+
+DATOS REALES DEL SISTEMA GESBASE (JSON):
+\`\`\`json
 ${JSON.stringify(basesData, null, 2)}
+\`\`\`
 
-Genera el informe en formato Markdown, profesional y detallado. Usa tablas markdown cuando sea apropiado.`;
+Redacta el INFORME DE PROPUESTA DE AUDITORÍA en formato Markdown con la siguiente estructura OBLIGATORIA y CON EL NIVEL DE DETALLE QUE SE INDICA:
+
+# INFORME DE PROPUESTA DE AUDITORÍA INTERNA — SGS
+**Fecha:** ${fechaHoy} · **Ámbito:** ${basesData.map((b: any) => b.base).join(", ")} · **Marco:** PE 12.01, PE 16.03, Reglamento UE 2018/762
+
+## 1. Resumen ejecutivo
+Párrafo de 6-10 líneas con: contexto, criticidad global (Alta/Media/Baja JUSTIFICADA con cifras), 3 hallazgos top y la recomendación principal. Después una tabla resumen:
+| Indicador | Valor | Valoración |
+con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, acciones vencidas totales, NCs abiertas, partes recientes.
+
+## 2. Alcance y metodología
+Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación (cumplimiento ≥90% conforme, 70-89% observación, <70% no conformidad).
+
+## 3. Análisis detallado por base
+Para CADA base, una subsección \`### 3.x Base [NOMBRE]\` con:
+- **Ficha de la base**: tabla con maquinistas activos, expedientes abiertos, NCs históricas, partes recientes.
+- **Estado PE 16.03**: tabla maquinista por maquinista (cumplimiento %, acciones vencidas, fecha fin prevista, semáforo 🟢🟡🔴 según umbrales).
+- **Estado PE 12.01**: tabla por expediente (suceso, cumplimiento, vencidos, fecha fin, semáforo).
+- **Histórico de visitas y NCs**: tabla con fecha, tipo, NCs detectadas, estado.
+- **Partes recientes relevantes**: solo los que aporten señal (incidencias graves, recurrencia, mismo maquinista repetido).
+- **Riesgos detectados en esta base**: lista bullet con 3-6 riesgos CONCRETOS citando los datos (ej: "Maquinista X con 4 acciones 16.03 vencidas y cumplimiento 42%").
+
+## 4. Hallazgos consolidados
+Numerados H-01, H-02… Para cada uno:
+- **Descripción** (qué se ha detectado, con cifras).
+- **Evidencia** (qué dato del sistema lo soporta).
+- **Criticidad**: Crítica / Alta / Media / Baja.
+- **Requisito incumplido** (PE 12.01 / PE 16.03 / Reglamento UE 2018/762 art. X / procedimiento interno).
+Mínimo 5 hallazgos si los datos lo permiten.
+
+## 5. No conformidades propuestas
+Tabla:
+| ID | Descripción | Base | Tipo (NC mayor / NC menor / Observación) | Cláusula incumplida |
+
+## 6. Plan de acción propuesto
+Tabla detallada:
+| ID | Acción correctiva | Responsable sugerido | Plazo | Indicador de cierre | Prioridad |
+Acciones SMART, no genéricas. Mínimo 6 acciones.
+
+## 7. Calendario propuesto de visitas y auditorías (próximos 6 meses)
+Tabla mes a mes:
+| Mes | Base | Tipo (Visita Lista 80 / Auditoría Lista 122 / Seguimiento NC) | Foco | Justificación |
+Prioriza bases con peor cumplimiento, más NCs abiertas o sin visita reciente.
+
+## 8. Conclusiones y recomendaciones al Comité de Seguridad
+3-5 párrafos: estado general, riesgos residuales, recomendación formal (aprobar/aprobar con condiciones/rechazar), y siguientes pasos.
+
+## 9. Anexo — Indicadores clave (KPIs)
+Tabla con: % cumplimiento global 16.03, % cumplimiento global 12.01, ratio NCs/visita, ratio partes/maquinista, nº expedientes vencidos.
+
+REGLAS DE REDACCIÓN:
+- Si un dato no existe en el JSON, escribe "Sin datos en el periodo" — NUNCA inventes cifras.
+- Usa SIEMPRE las cifras reales del JSON, no aproximaciones.
+- Las tablas Markdown deben estar bien formateadas (cabecera con \`|---|\`).
+- No uses emojis salvo los semáforos 🟢🟡🔴.
+- El informe debe poder imprimirse y entregarse tal cual; no incluyas notas al modelo ni meta-comentarios.`;
+
+    const aiMessages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ];
 
     const aiMessages = [{ role: "user", content: prompt }];
 
