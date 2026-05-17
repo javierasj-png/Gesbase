@@ -776,6 +776,7 @@ export type Database = {
           fecha_objetivo: string
           fecha_real: string | null
           id: string
+          indice_prever: number | null
           observaciones: string | null
           registrado_por: string | null
           resultado: string | null
@@ -790,6 +791,7 @@ export type Database = {
           fecha_objetivo: string
           fecha_real?: string | null
           id?: string
+          indice_prever?: number | null
           observaciones?: string | null
           registrado_por?: string | null
           resultado?: string | null
@@ -804,6 +806,7 @@ export type Database = {
           fecha_objetivo?: string
           fecha_real?: string | null
           id?: string
+          indice_prever?: number | null
           observaciones?: string | null
           registrado_por?: string | null
           resultado?: string | null
