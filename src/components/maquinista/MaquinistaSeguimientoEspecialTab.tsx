@@ -121,46 +121,107 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
               </div>
 
               {total > 0 && (
-                <>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span>{total} acciones</span>
-                    <span className="text-status-cumplida">{cumplidas} cumplidas</span>
-                    <span className="text-status-vencido">{vencidas} vencidas</span>
+                <div className="space-y-3 border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Cumplimiento del plan</span>
+                    <Badge variant={cumplidas === total ? 'default' : cumplidas / total >= 0.5 ? 'secondary' : 'destructive'} className="text-sm">
+                      {Math.round((cumplidas / total) * 100)}%
+                    </Badge>
                   </div>
-                  <div className="border-t pt-3 space-y-1.5 max-h-72 overflow-y-auto">
-                    {lista.map(a => {
-                      const st = estadoCalc(a, hoy);
-                      const Icon = st.icon;
+                  <Progress value={Math.round((cumplidas / total) * 100)} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {cumplidas} de {total} acciones cumplidas{vencidas > 0 && ` · ${vencidas} vencidas`}
+                  </p>
+
+                  {/* Timeline por bandas - igual que PE 16.03 / PE 12.01 */}
+                  <div className="border rounded-lg overflow-hidden">
+                    {(['acompanamiento', 'registro', 'formativa'] as const).map(tipo => {
+                      const bloques = lista.filter(a => a.tipo === tipo);
+                      if (bloques.length === 0) return null;
+                      const TipoIcon = tipoIcon[tipo];
                       return (
-                        <div key={a.id} className="flex items-center justify-between gap-2 text-sm">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <Badge variant="outline" className="text-xs">
-                              {a.tipo === 'acompanamiento' ? 'Acomp.' : a.tipo === 'registro' ? 'Reg.' : 'Form.'}
-                            </Badge>
-                            <span>{format(parseISO(a.fecha_objetivo), 'dd/MM/yyyy', { locale: es })}</span>
-                            <span className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${st.cls}`}>
-                              <Icon className="w-3 h-3" />{st.label}
-                            </span>
-                            {a.comentario_vencida && <span className="text-xs text-muted-foreground truncate">— {a.comentario_vencida}</span>}
-                          </div>
-                          {s.estado === 'abierto' && a.estado === 'pendiente' && (
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setAccionRegistro(a)}>
-                                Registrar
-                              </Button>
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => {
-                                const c = prompt('Comentario justificativo de la vencida:');
-                                if (c) marcarVencida(a.id, c);
-                              }}>
-                                Vencida
-                              </Button>
+                        <div key={tipo} className="timeline-band">
+                          <div className="timeline-label">
+                            <div className="flex items-center gap-1">
+                              <TipoIcon className="w-3 h-3" />
+                              {tipoLabel[tipo]}
                             </div>
-                          )}
+                          </div>
+                          <div className="timeline-blocks">
+                            {bloques.map(a => {
+                              const estado = getBlockState(a, hoy);
+                              return (
+                                <div
+                                  key={a.id}
+                                  className={`timeline-block ${
+                                    estado === 'cumplida' ? 'bg-status-cumplida-bg border border-status-ok' :
+                                    estado === 'vencida' ? 'bg-status-vencido-bg border border-status-vencido' :
+                                    'bg-status-proximo-bg border border-status-proximo'
+                                  }`}
+                                >
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {format(parseISO(a.fecha_objetivo), 'dd/MM/yy', { locale: es })}
+                                  </p>
+                                  {a.fecha_real && (
+                                    <p className="text-[10px] font-medium">
+                                      ✓ {format(parseISO(a.fecha_real), 'dd/MM/yy', { locale: es })}
+                                    </p>
+                                  )}
+                                  {a.indice_prever != null && (
+                                    <p className="text-[10px] font-medium">PREVER {a.indice_prever}</p>
+                                  )}
+                                  <div className="mt-1 flex items-center justify-center">
+                                    {estado === 'cumplida' ? (
+                                      <CheckCircle2 className="w-4 h-4 text-status-ok" />
+                                    ) : estado === 'vencida' ? (
+                                      <XCircle className="w-4 h-4 text-status-vencido" />
+                                    ) : (
+                                      <Calendar className="w-4 h-4 text-status-proximo" />
+                                    )}
+                                  </div>
+                                  {a.comentario_vencida && estado === 'vencida' && (
+                                    <p className="text-[9px] text-muted-foreground truncate max-w-full mt-1" title={a.comentario_vencida}>
+                                      💬 {a.comentario_vencida}
+                                    </p>
+                                  )}
+                                  {s.estado === 'abierto' && a.estado === 'pendiente' && (
+                                    <div className="mt-2 flex flex-col items-center gap-1">
+                                      <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px]" onClick={() => setAccionRegistro(a)}>
+                                        Registrar
+                                      </Button>
+                                      <Button size="sm" variant="ghost" className="h-5 px-1 text-[10px] text-destructive gap-1" onClick={() => {
+                                        const c = prompt('Comentario justificativo de la vencida:');
+                                        if (c) marcarVencida(a.id, c);
+                                      }}>
+                                        <MessageSquare className="w-3 h-3" /> Vencida
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                </>
+
+                  {/* Leyenda */}
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-status-cumplida-bg border border-status-ok"></span>
+                      Cumplida
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-status-proximo-bg border border-status-proximo"></span>
+                      En ventana
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-status-vencido-bg border border-status-vencido"></span>
+                      Vencida
+                    </div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
