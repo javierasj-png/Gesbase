@@ -398,7 +398,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                     )}
                     <span className="text-muted-foreground">•</span>
                     <span>{format(parseISO(a.fecha_real), 'dd/MM/yyyy')}</span>
-                    {a.km_recorridos !== null && <span>• {a.km_recorridos} km</span>}
+                    {a.km_recorridos !== null && <span>• {Number(a.km_recorridos).toFixed(2)} km</span>}
                     {a.indice_prever !== null && <span>• PREVER {a.indice_prever}</span>}
                     {a.resultado && <span>• {a.resultado}</span>}
                     {a.source === 'pe1603' && (
