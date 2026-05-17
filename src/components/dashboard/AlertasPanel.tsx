@@ -243,6 +243,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
       case 'pe1201':
         navigate(`/maquinistas/${alerta.maquinista_id}?tab=pe1201`);
         break;
+      case 'seg_especial':
+        navigate(`/maquinistas/${alerta.maquinista_id}?tab=seguimiento-especial`);
+        break;
     }
   };
 
@@ -251,12 +254,15 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
     const rows = alertas.map(a => {
       const desc = a.tipo === 'certificacion' ? a.certificacion_nombre
         : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
-        : a.hito;
+        : a.tipo === 'pe1201' ? a.hito
+        : (segTipoLabel[a.tipo_actuacion] || a.tipo_actuacion);
       const dias = a.dias_restantes === null ? 'Sin registro'
         : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
         : `${a.dias_restantes}d`;
       const label = a.tipo === 'certificacion' ? `Cert. ${a.certificacion_tipo}`
-        : a.tipo === 'pe1603' ? 'PE 16.03' : 'PE 12.01';
+        : a.tipo === 'pe1603' ? 'PE 16.03'
+        : a.tipo === 'pe1201' ? 'PE 12.01'
+        : 'Seg. Especial';
       return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
     });
     const csv = '\uFEFF' + [header, ...rows].join('\n');
