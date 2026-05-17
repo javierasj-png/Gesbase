@@ -463,7 +463,7 @@ REGLAS DE REDACCIÓN:
       { role: "user", content: userPrompt },
     ];
 
-    const aiMessages = [{ role: "user", content: prompt }];
+    
 
     if (!OPENAI_API_KEY && !GROQ_API_KEY) {
       console.warn("No hay OPENAI_API_KEY ni GROQ_API_KEY. Generando informe básico sin IA.");
