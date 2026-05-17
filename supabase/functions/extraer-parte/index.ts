@@ -264,9 +264,9 @@ serve(async (req) => {
       });
     }
 
-    // Fallback to Lovable AI on 429
-    if (response.status === 429 && LOVABLE_API_KEY) {
-      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
+    // Fallback to Lovable AI on any Groq error (429, 400 modelo decomisionado, etc.)
+    if (!response.ok && LOVABLE_API_KEY) {
+      console.warn(`Groq devolvió ${response.status}, usando fallback Lovable AI...`);
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
