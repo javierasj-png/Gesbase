@@ -172,10 +172,6 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
 
   const disenarPlan = async (input: DisenarPlanInput) => {
     if (!user) throw new Error('No autenticado');
-    const fechas = generarFechasPlan(new Date(input.fecha_inicio), new Date(input.fecha_fin), input.periodicidad);
-    const tipos: TipoAccionSeg[] =
-      input.tipo === 'ambos' ? ['acompanamiento', 'registro']
-      : [input.tipo as TipoAccionSeg];
 
     if (input.reemplazar_pendientes) {
       await supabase.from('plan_seguimiento_especial')
@@ -184,21 +180,28 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
         .eq('estado', 'pendiente');
     }
 
-    const rows = fechas.flatMap(f => tipos.map(t => ({
-      seguimiento_id: input.seguimiento_id,
-      tipo: t,
-      fecha_objetivo: f.toISOString().slice(0, 10),
-      estado: 'pendiente',
-      registrado_por: user.id,
-    })));
+    const rows = input.bloques.flatMap(b => {
+      const fechas = generarFechasPlan(new Date(b.fecha_inicio), new Date(b.fecha_fin), b.periodicidad);
+      return fechas.map(f => ({
+        seguimiento_id: input.seguimiento_id,
+        tipo: b.tipo,
+        fecha_objetivo: f.toISOString().slice(0, 10),
+        estado: 'pendiente',
+        registrado_por: user.id,
+      }));
+    });
     if (rows.length) {
       await supabase.from('plan_seguimiento_especial').insert(rows);
     }
-    // Update fecha_fin del seguimiento
-    await supabase.from('seguimientos_especiales').update({
-      fecha_fin: input.fecha_fin,
-      updated_by: user.id,
-    }).eq('id', input.seguimiento_id);
+
+    // Update fecha_fin del seguimiento al máximo fin de los bloques
+    const maxFin = input.bloques.reduce((max, b) => b.fecha_fin > max ? b.fecha_fin : max, '');
+    if (maxFin) {
+      await supabase.from('seguimientos_especiales').update({
+        fecha_fin: maxFin,
+        updated_by: user.id,
+      }).eq('id', input.seguimiento_id);
+    }
     await fetchData();
   };
 
