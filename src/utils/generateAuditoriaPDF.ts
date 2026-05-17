@@ -423,7 +423,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...(okDrogas ? GREEN : RED));
     doc.text(
-      `Cobertura Control Drogas en la base: ${baseConDrogas}/${baseTotalActivos} (${pctDrogas}%)  →  ${okDrogas ? 'CUMPLE ≥25%' : 'NO CUMPLE (req. ≥25%)'}`,
+      `Cobertura Control Drogas en la base: ${baseConDrogas}/${baseTotalActivos} (${pctDrogas}%)  ->  ${okDrogas ? 'CUMPLE (>=25%)' : 'NO CUMPLE (req. >=25%)'}`,
       MARGIN, y
     );
     doc.setFont('helvetica', 'normal');
@@ -431,7 +431,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     doc.setFontSize(7);
     y += 5;
     doc.text(
-      `Criterios: Registro ≥100 km/red · Acompañamiento 1/año (2 si PE 12.01 últimos 3 años) · Alcohol ≥1/año · Drogas: cobertura base ≥25%.`,
+      `Criterios: Registro >=100 km/red | Acompanamiento 1/ano (2 si PE 12.01 ultimos 3 anos) | Alcohol >=1/ano | Drogas: cobertura base >=25%.`,
       MARGIN, y
     );
     doc.setTextColor(0, 0, 0);
