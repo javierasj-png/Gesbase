@@ -75,6 +75,13 @@ const initialStats: DashboardStats = {
   planAnualTotalEvaluados: 0,
   planAnualPorcentaje: 0,
   planAnualCoberturaDrogas: 0,
+  seguimientosMaquinistas: 0,
+  seguimientosAbiertos: 0,
+  seguimientosCerrados: 0,
+  seguimientosAccionesPlanificadas: 0,
+  seguimientosAccionesRealizadas: 0,
+  seguimientosAccionesPendientes: 0,
+  seguimientosPorcentajeCumplimiento: 0,
 };
 
 export function useDashboardStats(baseFilter?: string) {
