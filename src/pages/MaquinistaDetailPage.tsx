@@ -22,6 +22,7 @@ import { MaquinistaCertificacionesTab } from '@/components/maquinista/Maquinista
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
 import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
 import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
+import { MaquinistaSeguimientoEspecialTab } from '@/components/maquinista/MaquinistaSeguimientoEspecialTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
