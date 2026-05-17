@@ -60,6 +60,21 @@ export default function MaquinistasPage() {
   const { expedientes } = useExpedientes1603();
   const { expedientes: expedientes1201 } = useExpedientes1201();
   const { isAdmin } = useAuth();
+  const [segEspByMaq, setSegEspByMaq] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('seguimientos_especiales')
+        .select('maquinista_id, estado')
+        .eq('estado', 'abierto');
+      const counts: Record<string, number> = {};
+      (data || []).forEach((r: any) => {
+        counts[r.maquinista_id] = (counts[r.maquinista_id] || 0) + 1;
+      });
+      setSegEspByMaq(counts);
+    })();
+  }, []);
 
   // Obtener bases únicas de los maquinistas
   const getAccessibleBases = [...new Set(maquinistas.map(m => m.base))].sort();
