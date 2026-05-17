@@ -23,12 +23,14 @@ interface BloqueState {
   periodicidad: Periodicidad;
   fecha_inicio: string;
   fecha_fin: string;
+  fecha_unica: string;
+  id_sap_sf: string;
 }
 
 const TIPOS: { key: TipoAccionSeg; label: string; icon: any; color: string }[] = [
   { key: 'acompanamiento', label: 'Acompañamientos', icon: Users, color: 'text-blue-600' },
   { key: 'registro', label: 'Registros', icon: ClipboardList, color: 'text-emerald-600' },
-  { key: 'formativa', label: 'Acciones formativas', icon: GraduationCap, color: 'text-amber-600' },
+  { key: 'formativa', label: 'Acción formativa', icon: GraduationCap, color: 'text-amber-600' },
 ];
 
 export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId, fechaInicioDefault, hasPendingActions, onDisenar }: Props) {
@@ -41,6 +43,8 @@ export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId
     periodicidad: 'mensual',
     fecha_inicio: fechaInicioDefault,
     fecha_fin: '',
+    fecha_unica: fechaInicioDefault,
+    id_sap_sf: '',
   });
 
   const [bloques, setBloques] = useState<Record<TipoAccionSeg, BloqueState>>({
@@ -58,6 +62,11 @@ export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId
     for (const t of TIPOS) {
       const b = bloques[t.key];
       if (!b.enabled) continue;
+      if (t.key === 'formativa') {
+        if (!b.fecha_unica) { toast({ title: 'Falta fecha en Acción formativa', variant: 'destructive' }); return; }
+        activos.push({ tipo: 'formativa', fecha_unica: b.fecha_unica, id_sap_sf: b.id_sap_sf.trim() || undefined });
+        continue;
+      }
       if (!b.fecha_fin) { toast({ title: `Falta fecha fin en ${t.label}`, variant: 'destructive' }); return; }
       if (new Date(b.fecha_fin) < new Date(b.fecha_inicio)) {
         toast({ title: `Fecha fin anterior al inicio en ${t.label}`, variant: 'destructive' }); return;
