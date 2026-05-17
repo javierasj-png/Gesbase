@@ -162,6 +162,17 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
         maquinistaEmail={maquinistaEmail}
         onCreate={crear}
       />
+
+      {planDialog && (
+        <DisenarPlanSeguimientoDialog
+          open={!!planDialog}
+          onOpenChange={(o) => { if (!o) setPlanDialog(null); }}
+          seguimientoId={planDialog.id}
+          fechaInicioDefault={planDialog.fecha_inicio}
+          hasPendingActions={planDialog.hasPending}
+          onDisenar={disenarPlan}
+        />
+      )}
     </div>
   );
 }
