@@ -87,9 +87,14 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                 </div>
                 <div className="flex items-center gap-2">
                   {s.estado === 'abierto' && (
-                    <Button variant="outline" size="sm" onClick={() => cerrar(s.id)} className="gap-1">
-                      <Lock className="w-3 h-3" /> Cerrar
-                    </Button>
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => setPlanDialog({ id: s.id, fecha_inicio: s.fecha_inicio, hasPending: lista.some(a => a.estado === 'pendiente') })} className="gap-1">
+                        <CalendarRange className="w-3 h-3" /> {total > 0 ? 'Rediseñar plan' : 'Diseñar plan'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => cerrar(s.id)} className="gap-1">
+                        <Lock className="w-3 h-3" /> Cerrar
+                      </Button>
+                    </>
                   )}
                   <Button variant="ghost" size="sm" onClick={() => {
                     if (confirm('Eliminar seguimiento y sus acciones?')) eliminar(s.id);
