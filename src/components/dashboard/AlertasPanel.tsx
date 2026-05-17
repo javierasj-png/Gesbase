@@ -332,6 +332,12 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
                 {kpis.pe1201}
               </Badge>
             )}
+            {kpis.segEspecial > 0 && (
+              <Badge variant="outline" className="gap-1">
+                <Eye className="w-3 h-3" />
+                {kpis.segEspecial}
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
