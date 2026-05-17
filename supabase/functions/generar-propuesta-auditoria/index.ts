@@ -464,7 +464,7 @@ Párrafo de 6-10 líneas con: contexto, criticidad global (Alta/Media/Baja JUSTI
 con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, acciones vencidas totales, NCs abiertas, partes recientes.
 
 ## 2. Alcance y metodología
-Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación (cumplimiento ≥90% conforme, 70-89% observación, <70% no conformidad).
+Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy): ≥90% conforme 🟢, 70-89% observación 🟡, <70% con vencidos >0 no conformidad 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
 
 ## 3. Análisis detallado por base
 Para CADA base, una subsección \`### 3.x Base [NOMBRE]\` con:
