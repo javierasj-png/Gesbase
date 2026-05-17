@@ -93,12 +93,14 @@ export async function generateDossierPDF(maquinistaId: string) {
     { data: maqCerts },
     { data: exps1603 },
     { data: exps1201 },
+    { data: segsEsp },
   ] = await Promise.all([
     supabase.from('maquinistas').select('*').eq('id', maquinistaId).single(),
     supabase.from('bases_conduccion').select('id, nombre').order('nombre'),
     supabase.from('maquinista_certificaciones').select('*').eq('maquinista_id', maquinistaId),
     supabase.from('expedientes_1603').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
     supabase.from('expedientes_1201').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
+    supabase.from('seguimientos_especiales').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
   ]);
 
   if (!maq) throw new Error('Maquinista no encontrado');
@@ -110,6 +112,7 @@ export async function generateDossierPDF(maquinistaId: string) {
 
   const exp1603Ids = (exps1603 || []).map(e => e.id);
   const exp1201Ids = (exps1201 || []).map(e => e.id);
+  const segEspIds = (segsEsp || []).map(s => s.id);
 
   const [
     { data: plans1603 },
@@ -117,6 +120,7 @@ export async function generateDossierPDF(maquinistaId: string) {
     { data: traslados1603 },
     { data: plans1201 },
     { data: acts1201 },
+    { data: planSegEsp },
   ] = await Promise.all([
     exp1603Ids.length > 0
       ? supabase.from('plan_1603').select('*').in('expediente_id', exp1603Ids).order('tipo').order('mes')
@@ -132,6 +136,9 @@ export async function generateDossierPDF(maquinistaId: string) {
       : Promise.resolve({ data: [] }),
     exp1201Ids.length > 0
       ? supabase.from('actuaciones_1201').select('*').in('expediente_id', exp1201Ids).order('fecha_real')
+      : Promise.resolve({ data: [] }),
+    segEspIds.length > 0
+      ? supabase.from('plan_seguimiento_especial').select('*').in('seguimiento_id', segEspIds).order('fecha_objetivo')
       : Promise.resolve({ data: [] }),
   ]);
 
