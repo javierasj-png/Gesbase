@@ -312,6 +312,61 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
+      // 4. SEGUIMIENTO ESPECIAL
+      const { data: segs } = await supabase
+        .from('seguimientos_especiales')
+        .select('id, maquinista_id, estado')
+        .eq('estado', 'abierto');
+
+      if (segs && segs.length > 0) {
+        const maqIdsSeg = [...new Set(segs.map(s => s.maquinista_id))];
+        const { data: maqsSeg } = await supabase
+          .from('maquinistas')
+          .select('id, nombre, apellidos, base')
+          .in('id', maqIdsSeg);
+        const maqMapSeg = new Map(maqsSeg?.map(m => [m.id, m]) || []);
+
+        const segIds = segs.map(s => s.id);
+        const { data: accs } = await supabase
+          .from('plan_seguimiento_especial')
+          .select('id, seguimiento_id, tipo, fecha_objetivo, estado')
+          .in('seguimiento_id', segIds)
+          .neq('estado', 'cumplida');
+
+        if (accs) {
+          for (const a of accs) {
+            const seg = segs.find(s => s.id === a.seguimiento_id);
+            if (!seg) continue;
+            const maq = maqMapSeg.get(seg.maquinista_id);
+            if (!maq) continue;
+            if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
+            if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+
+            const fechaObj = new Date(a.fecha_objetivo);
+            fechaObj.setHours(0, 0, 0, 0);
+            const grupo = calcularGrupoAlerta(fechaObj, today);
+            if (!grupo) continue;
+
+            const diasRestantes = differenceInDays(fechaObj, today);
+            const estado: 'Pendiente' | 'Vencida' = grupo === 'vencidas' ? 'Vencida' : 'Pendiente';
+            allAlertas.push({
+              tipo: 'seg_especial',
+              id: seg.id,
+              accion_id: a.id,
+              maquinista_id: seg.maquinista_id,
+              maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+              maquinista_base: maq.base,
+              hito: `Seg. Esp. ${a.tipo === 'acompanamiento' ? 'Acomp.' : 'Reg.'}`,
+              tipo_actuacion: a.tipo as 'acompanamiento' | 'registro',
+              estado,
+              dias_restantes: diasRestantes,
+              fecha_objetivo: fechaObj,
+              grupo,
+            });
+          }
+        }
+      }
+
       // Ordenar: primero vencidas, luego próximas 3 meses, luego resto año
       // Dentro de cada grupo, ordenar por días restantes
       const ordenGrupo: Record<GrupoAlerta, number> = {
