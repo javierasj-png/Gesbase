@@ -276,6 +276,15 @@ export default function MaquinistaDetailPage() {
             />
           </TabsContent>
 
+          {/* Tab: Seguimiento Especial */}
+          <TabsContent value="seg-especial">
+            <MaquinistaSeguimientoEspecialTab
+              maquinistaId={maquinista.id}
+              maquinistaNombre={`${maquinista.nombre} ${maquinista.apellidos}`}
+              maquinistaEmail={(maquinista as any).email}
+            />
+          </TabsContent>
+
           {/* Tab: PE 16.03 */}
           <TabsContent value="pe1603">
             <MaquinistaPE1603Tab
