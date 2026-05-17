@@ -293,22 +293,45 @@ serve(async (req) => {
             .select("id, expediente_id, tipo, etiqueta, estado, actuacion_id, inicio_ventana, fin_ventana")
             .in("expediente_id", expIds);
 
+          const hoy = new Date();
           pe1603Info = exp1603.map((e) => {
             const items = plan?.filter((p) => p.expediente_id === e.id) || [];
             const total = items.length;
             const realizados = items.filter((i) => i.actuacion_id).length;
             const vencidos = items.filter(
-              (i) => !i.actuacion_id && i.fin_ventana && new Date(i.fin_ventana) < new Date()
+              (i) => !i.actuacion_id && i.fin_ventana && new Date(i.fin_ventana) < hoy
+            ).length;
+            // Exigibles a día de hoy = bloques cuya ventana ya ha abierto (inicio_ventana <= hoy)
+            const exigibles = items.filter(
+              (i) => i.inicio_ventana && new Date(i.inicio_ventana) <= hoy
+            ).length;
+            const realizadosExigibles = items.filter(
+              (i) => i.actuacion_id && i.inicio_ventana && new Date(i.inicio_ventana) <= hoy
             ).length;
             const maq = maqs?.find((m) => m.id === e.maquinista_id);
 
+            // % tiempo transcurrido del expediente
+            let pctTiempo = 0;
+            if (e.fecha_inicio && e.fecha_fin_prevista) {
+              const ini = new Date(e.fecha_inicio).getTime();
+              const fin = new Date(e.fecha_fin_prevista).getTime();
+              if (fin > ini) {
+                pctTiempo = Math.min(100, Math.max(0, Math.round(((hoy.getTime() - ini) / (fin - ini)) * 100)));
+              }
+            }
+
             return {
               maquinista: maq ? `${maq.nombre} ${maq.apellidos}` : e.maquinista_id,
+              fechaInicio: e.fecha_inicio,
+              fechaFin: e.fecha_fin_prevista,
+              pctTiempoTranscurrido: pctTiempo,
               total,
               realizados,
               vencidos,
-              cumplimiento: total > 0 ? Math.round((realizados / total) * 100) : 0,
-              fechaFin: e.fecha_fin_prevista,
+              exigiblesHoy: exigibles,
+              realizadosExigibles,
+              cumplimientoGlobal: total > 0 ? Math.round((realizados / total) * 100) : 0,
+              cumplimientoActual: exigibles > 0 ? Math.round((realizadosExigibles / exigibles) * 100) : null,
             };
           });
         }
