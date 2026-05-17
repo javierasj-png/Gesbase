@@ -29,7 +29,7 @@ function getBlockState(a: AccionSeguimiento, hoy: Date): EstadoBloque {
 
 const tipoLabel: Record<string, string> = {
   acompanamiento: 'Acompañamiento',
-  registro: 'Registro de conducción',
+  registro: 'Análisis de registro',
   formativa: 'Acción formativa',
 };
 
