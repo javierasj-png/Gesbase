@@ -14,6 +14,7 @@ import {
   Calendar,
   CalendarDays,
   Download,
+  Eye,
 } from 'lucide-react';
 import { useDashboardAlertas, Alerta, GrupoAlerta } from '@/hooks/useDashboardAlertas';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
