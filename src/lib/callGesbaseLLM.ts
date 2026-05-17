@@ -15,10 +15,17 @@ export async function callGesbaseLLM({
   temperature = 0.2,
   maxOutputTokens = 1200,
 }: CallGesbaseLLMParams): Promise<string> {
+  // Limitar tamaño del prompt para evitar errores 413 (payload demasiado grande)
+  const MAX_PROMPT_CHARS = 12000;
+  const safePrompt =
+    prompt.length > MAX_PROMPT_CHARS
+      ? prompt.slice(0, MAX_PROMPT_CHARS) + "\n\n[...texto truncado...]"
+      : prompt;
+
   const { data, error } = await supabase.functions.invoke("chatgpt", {
     body: {
       system,
-      prompt,
+      prompt: safePrompt,
       model,
       temperature,
       max_output_tokens: maxOutputTokens,
