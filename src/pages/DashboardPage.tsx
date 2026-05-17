@@ -24,6 +24,7 @@ import {
   CalendarCheck,
   Droplets,
   Download,
+  ShieldAlert,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -203,6 +204,65 @@ export default function DashboardPage() {
                   <Progress value={stats.planAnualCoberturaDrogas} className="flex-1 h-2" />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">objetivo ≥25%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Row 2.5: Seguimientos Especiales */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-primary" />
+              Seguimientos Especiales
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div
+                className="p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => navigate('/maquinistas')}
+                title="Maquinistas con al menos un seguimiento abierto"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Maquinistas en seguimiento</span>
+                </div>
+                <p className="text-2xl font-bold">{stats.seguimientosMaquinistas}</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats.seguimientosAbiertos} abiertos · {stats.seguimientosCerrados} cerrados</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <CalendarCheck className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Acciones planificadas</span>
+                </div>
+                <p className="text-2xl font-bold">{stats.seguimientosAccionesPlanificadas}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className="w-4 h-4 text-status-ok" />
+                  <span className="text-sm text-muted-foreground">Acciones realizadas</span>
+                </div>
+                <p className="text-2xl font-bold text-status-ok">{stats.seguimientosAccionesRealizadas}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-status-proximo" />
+                  <span className="text-sm text-muted-foreground">Acciones pendientes</span>
+                </div>
+                <p className={`text-2xl font-bold ${stats.seguimientosAccionesPendientes > 0 ? 'text-status-proximo' : ''}`}>
+                  {stats.seguimientosAccionesPendientes}
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-muted/50" title="Realizadas / planificadas">
+                <div className="flex items-center gap-2 mb-1">
+                  <Percent className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-muted-foreground">Cumplimiento</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-2xl font-bold">{stats.seguimientosPorcentajeCumplimiento}%</p>
+                  <Progress value={stats.seguimientosPorcentajeCumplimiento} className="flex-1 h-2" />
+                </div>
               </div>
             </div>
           </CardContent>

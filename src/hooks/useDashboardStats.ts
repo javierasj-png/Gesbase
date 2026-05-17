@@ -38,6 +38,15 @@ interface DashboardStats {
   planAnualTotalEvaluados: number;
   planAnualPorcentaje: number;
   planAnualCoberturaDrogas: number;
+
+  // Seguimientos Especiales
+  seguimientosMaquinistas: number;
+  seguimientosAbiertos: number;
+  seguimientosCerrados: number;
+  seguimientosAccionesPlanificadas: number;
+  seguimientosAccionesRealizadas: number;
+  seguimientosAccionesPendientes: number;
+  seguimientosPorcentajeCumplimiento: number;
 }
 
 const initialStats: DashboardStats = {
@@ -66,6 +75,13 @@ const initialStats: DashboardStats = {
   planAnualTotalEvaluados: 0,
   planAnualPorcentaje: 0,
   planAnualCoberturaDrogas: 0,
+  seguimientosMaquinistas: 0,
+  seguimientosAbiertos: 0,
+  seguimientosCerrados: 0,
+  seguimientosAccionesPlanificadas: 0,
+  seguimientosAccionesRealizadas: 0,
+  seguimientosAccionesPendientes: 0,
+  seguimientosPorcentajeCumplimiento: 0,
 };
 
 export function useDashboardStats(baseFilter?: string) {
@@ -419,6 +435,35 @@ export function useDashboardStats(baseFilter?: string) {
           newStats.planAnualTotalEvaluados = totalEvaluados;
           newStats.planAnualMaquinistasCumplen = maquinistasCumplen;
           newStats.planAnualPorcentaje = totalEvaluados > 0 ? Math.round((maquinistasCumplen / totalEvaluados) * 100) : 0;
+
+          // 6. SEGUIMIENTOS ESPECIALES
+          const { data: seguimientos } = await supabase
+            .from('seguimientos_especiales')
+            .select('id, maquinista_id, estado')
+            .in('maquinista_id', maqIds);
+
+          if (seguimientos && seguimientos.length > 0) {
+            const abiertos = seguimientos.filter(s => s.estado === 'abierto');
+            const cerrados = seguimientos.filter(s => s.estado === 'cerrado');
+            newStats.seguimientosAbiertos = abiertos.length;
+            newStats.seguimientosCerrados = cerrados.length;
+            newStats.seguimientosMaquinistas = new Set(abiertos.map(s => s.maquinista_id)).size;
+
+            const segIds = seguimientos.map(s => s.id);
+            const { data: planSeg } = await supabase
+              .from('plan_seguimiento_especial')
+              .select('id, estado, fecha_real')
+              .in('seguimiento_id', segIds);
+
+            if (planSeg) {
+              newStats.seguimientosAccionesPlanificadas = planSeg.length;
+              newStats.seguimientosAccionesRealizadas = planSeg.filter(p => p.estado === 'realizado' || !!p.fecha_real).length;
+              newStats.seguimientosAccionesPendientes = planSeg.length - newStats.seguimientosAccionesRealizadas;
+              if (planSeg.length > 0) {
+                newStats.seguimientosPorcentajeCumplimiento = Math.round((newStats.seguimientosAccionesRealizadas / planSeg.length) * 100);
+              }
+            }
+          }
         }
       }
 
