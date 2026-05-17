@@ -49,6 +49,7 @@ export interface AccionSeguimiento {
   resultado: string | null;
   observaciones: string | null;
   comentario_vencida: string | null;
+  indice_prever: number | null;
 }
 
 export interface NuevoSeguimientoInput {
