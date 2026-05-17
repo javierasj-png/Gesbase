@@ -262,11 +262,152 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   }
 
   // ══════════════════════════════════════════
-  // SECCIÓN 2: FICHAS PE 16.03
+  // SECCIÓN 2: SEGUIMIENTO INDIVIDUAL DE ACCIONES
+  // (resumen por maquinista de cumplimiento PE 16.03 y PE 12.01)
+  // ══════════════════════════════════════════
+  doc.addPage();
+  addPageHeader(doc, 'Informe Auditoría — Seguimiento Individual');
+  y = sectionTitle(doc, '2. SEGUIMIENTO INDIVIDUAL DE ACCIONES', PAGE_HEADER_H + 8);
+
+  const today = new Date();
+  const todayISO = today.toISOString().split('T')[0];
+
+  for (const baseNombre of basesToReport) {
+    const baseMaqs = maqs.filter(m => m.base === baseNombre);
+    if (baseMaqs.length === 0) continue;
+
+    y = needSpace(doc, y, 30, 'Informe Auditoría — Seguimiento Individual');
+    y = baseSubHeader(doc, baseNombre, y);
+
+    const seguimientoRows: any[] = [];
+
+    for (const maq of baseMaqs) {
+      const exps1603Maq = (allExps1603 || []).filter((e: any) => e.maquinista_id === maq.id && e.estado === 'abierto');
+      const exps1201Maq = (allExps1201 || []).filter((e: any) => e.maquinista_id === maq.id && e.estado === 'abierto');
+
+      // PE 16.03
+      let total1603 = 0, realizadas1603 = 0, vencidas1603 = 0, exigibles1603 = 0;
+      for (const exp of exps1603Maq) {
+        const items = (plans1603 || []).filter((p: any) => p.expediente_id === exp.id);
+        total1603 += items.length;
+        for (const it of items) {
+          const justificado = it.justificado_traslado === true;
+          const realizada = !!it.actuacion_id;
+          const finVent = it.fin_ventana ? new Date(it.fin_ventana) : null;
+          if (realizada) realizadas1603++;
+          if (finVent && finVent <= today) {
+            exigibles1603++;
+            if (!realizada && !justificado) vencidas1603++;
+          }
+        }
+      }
+
+      // PE 12.01
+      let total1201 = 0, realizadas1201 = 0, vencidas1201 = 0, exigibles1201 = 0;
+      for (const exp of exps1201Maq) {
+        const items = (plans1201 || []).filter((p: any) => p.expediente_id === exp.id && p.estado !== 'no_procede');
+        total1201 += items.length;
+        for (const it of items) {
+          const realizada = !!it.actuacion_id;
+          const fObj = it.fecha_objetivo ? new Date(it.fecha_objetivo) : null;
+          if (realizada) realizadas1201++;
+          if (fObj && fObj <= today) {
+            exigibles1201++;
+            if (!realizada) vencidas1201++;
+          }
+        }
+      }
+
+      const tieneExpedientes = exps1603Maq.length > 0 || exps1201Maq.length > 0;
+      if (!tieneExpedientes) continue;
+
+      const cumple1603 = exps1603Maq.length === 0 ? '—' : (vencidas1603 === 0 ? 'SÍ' : 'NO');
+      const cumple1201 = exps1201Maq.length === 0 ? '—' : (vencidas1201 === 0 ? 'SÍ' : 'NO');
+      const cumpleGlobal = (vencidas1603 + vencidas1201) === 0 ? 'CUMPLE' : 'NO CUMPLE';
+
+      seguimientoRows.push([
+        `${maq.apellidos}, ${maq.nombre}`,
+        maq.matricula,
+        exps1603Maq.length > 0 ? `${realizadas1603}/${total1603}` : '—',
+        exps1603Maq.length > 0 ? String(vencidas1603) : '—',
+        cumple1603,
+        exps1201Maq.length > 0 ? `${realizadas1201}/${total1201}` : '—',
+        exps1201Maq.length > 0 ? String(vencidas1201) : '—',
+        cumple1201,
+        cumpleGlobal,
+      ]);
+    }
+
+    if (seguimientoRows.length === 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(...COOL_GRAY);
+      doc.text('Sin expedientes individuales activos en esta base.', MARGIN + 4, y + 4);
+      doc.setTextColor(0, 0, 0);
+      y += 10;
+      continue;
+    }
+
+    autoTable(doc, {
+      startY: y,
+      head: [[
+        'Maquinista', 'Matrícula',
+        '16.03\nReal/Total', '16.03\nVenc.', '16.03',
+        '12.01\nReal/Total', '12.01\nVenc.', '12.01',
+        'Estado',
+      ]],
+      body: seguimientoRows,
+      theme: 'grid',
+      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+      styles: { fontSize: 7.5, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.5 },
+      bodyStyles: { textColor: DARK },
+      columnStyles: {
+        0: { cellWidth: 44 },
+        2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' },
+        5: { halign: 'center' }, 6: { halign: 'center' }, 7: { halign: 'center' },
+        8: { halign: 'center', fontStyle: 'bold' },
+      },
+      didParseCell: (data: any) => {
+        if (data.section !== 'body') return;
+        const raw = String(data.cell.raw ?? '');
+        // Vencidas columns (3, 6) red if > 0
+        if ((data.column.index === 3 || data.column.index === 6) && /^\d+$/.test(raw) && Number(raw) > 0) {
+          data.cell.styles.textColor = RED;
+          data.cell.styles.fontStyle = 'bold';
+        }
+        // SÍ/NO per régimen (4, 7)
+        if (data.column.index === 4 || data.column.index === 7) {
+          if (raw === 'NO') { data.cell.styles.textColor = RED; data.cell.styles.fontStyle = 'bold'; }
+          else if (raw === 'SÍ') { data.cell.styles.textColor = GREEN; data.cell.styles.fontStyle = 'bold'; }
+        }
+        // Estado global (8)
+        if (data.column.index === 8) {
+          if (raw === 'CUMPLE') { data.cell.styles.textColor = GREEN; }
+          else if (raw === 'NO CUMPLE') { data.cell.styles.textColor = RED; }
+        }
+      },
+    });
+    y = tableEndY(doc, y) + 4;
+
+    // Leyenda breve
+    doc.setFontSize(7);
+    doc.setTextColor(...COOL_GRAY);
+    doc.text(
+      'Real/Total: actuaciones realizadas sobre bloques totales del plan. Venc.: bloques exigibles a fecha de hoy sin realizar ni justificar.',
+      MARGIN, y
+    );
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+  }
+
+  void todayISO;
+
+  // ══════════════════════════════════════════
+  // SECCIÓN 3: FICHAS PE 16.03
   // ══════════════════════════════════════════
   doc.addPage();
   addPageHeader(doc, 'Informe Auditoría — PE 16.03');
-  y = sectionTitle(doc, '2. FICHAS DE SEGUIMIENTO PE 16.03', PAGE_HEADER_H + 8);
+  y = sectionTitle(doc, '3. FICHAS DE SEGUIMIENTO PE 16.03', PAGE_HEADER_H + 8);
+
 
   const exps1603ByBase = basesToReport.map(baseNombre => {
     const baseMaqs = maqs.filter(m => m.base === baseNombre);
