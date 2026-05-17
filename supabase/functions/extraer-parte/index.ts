@@ -154,9 +154,10 @@ serve(async (req) => {
       }
     }
 
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY no configurada");
+    if (!OPENAI_API_KEY && !GROQ_API_KEY) {
+      throw new Error("No hay OPENAI_API_KEY ni GROQ_API_KEY configurada");
     }
 
     let messageContent: any[] = [];
@@ -232,18 +233,35 @@ serve(async (req) => {
     const hasImageContent = messageContent.some((c: any) => c.type === "image_url");
     const groqModel = hasImageContent ? "llama-3.2-90b-vision-preview" : "llama-3.3-70b-versatile";
 
-    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: groqModel,
-        messages: [{ role: "user", content: messageContent }],
-        max_tokens: 4000,
-      }),
-    });
+    let response: Response;
+    if (OPENAI_API_KEY) {
+      // OpenAI (primary). gpt-4o-mini soporta visión y texto
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: messageContent }],
+          max_tokens: 4000,
+        }),
+      });
+    } else {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: groqModel,
+          messages: [{ role: "user", content: messageContent }],
+          max_tokens: 4000,
+        }),
+      });
+    }
 
     // Fallback to Lovable AI on 429
     if (response.status === 429 && LOVABLE_API_KEY) {

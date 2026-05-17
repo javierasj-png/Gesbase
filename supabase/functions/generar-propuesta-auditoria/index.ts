@@ -170,6 +170,7 @@ serve(async (req) => {
       );
     }
 
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -400,8 +401,8 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
 
     const aiMessages = [{ role: "user", content: prompt }];
 
-    if (!GROQ_API_KEY) {
-      console.warn("GROQ_API_KEY no configurada. Generando informe básico sin IA.");
+    if (!OPENAI_API_KEY && !GROQ_API_KEY) {
+      console.warn("No hay OPENAI_API_KEY ni GROQ_API_KEY. Generando informe básico sin IA.");
 
       const informeBasico = generarInformeBasico(basesData);
 
@@ -410,7 +411,7 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
           success: true,
           informe: informeBasico,
           modo: "sin_ia",
-          warning: "GROQ_API_KEY no configurada. Se ha generado un informe básico sin IA.",
+          warning: "No hay API key de IA configurada. Se ha generado un informe básico sin IA.",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -418,20 +419,36 @@ Genera el informe en formato Markdown, profesional y detallado. Usa tablas markd
       );
     }
 
-    console.log("Generando propuesta de auditoría con Groq...");
-
-    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: aiMessages,
-        max_tokens: 10000,
-      }),
-    });
+    let response: Response;
+    if (OPENAI_API_KEY) {
+      console.log("Generando propuesta de auditoría con OpenAI...");
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: aiMessages,
+          max_tokens: 10000,
+        }),
+      });
+    } else {
+      console.log("Generando propuesta de auditoría con Groq...");
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: aiMessages,
+          max_tokens: 10000,
+        }),
+      });
+    }
 
     if (response.status === 429) {
       console.warn("Groq cuota agotada. Intentando fallback Lovable AI...");

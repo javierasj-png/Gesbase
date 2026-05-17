@@ -104,9 +104,10 @@ serve(async (req) => {
       );
     }
 
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY no configurada");
+    if (!OPENAI_API_KEY && !GROQ_API_KEY) {
+      throw new Error("No hay OPENAI_API_KEY ni GROQ_API_KEY configurada");
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -196,30 +197,47 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    // Groq vision model supports base64 images
-    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.2-90b-vision-preview",
-        messages: [
+    const visionMessages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: ANALYSIS_PROMPT },
           {
-            role: "user",
-            content: [
-              { type: "text", text: ANALYSIS_PROMPT },
-              {
-                type: "image_url",
-                image_url: { url: `data:${mimeType};base64,${base64}` },
-              },
-            ],
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64}` },
           },
         ],
-        max_tokens: 8000,
-      }),
-    });
+      },
+    ];
+
+    let response: Response;
+    if (OPENAI_API_KEY) {
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: visionMessages,
+          max_tokens: 8000,
+        }),
+      });
+    } else {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.2-90b-vision-preview",
+          messages: visionMessages,
+          max_tokens: 8000,
+        }),
+      });
+    }
 
     // Fallback to Lovable AI on 429
     if (response.status === 429 && LOVABLE_API_KEY) {

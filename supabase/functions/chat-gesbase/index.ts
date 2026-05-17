@@ -141,28 +141,47 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!OPENAI_API_KEY && !GROQ_API_KEY && !LOVABLE_API_KEY) {
+      throw new Error("No hay ninguna API key de IA configurada");
+    }
 
     const requestMessages = [
       { role: "system", content: SYSTEM_PROMPT },
       ...messages,
     ];
 
-    // Primary: Groq
-    let response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: requestMessages,
-        stream: true,
-      }),
-    });
+    // Primary: OpenAI (si hay key), si no Groq
+    let response: Response;
+    if (OPENAI_API_KEY) {
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: requestMessages,
+          stream: true,
+        }),
+      });
+    } else {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: requestMessages,
+          stream: true,
+        }),
+      });
+    }
 
     // Fallback to Lovable AI on 429
     if (!response.ok && response.status === 429 && LOVABLE_API_KEY) {
