@@ -251,6 +251,15 @@ export default function MaquinistasPage() {
                             <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {(segEspByMaq[maquinista.id] || 0) > 0 ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-status-vencido-bg text-status-vencido text-xs font-medium">
+                              {segEspByMaq[maquinista.id]}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <StatusBadge 
                             estado={status.label} 
