@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Loader2 } from 'lucide-react';
+import { Mail, Loader2, Sparkles } from 'lucide-react';
 import { NuevoSeguimientoInput } from '@/hooks/useSeguimientosEspeciales';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   open: boolean;
@@ -22,6 +23,7 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [saving, setSaving] = useState(false);
+  const [generandoIA, setGenerandoIA] = useState(false);
 
   const [motivo, setMotivo] = useState('');
   const [prever, setPrever] = useState('');
@@ -44,6 +46,35 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
     const url = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
     window.open(url, '_blank');
     setEmailEnviado(true);
+  };
+
+  const generarCuerpoIA = async () => {
+    if (!motivo.trim()) {
+      toast({ title: 'Indica primero el motivo de la anomalía', variant: 'destructive' });
+      return;
+    }
+    setGenerandoIA(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-email-anomalia', {
+        body: {
+          maquinista: maquinistaNombre,
+          motivo: motivo.trim(),
+          indice_prever: prever || null,
+          fecha_anomalia: fechaAnomalia || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.body) {
+        setEmailCuerpo(data.body);
+        toast({ title: 'Cuerpo generado por IA' });
+      } else if (data?.error) {
+        toast({ title: 'IA no disponible', description: data.error, variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Error generando con IA', description: e?.message, variant: 'destructive' });
+    } finally {
+      setGenerandoIA(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -117,8 +148,14 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
                 <Input value={emailAsunto} onChange={e => setEmailAsunto(e.target.value)} />
               </div>
               <div className="col-span-2">
-                <Label>Cuerpo</Label>
-                <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={4} />
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Cuerpo</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={generarCuerpoIA} disabled={generandoIA}>
+                    {generandoIA ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                    Generar con IA
+                  </Button>
+                </div>
+                <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={5} placeholder="Pulsa 'Generar con IA' o redacta manualmente." />
               </div>
             </div>
             <div className="flex items-center justify-between">
