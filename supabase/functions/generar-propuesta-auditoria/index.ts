@@ -50,25 +50,27 @@ No se ha utilizado motor de IA porque no hay una clave de IA configurada o porqu
     if (pe1603.length > 0) {
       informe += `### Estado PE 16.03
 
-| Maquinista | Cumplimiento | Acciones vencidas | Fecha fin prevista |
-|---|---:|---:|---|
+| Maquinista | Cumplimiento actual | Cumpl. global | Exigibles hoy | Vencidos | % tiempo | Fecha fin |
+|---|---:|---:|---:|---:|---:|---|
 `;
       for (const item of pe1603) {
-        informe += `| ${item.maquinista || "-"} | ${item.cumplimiento ?? 0}% | ${item.vencidos ?? 0} | ${item.fechaFin || "-"} |\n`;
+        const ca = item.cumplimientoActual === null ? "—" : `${item.cumplimientoActual}%`;
+        informe += `| ${item.maquinista || "-"} | ${ca} | ${item.cumplimientoGlobal ?? 0}% | ${item.exigiblesHoy ?? 0} | ${item.vencidos ?? 0} | ${item.pctTiempoTranscurrido ?? 0}% | ${item.fechaFin || "-"} |\n`;
       }
-      informe += "\n";
+      informe += "\n_Cumplimiento actual = realizado / exigible a día de hoy. Si no hay hitos exigibles aún, se marca '—' (expediente en curso, sin desviación)._\n\n";
     }
 
     if (pe1201.length > 0) {
       informe += `### Estado PE 12.01
 
-| Maquinista | Suceso | Cumplimiento | Acciones vencidas | Fecha fin prevista |
-|---|---|---:|---:|---|
+| Maquinista | Suceso | Cumplimiento actual | Cumpl. global | Exigibles hoy | Vencidos | % tiempo | Fecha fin |
+|---|---|---:|---:|---:|---:|---:|---|
 `;
       for (const item of pe1201) {
-        informe += `| ${item.maquinista || "-"} | ${item.idSuceso || "-"} | ${item.cumplimiento ?? 0}% | ${item.vencidos ?? 0} | ${item.fechaFin || "-"} |\n`;
+        const ca = item.cumplimientoActual === null ? "—" : `${item.cumplimientoActual}%`;
+        informe += `| ${item.maquinista || "-"} | ${item.idSuceso || "-"} | ${ca} | ${item.cumplimientoGlobal ?? 0}% | ${item.exigiblesHoy ?? 0} | ${item.vencidos ?? 0} | ${item.pctTiempoTranscurrido ?? 0}% | ${item.fechaFin || "-"} |\n`;
       }
-      informe += "\n";
+      informe += "\n_Cumplimiento actual = realizado / exigible a día de hoy. Si no hay hitos exigibles aún, se marca '—' (expediente en curso, sin desviación)._\n\n";
     }
 
     if (visitas.length > 0) {
@@ -293,22 +295,45 @@ serve(async (req) => {
             .select("id, expediente_id, tipo, etiqueta, estado, actuacion_id, inicio_ventana, fin_ventana")
             .in("expediente_id", expIds);
 
+          const hoy = new Date();
           pe1603Info = exp1603.map((e) => {
             const items = plan?.filter((p) => p.expediente_id === e.id) || [];
             const total = items.length;
             const realizados = items.filter((i) => i.actuacion_id).length;
             const vencidos = items.filter(
-              (i) => !i.actuacion_id && i.fin_ventana && new Date(i.fin_ventana) < new Date()
+              (i) => !i.actuacion_id && i.fin_ventana && new Date(i.fin_ventana) < hoy
+            ).length;
+            // Exigibles a día de hoy = bloques cuya ventana ya ha abierto (inicio_ventana <= hoy)
+            const exigibles = items.filter(
+              (i) => i.inicio_ventana && new Date(i.inicio_ventana) <= hoy
+            ).length;
+            const realizadosExigibles = items.filter(
+              (i) => i.actuacion_id && i.inicio_ventana && new Date(i.inicio_ventana) <= hoy
             ).length;
             const maq = maqs?.find((m) => m.id === e.maquinista_id);
 
+            // % tiempo transcurrido del expediente
+            let pctTiempo = 0;
+            if (e.fecha_inicio && e.fecha_fin_prevista) {
+              const ini = new Date(e.fecha_inicio).getTime();
+              const fin = new Date(e.fecha_fin_prevista).getTime();
+              if (fin > ini) {
+                pctTiempo = Math.min(100, Math.max(0, Math.round(((hoy.getTime() - ini) / (fin - ini)) * 100)));
+              }
+            }
+
             return {
               maquinista: maq ? `${maq.nombre} ${maq.apellidos}` : e.maquinista_id,
+              fechaInicio: e.fecha_inicio,
+              fechaFin: e.fecha_fin_prevista,
+              pctTiempoTranscurrido: pctTiempo,
               total,
               realizados,
               vencidos,
-              cumplimiento: total > 0 ? Math.round((realizados / total) * 100) : 0,
-              fechaFin: e.fecha_fin_prevista,
+              exigiblesHoy: exigibles,
+              realizadosExigibles,
+              cumplimientoGlobal: total > 0 ? Math.round((realizados / total) * 100) : 0,
+              cumplimientoActual: exigibles > 0 ? Math.round((realizadosExigibles / exigibles) * 100) : null,
             };
           });
         }
@@ -331,24 +356,46 @@ serve(async (req) => {
             .select("id, expediente_id, tipo, etiqueta, estado, actuacion_id, dia_desde_origen, fecha_objetivo")
             .in("expediente_id", expIds);
 
+          const hoy2 = new Date();
           pe1201Info = exp1201.map((e) => {
             const items = plan?.filter((p) => p.expediente_id === e.id && p.estado !== "no_procede") || [];
             const total = items.length;
             const realizados = items.filter((i) => i.actuacion_id).length;
             const vencidos = items.filter(
-              (i) => !i.actuacion_id && i.fecha_objetivo && new Date(i.fecha_objetivo) < new Date()
+              (i) => !i.actuacion_id && i.fecha_objetivo && new Date(i.fecha_objetivo) < hoy2
+            ).length;
+            // Exigibles a día de hoy = hitos cuya fecha objetivo ya ha llegado
+            const exigibles = items.filter(
+              (i) => i.fecha_objetivo && new Date(i.fecha_objetivo) <= hoy2
+            ).length;
+            const realizadosExigibles = items.filter(
+              (i) => i.actuacion_id && i.fecha_objetivo && new Date(i.fecha_objetivo) <= hoy2
             ).length;
             const maq = maqs?.find((m) => m.id === e.maquinista_id);
+
+            let pctTiempo = 0;
+            if (e.fecha_primer_servicio && e.fecha_fin_prevista) {
+              const ini = new Date(e.fecha_primer_servicio).getTime();
+              const fin = new Date(e.fecha_fin_prevista).getTime();
+              if (fin > ini) {
+                pctTiempo = Math.min(100, Math.max(0, Math.round(((hoy2.getTime() - ini) / (fin - ini)) * 100)));
+              }
+            }
 
             return {
               maquinista: maq ? `${maq.nombre} ${maq.apellidos}` : e.maquinista_id,
               idSuceso: e.id_suceso,
               descripcion: e.descripcion_suceso,
+              fechaInicio: e.fecha_primer_servicio,
+              fechaFin: e.fecha_fin_prevista,
+              pctTiempoTranscurrido: pctTiempo,
               total,
               realizados,
               vencidos,
-              cumplimiento: total > 0 ? Math.round((realizados / total) * 100) : 0,
-              fechaFin: e.fecha_fin_prevista,
+              exigiblesHoy: exigibles,
+              realizadosExigibles,
+              cumplimientoGlobal: total > 0 ? Math.round((realizados / total) * 100) : 0,
+              cumplimientoActual: exigibles > 0 ? Math.round((realizadosExigibles / exigibles) * 100) : null,
             };
           });
         }
@@ -391,7 +438,14 @@ PRINCIPIOS:
 - Cero relleno: cada frase aporta un dato, un hallazgo o una acción concreta.
 - Trazabilidad: cita siempre los datos que respaldan cada hallazgo (nº de expedientes, % cumplimiento, NCs concretas, fechas).
 - Foco en riesgo: prioriza lo que pone en riesgo la circulación o el cumplimiento normativo.
-- Tono técnico-profesional, en español de España, sin anglicismos innecesarios.`;
+- Tono técnico-profesional, en español de España, sin anglicismos innecesarios.
+
+CRITERIO CLAVE DE CUMPLIMIENTO (MUY IMPORTANTE):
+- El indicador prioritario NO es \`cumplimientoGlobal\` (realizado / total del plan completo), sino \`cumplimientoActual\` (realizado / exigible a día de hoy).
+- Un expediente recién abierto tendrá \`cumplimientoGlobal\` bajo de forma natural porque aún no ha transcurrido el tiempo; eso NO es una no conformidad.
+- Una desviación sólo es preocupante si \`cumplimientoActual\` es bajo y/o hay \`vencidos > 0\`. Si \`exigiblesHoy = 0\`, el expediente está en periodo de gracia y debe marcarse como "En curso — sin hitos exigibles aún", NO como incumplimiento.
+- Pondera siempre el \`pctTiempoTranscurrido\` del expediente: si es <20% el expediente está iniciándose; si es >80% y \`cumplimientoActual\` < 90%, es alto riesgo.
+- En las tablas y semáforos usa SIEMPRE \`cumplimientoActual\` (no el global). Muestra el global solo como referencia secundaria.`;
 
     const userPrompt = `Fecha de emisión: ${fechaHoy}
 Bases incluidas en el alcance: ${basesData.map((b: any) => b.base).join(", ")}
@@ -412,7 +466,7 @@ Párrafo de 6-10 líneas con: contexto, criticidad global (Alta/Media/Baja JUSTI
 con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, acciones vencidas totales, NCs abiertas, partes recientes.
 
 ## 2. Alcance y metodología
-Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación (cumplimiento ≥90% conforme, 70-89% observación, <70% no conformidad).
+Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy): ≥90% conforme 🟢, 70-89% observación 🟡, <70% con vencidos >0 no conformidad 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
 
 ## 3. Análisis detallado por base
 Para CADA base, una subsección \`### 3.x Base [NOMBRE]\` con:
