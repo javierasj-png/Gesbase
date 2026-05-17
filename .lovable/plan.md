@@ -1,103 +1,73 @@
+## Seguimiento Especial — Plan
 
-# Plan: Resolver Error de Acceso al Sistema
+Nueva funcionalidad por maquinista, ubicada en una pestaña entre **Plan Anual** y **PE 16.03**, dentro de la página de detalle del maquinista.
 
-## Diagnóstico
+### 1. Concepto
 
-El sistema no permite iniciar sesión porque **las tablas de la base de datos no existen**. Las migraciones están definidas en el código pero no se han aplicado correctamente.
+Un **seguimiento especial** es un expediente abierto a un maquinista cuando se detecta una anomalía relevante (típicamente PREVER alto). Contiene:
 
-### Causa raíz
-La última migración intenta modificar la tabla `expedientes_1603` añadiendo columnas (`cierre_manual`, `fecha_cierre`, `cerrado_por`), pero esta tabla no existe porque las migraciones anteriores nunca se ejecutaron.
+- **Apertura**: datos de la anomalía detectada (origen, descripción, índice PREVER, fecha) + evidencia de comunicación por email al maquinista.
+- **Plan opcional de acciones de refuerzo**: acompañamientos y/o registros con periodicidad configurable (semanal, quincenal, mensual, trimestral, semestral) durante un período definido.
+- **Cierre**: manual, con fecha y observaciones.
 
-### Error visible
-- "Invalid login credentials" (400) al intentar acceder
-- Los errores de TypeScript (`never` type) ocurren porque el archivo de tipos no tiene definiciones de tablas
+Las acciones planificadas alimentan el cuadro de mando como alertas (pendientes / vencidas / próximas).
 
----
+### 2. Modelo de datos (nuevas tablas)
 
-## Solución
+**`seguimientos_especiales`** (cabecera del expediente)
+- `maquinista_id`, `fecha_inicio`, `fecha_fin` (opcional)
+- `motivo` (texto), `indice_prever` (numérico opcional), `fecha_anomalia`
+- `email_destinatario`, `email_asunto`, `email_cuerpo`, `email_enviado_at`
+- `estado` ('abierto' | 'cerrado'), `fecha_cierre`, `cerrado_por`
+- `observaciones`, auditoría (created_by/at, updated_by/at)
+- RLS por base (vía `can_access_base` sobre maquinista)
 
-Crear una **migración consolidada** que:
-1. Cree todas las tablas necesarias en el orden correcto
-2. Sea idempotente (use `IF NOT EXISTS` para evitar errores)
-3. Incluya los campos nuevos de cierre manual/automático
+**`plan_seguimiento_especial`** (acciones planificadas)
+- `seguimiento_id`, `tipo` ('acompanamiento' | 'registro')
+- `fecha_objetivo`, `estado` ('pendiente' | 'cumplida' | 'vencida')
+- `actuacion_id` (opcional, FK lógica a `actuaciones_plan_anual` o similar)
+- `comentario_vencida`
 
-### Estructura de tablas a crear
+La planificación se genera al crear el seguimiento con `tipo_acciones` ('acompanamiento' | 'registro' | 'ambos') y `periodicidad` (semanal/quincenal/mensual/trimestral/semestral) desde `fecha_inicio` hasta `fecha_fin`.
 
-```text
-+-------------------+     +-------------------+     +-------------------+
-|   auth.users      |<----|    profiles       |     |   user_roles      |
-| (Supabase nativo) |     | id, email, nombre |     | user_id, role     |
-+-------------------+     +-------------------+     +-------------------+
-                                    |
-                                    v
-+-------------------+     +-------------------+     +-------------------+
-| base_assignments  |     | bases_conduccion  |<----| base_certificac.  |
-| user_id, base     |     | nombre, codigo    |     | base_id, config   |
-+-------------------+     +-------------------+     +-------------------+
-                                    |
-                                    v
-+-------------------+     +-------------------+     +-------------------+
-|   maquinistas     |<----|  expedientes_1603 |<----|    plan_1603      |
-| matricula, base   |     | maquinista_id     |     | expediente_id     |
-+-------------------+     +-------------------+     +-------------------+
-                                    |
-                                    v
-                          +-------------------+
-                          | actuaciones_1603  |
-                          | expediente_id     |
-                          +-------------------+
-```
+### 3. UI — Pestaña "Seguimiento Especial"
 
----
+Nuevo tab en `MaquinistaDetailPage.tsx`, **entre Plan Anual y PE 16.03**.
 
-## Pasos de implementación
+Componente `MaquinistaSeguimientoEspecialTab.tsx`:
+- **Botón "Nuevo seguimiento especial"** → modal en pasos:
+  1. Anomalía: motivo, PREVER, fecha
+  2. Comunicación email: destinatario (precargado del maquinista), asunto, cuerpo, botón **Enviar email** (registra `email_enviado_at`)
+  3. Plan de acciones (opcional): tipo (Acompañamiento / Registro / Ambos), periodicidad, fecha inicio, fecha fin
+- **Lista de seguimientos**: cards con resumen (estado, fechas, % cumplimiento)
+- **Detalle expandido**: timeline de acciones planificadas con botón "Registrar actuación" y "Marcar vencida con comentario"
+- **Cerrar seguimiento** (manual)
 
-### 1. Reemplazar la migración problemática
+### 4. Envío de email
 
-Sustituir el archivo `20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql` con una versión que:
-- Use `IF NOT EXISTS` para todas las operaciones
-- Solo añada columnas si la tabla ya existe
-- Sea compatible tanto si es la primera ejecución como si es una re-ejecución
+El email se envía mediante Lovable Emails (infraestructura ya existente o a configurar). Si todavía no está configurada, lo propondré antes. El template será "Comunicación anomalía PREVER" con datos dinámicos (nombre maquinista, motivo, PREVER, próximas acciones planificadas).
 
-### 2. Verificar configuración de autenticación
+### 5. Dashboard
 
-Asegurar que la confirmación automática de email esté habilitada para que los nuevos usuarios puedan acceder inmediatamente.
+En `useDashboardAlertas` añadir nuevo grupo de alertas:
+- "Seguimiento Especial — Acciones vencidas"
+- "Seguimiento Especial — Acciones próximas (≤15 días)"
 
-### 3. Crear usuario administrador inicial
+Se respetan los filtros de base ya existentes.
 
-Una vez las tablas existan, se necesitará:
-- Registrar un usuario desde la interfaz
-- Asignarle el rol `admin` en la tabla `user_roles`
+### 6. Archivos a tocar
 
----
+- **Nuevo**: `src/components/maquinista/MaquinistaSeguimientoEspecialTab.tsx`
+- **Nuevo**: `src/components/maquinista/SeguimientoEspecialModal.tsx`
+- **Nuevo**: `src/hooks/useSeguimientosEspeciales.ts`
+- **Modificar**: `src/pages/MaquinistaDetailPage.tsx` (orden de tabs)
+- **Modificar**: `src/hooks/useDashboardAlertas.ts` (alertas nuevas)
+- **Migración SQL**: 2 tablas + RLS + trigger updated_at
+- **Email**: template + invocación a `send-transactional-email` (si confirmas usar Lovable Emails)
 
-## Detalles técnicos
+### Preguntas antes de codificar
 
-### Archivo a modificar
-`supabase/migrations/20260129094241_63ffd8ca-a120-431f-9866-a0dd5f83b8ca.sql`
-
-### SQL corregido
-La migración usará:
-- `CREATE TABLE IF NOT EXISTS` para evitar errores si la tabla ya existe
-- `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para añadir columnas de forma segura
-- `CREATE OR REPLACE FUNCTION` para funciones
-
-### Flujo post-implementación
-
-1. El sistema aplicará la migración consolidada
-2. Se crearán todas las tablas con RLS habilitado
-3. El trigger `on_auth_user_created` creará perfiles automáticamente
-4. Los usuarios podrán registrarse y acceder
-5. Un administrador deberá asignar roles manualmente
-
-### Configuración requerida
-- Habilitar auto-confirmación de email en la configuración de autenticación
-
----
-
-## Resultado esperado
-
-- Los usuarios podrán registrarse creando su cuenta
-- El sistema creará automáticamente su perfil
-- Un administrador asignará roles desde el panel de administración
-- Los errores de TypeScript se resolverán automáticamente cuando se regeneren los tipos tras la migración
+1. **Email**: ¿usamos Lovable Emails (te lo configuro si no está)? ¿O por ahora dejamos solo el registro manual del envío (asunto, cuerpo, fecha) sin envío real?
+2. **Periodicidades disponibles**: ¿confirmas semanal / quincenal / mensual / trimestral / semestral?
+3. **Duración del seguimiento**: ¿fecha de fin obligatoria al crear, o se puede dejar abierto y cerrar manualmente cuando proceda?
+4. **¿El plan opcional puede modificarse después de creado** (añadir/quitar fechas, cambiar periodicidad) o queda fijado?
