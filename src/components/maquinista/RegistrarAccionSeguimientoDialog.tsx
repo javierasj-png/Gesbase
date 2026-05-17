@@ -79,15 +79,9 @@ export function RegistrarAccionSeguimientoDialog({ open, onOpenChange, accion, o
               max={format(new Date(), 'yyyy-MM-dd')} />
           </div>
           <div className="space-y-2">
-            <Label>Tipo de actuación *</Label>
-            <Select value={tipo} onValueChange={v => setTipo(v as TipoAccionSeg)}>
-              <SelectTrigger><SelectValue placeholder="Selecciona tipo" /></SelectTrigger>
-              <SelectContent>
-                {(['acompanamiento', 'registro', 'formativa'] as TipoAccionSeg[]).map(t => (
-                  <SelectItem key={t} value={t}>{tipoLabels[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Tipo de actuación</Label>
+            <Input value={tipoLabels[tipo]} disabled readOnly />
+            <p className="text-xs text-muted-foreground">Definido por el diseño del plan de seguimiento.</p>
           </div>
           <div className="space-y-2">
             <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
