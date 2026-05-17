@@ -23,6 +23,7 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
   const { toast } = useToast();
   const today = new Date().toISOString().slice(0, 10);
   const [saving, setSaving] = useState(false);
+  const [generandoIA, setGenerandoIA] = useState(false);
 
   const [motivo, setMotivo] = useState('');
   const [prever, setPrever] = useState('');
