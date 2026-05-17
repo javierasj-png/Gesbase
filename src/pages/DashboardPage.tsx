@@ -78,17 +78,38 @@ export default function DashboardPage() {
               Visión general del estado de vigilancia • {format(new Date(), "d 'de' MMMM yyyy", { locale: es })}
             </p>
           </div>
-          <Select value={effectiveBaseFilter} onValueChange={setBaseFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Todas las bases" />
-            </SelectTrigger>
-            <SelectContent>
-              {isAdmin && <SelectItem value="all">Todas las bases</SelectItem>}
-              {getAccessibleBases.map(base => (
-                <SelectItem key={base} value={base}>{base}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const t = toast.loading('Probando IA Gesbase...');
+                try {
+                  const { callGesbaseLLM } = await import('@/lib/callGesbaseLLM');
+                  const respuesta = await callGesbaseLLM({
+                    prompt: 'Responde con una sola frase: ¿estás operativo?',
+                    maxOutputTokens: 60,
+                  });
+                  toast.success(respuesta.slice(0, 200), { id: t });
+                } catch (e: any) {
+                  toast.error(e?.message ?? 'Error IA', { id: t });
+                }
+              }}
+            >
+              Probar IA Gesbase
+            </Button>
+            <Select value={effectiveBaseFilter} onValueChange={setBaseFilter}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Todas las bases" />
+              </SelectTrigger>
+              <SelectContent>
+                {isAdmin && <SelectItem value="all">Todas las bases</SelectItem>}
+                {getAccessibleBases.map(base => (
+                  <SelectItem key={base} value={base}>{base}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Row 1: Maquinistas y Certificaciones */}
