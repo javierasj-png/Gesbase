@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { signIn, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  usePageMeta({
+    title: 'Acceso al sistema — Gestión de Base Renfe Viajeros',
+    description: 'Inicia sesión o regístrate en Gestión de Base, sistema de vigilancia SGS y control de competencias para Renfe Viajeros.',
+    path: '/',
+  });
   
   const [isLoading, setIsLoading] = useState(false);
   
@@ -81,7 +87,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo Header */}
         <div className="text-center mb-8">

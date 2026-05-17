@@ -1,0 +1,9 @@
+# Gestión de Base — Renfe Viajeros
+
+> Aplicación interna de gestión de base de conducción para Renfe Viajeros: control de competencias de maquinistas, vigilancia SGS (PE 16.03 y PE 12.01), control de partes y auditorías de base.
+
+El acceso al sistema requiere autenticación. Todas las rutas, excepto la pantalla de inicio de sesión, están protegidas y no son indexables.
+
+## Pages
+
+- [Acceso al sistema](/): Inicio de sesión y registro para mandos y gestores autorizados.
