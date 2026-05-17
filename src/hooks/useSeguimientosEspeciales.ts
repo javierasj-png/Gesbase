@@ -145,7 +145,7 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
       .single();
     if (error || !seg) throw error || new Error('Error al crear');
 
-    if (plan.tipo !== 'ninguno' && input.fecha_fin) {
+    if (plan && plan.tipo !== 'ninguno' && input.fecha_fin) {
       const fechas = generarFechasPlan(new Date(input.fecha_inicio), new Date(input.fecha_fin), plan.periodicidad);
       const tipos: TipoAccionSeg[] =
         plan.tipo === 'ambos' ? ['acompanamiento', 'registro']
@@ -164,6 +164,38 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     }
     await fetchData();
     return seg as SeguimientoEspecial;
+  };
+
+  const disenarPlan = async (input: DisenarPlanInput) => {
+    if (!user) throw new Error('No autenticado');
+    const fechas = generarFechasPlan(new Date(input.fecha_inicio), new Date(input.fecha_fin), input.periodicidad);
+    const tipos: TipoAccionSeg[] =
+      input.tipo === 'ambos' ? ['acompanamiento', 'registro']
+      : [input.tipo as TipoAccionSeg];
+
+    if (input.reemplazar_pendientes) {
+      await supabase.from('plan_seguimiento_especial')
+        .delete()
+        .eq('seguimiento_id', input.seguimiento_id)
+        .eq('estado', 'pendiente');
+    }
+
+    const rows = fechas.flatMap(f => tipos.map(t => ({
+      seguimiento_id: input.seguimiento_id,
+      tipo: t,
+      fecha_objetivo: f.toISOString().slice(0, 10),
+      estado: 'pendiente',
+      registrado_por: user.id,
+    })));
+    if (rows.length) {
+      await supabase.from('plan_seguimiento_especial').insert(rows);
+    }
+    // Update fecha_fin del seguimiento
+    await supabase.from('seguimientos_especiales').update({
+      fecha_fin: input.fecha_fin,
+      updated_by: user.id,
+    }).eq('id', input.seguimiento_id);
+    await fetchData();
   };
 
   const cerrar = async (id: string, observaciones?: string) => {
@@ -200,5 +232,5 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     await fetchData();
   };
 
-  return { seguimientos, acciones, loading, crear, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
+  return { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
 }
