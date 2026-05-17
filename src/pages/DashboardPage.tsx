@@ -79,25 +79,6 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                const t = toast.loading('Probando IA Gesbase...');
-                try {
-                  const { callGesbaseLLM } = await import('@/lib/callGesbaseLLM');
-                  const respuesta = await callGesbaseLLM({
-                    prompt: 'Responde con una sola frase: ¿estás operativo?',
-                    maxOutputTokens: 60,
-                  });
-                  toast.success(respuesta.slice(0, 200), { id: t });
-                } catch (e: any) {
-                  toast.error(e?.message ?? 'Error IA', { id: t });
-                }
-              }}
-            >
-              Probar IA Gesbase
-            </Button>
             <Select value={effectiveBaseFilter} onValueChange={setBaseFilter}>
               <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Todas las bases" />
