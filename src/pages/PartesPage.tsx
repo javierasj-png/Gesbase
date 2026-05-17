@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 export default function PartesPage() {
   const { user, isAdmin } = useAuth();
+  usePageMeta({ title: 'Control de partes — Gestión de Base', description: 'Registro y análisis de partes PAI e informes de conducción mediante IA.', path: '/partes' });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { getAccessibleBases } = useBaseFilter();

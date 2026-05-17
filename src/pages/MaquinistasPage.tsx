@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -52,6 +53,7 @@ function getLicenciaStatus(fechaObtencion: string | null) {
 
 export default function MaquinistasPage() {
   const navigate = useNavigate();
+  usePageMeta({ title: 'Maquinistas — Gestión de Base', description: 'Censo y gestión de maquinistas por base de conducción de Renfe Viajeros.', path: '/maquinistas' });
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [statusFilter, setStatusFilter] = useState<string>('all');

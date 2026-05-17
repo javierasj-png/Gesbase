@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const { isAdmin, isGestor } = useAuth();
+  usePageMeta({ title: 'Administración — Gestión de Base', description: 'Configuración de usuarios, bases, certificaciones y plantillas SGS.', path: '/admin' });
   // Hook para maquinistas con Supabase
   const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo } = useMaquinistas();
   const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaConNombre | null>(null);

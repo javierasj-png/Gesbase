@@ -1,4 +1,5 @@
 import { callGesbaseLLM } from "@/lib/callGesbaseLLM";
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,6 +107,7 @@ const estadoColors: Record<string, string> = {
 
 export default function AuditoriaPage() {
   const { isAdmin, isGestor, assignedBases } = useAuth();
+  usePageMeta({ title: 'Auditoría — Gestión de Base', description: 'Auditorías de base: visitas, control de partes y propuestas de mejora.', path: '/auditoria' });
   const [selectedTab, setSelectedTab] = useState('cumplimiento');
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));

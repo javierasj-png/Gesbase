@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -43,6 +44,7 @@ import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function PE1201Page() {
   const navigate = useNavigate();
+  usePageMeta({ title: 'PE 12.01 — Gestión de Base', description: 'Vigilancia PE 12.01 a 40 días tras suceso: acompañamientos y registros.', path: '/pe-1201' });
   const { toast } = useToast();
   const { user, isAdmin, assignedBases } = useAuth();
   

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 export default function CertificacionesPage() {
   const navigate = useNavigate();
+  usePageMeta({ title: 'Certificaciones — Gestión de Base', description: 'Estado y vencimientos de certificaciones de maquinistas por base.', path: '/certificaciones' });
   const [globalBaseName, setGlobalBaseName] = useGlobalBaseFilter();
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [soloVigiladas, setSoloVigiladas] = useState(false);
