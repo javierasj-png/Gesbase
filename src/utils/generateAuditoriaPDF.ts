@@ -152,11 +152,17 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   const exp1603Ids = (allExps1603 || []).map(e => e.id);
   const exp1201Ids = (allExps1201 || []).map(e => e.id);
 
+  const currentYear = new Date().getFullYear();
+  const yearStartISO = `${currentYear}-01-01`;
+  const yearEndISO = `${currentYear}-12-31`;
+  const threeYearsAgoISO = `${currentYear - 3}-01-01`;
+
   const [
     { data: plans1603 },
     { data: acts1603 },
     { data: plans1201 },
     { data: acts1201 },
+    { data: actsPlanAnual },
   ] = await Promise.all([
     exp1603Ids.length > 0
       ? supabase.from('plan_1603').select('*').in('expediente_id', exp1603Ids).order('tipo').order('mes')
@@ -169,6 +175,9 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
       : Promise.resolve({ data: [] as any[] }),
     exp1201Ids.length > 0
       ? supabase.from('actuaciones_1201').select('*').in('expediente_id', exp1201Ids).order('fecha_real')
+      : Promise.resolve({ data: [] as any[] }),
+    maqIds.length > 0
+      ? supabase.from('actuaciones_plan_anual').select('*').in('maquinista_id', maqIds).eq('anio', currentYear)
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
