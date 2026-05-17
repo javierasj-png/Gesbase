@@ -106,81 +106,95 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nuevo seguimiento especial — {maquinistaNombre}</DialogTitle>
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
+          <DialogTitle className="text-lg">
+            Nuevo seguimiento especial
+            <span className="text-muted-foreground font-normal"> — {maquinistaNombre}</span>
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-2">
+        <div className="px-6 py-5 space-y-5">
           {/* 1. Anomalía */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-primary">1. Anomalía detectada</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label>Índice PREVER - Gestión de anomalías</Label>
-                <Input type="number" step="0.01" value={prever} onChange={e => setPrever(e.target.value)} />
+          <section className="rounded-lg border bg-card p-5 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold">1</span>
+              <h3 className="text-sm font-semibold text-primary">Anomalía detectada</h3>
+            </div>
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 md:col-span-3">
+                <Label className="text-xs">Índice PREVER - Gestión de anomalías</Label>
+                <Input type="number" step="0.01" value={prever} onChange={e => setPrever(e.target.value)} className="mt-1" />
               </div>
-              <div>
-                <Label>Fecha anomalía</Label>
-                <Input type="date" value={fechaAnomalia} onChange={e => setFechaAnomalia(e.target.value)} />
+              <div className="col-span-6 md:col-span-3">
+                <Label className="text-xs">Fecha anomalía</Label>
+                <Input type="date" value={fechaAnomalia} onChange={e => setFechaAnomalia(e.target.value)} className="mt-1" />
               </div>
-              <div>
-                <Label>Fecha inicio seguimiento *</Label>
-                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+              <div className="col-span-6 md:col-span-3">
+                <Label className="text-xs">Fecha inicio seguimiento *</Label>
+                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="mt-1" />
               </div>
-              <div className="col-span-3">
-                <Label>Motivo *</Label>
-                <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Descripción de la anomalía PREVER, suceso, etc." />
+              <div className="col-span-12">
+                <Label className="text-xs">Motivo *</Label>
+                <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={3} placeholder="Descripción de la anomalía PREVER, suceso, etc." className="mt-1 resize-none" />
               </div>
             </div>
           </section>
 
           {/* 2. Email */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-primary">2. Comunicación al maquinista</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Destinatario</Label>
-                <Input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} />
+          <section className="rounded-lg border bg-card p-5 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold">2</span>
+                <h3 className="text-sm font-semibold text-primary">Comunicación al maquinista</h3>
               </div>
-              <div>
-                <Label>Asunto</Label>
-                <Input value={emailAsunto} onChange={e => setEmailAsunto(e.target.value)} />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox checked={emailEnviado} onCheckedChange={v => setEmailEnviado(!!v)} />
+                Marcar como enviado
+              </label>
+            </div>
+            <div className="grid grid-cols-12 gap-4">
+              <div className="col-span-12 md:col-span-5">
+                <Label className="text-xs">Destinatario</Label>
+                <Input type="email" value={emailTo} onChange={e => setEmailTo(e.target.value)} className="mt-1" />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-12 md:col-span-7">
+                <Label className="text-xs">Asunto</Label>
+                <Input value={emailAsunto} onChange={e => setEmailAsunto(e.target.value)} className="mt-1" />
+              </div>
+              <div className="col-span-12">
                 <div className="flex items-center justify-between mb-1">
-                  <Label>Cuerpo</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={generarCuerpoIA} disabled={generandoIA}>
+                  <Label className="text-xs">Cuerpo del mensaje</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={generarCuerpoIA} disabled={generandoIA} className="h-7 text-xs">
                     {generandoIA ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
                     Generar con IA
                   </Button>
                 </div>
-                <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={5} placeholder="Pulsa 'Generar con IA' o redacta manualmente." />
+                <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={7} placeholder="Pulsa 'Generar con IA' o redacta manualmente." className="resize-none" />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Button type="button" variant="outline" size="sm" onClick={abrirMailto} disabled={!emailTo}>
+            <div className="flex justify-end pt-1">
+              <Button type="button" variant="secondary" size="sm" onClick={abrirMailto} disabled={!emailTo}>
                 <Mail className="w-4 h-4 mr-1" /> Abrir en cliente de correo
               </Button>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={emailEnviado} onCheckedChange={v => setEmailEnviado(!!v)} />
-                Email enviado
-              </label>
             </div>
           </section>
 
           {/* 3. Observaciones */}
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold text-primary">3. Observaciones</h3>
-            <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} />
+          <section className="rounded-lg border bg-card p-5 space-y-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-semibold">3</span>
+              <h3 className="text-sm font-semibold text-primary">Observaciones</h3>
+            </div>
+            <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} placeholder="Notas internas adicionales..." className="resize-none" />
           </section>
 
-          <p className="text-xs text-muted-foreground border-t pt-3">
+          <p className="text-xs text-muted-foreground italic">
             El plan de acciones (acompañamientos / registros con periodicidad) podrá diseñarse opcionalmente en la ficha del seguimiento una vez creado.
           </p>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t bg-muted/30">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
