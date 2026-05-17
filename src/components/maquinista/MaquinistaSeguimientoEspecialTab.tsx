@@ -6,6 +6,7 @@ import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle,
 import { useSeguimientosEspeciales, type AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { SeguimientoEspecialModal } from './SeguimientoEspecialModal';
 import { DisenarPlanSeguimientoDialog } from './DisenarPlanSeguimientoDialog';
+import { RegistrarAccionSeguimientoDialog } from './RegistrarAccionSeguimientoDialog';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
