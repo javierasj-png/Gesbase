@@ -436,7 +436,14 @@ PRINCIPIOS:
 - Cero relleno: cada frase aporta un dato, un hallazgo o una acción concreta.
 - Trazabilidad: cita siempre los datos que respaldan cada hallazgo (nº de expedientes, % cumplimiento, NCs concretas, fechas).
 - Foco en riesgo: prioriza lo que pone en riesgo la circulación o el cumplimiento normativo.
-- Tono técnico-profesional, en español de España, sin anglicismos innecesarios.`;
+- Tono técnico-profesional, en español de España, sin anglicismos innecesarios.
+
+CRITERIO CLAVE DE CUMPLIMIENTO (MUY IMPORTANTE):
+- El indicador prioritario NO es \`cumplimientoGlobal\` (realizado / total del plan completo), sino \`cumplimientoActual\` (realizado / exigible a día de hoy).
+- Un expediente recién abierto tendrá \`cumplimientoGlobal\` bajo de forma natural porque aún no ha transcurrido el tiempo; eso NO es una no conformidad.
+- Una desviación sólo es preocupante si \`cumplimientoActual\` es bajo y/o hay \`vencidos > 0\`. Si \`exigiblesHoy = 0\`, el expediente está en periodo de gracia y debe marcarse como "En curso — sin hitos exigibles aún", NO como incumplimiento.
+- Pondera siempre el \`pctTiempoTranscurrido\` del expediente: si es <20% el expediente está iniciándose; si es >80% y \`cumplimientoActual\` < 90%, es alto riesgo.
+- En las tablas y semáforos usa SIEMPRE \`cumplimientoActual\` (no el global). Muestra el global solo como referencia secundaria.`;
 
     const userPrompt = `Fecha de emisión: ${fechaHoy}
 Bases incluidas en el alcance: ${basesData.map((b: any) => b.base).join(", ")}
