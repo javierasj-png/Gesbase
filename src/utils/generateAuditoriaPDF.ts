@@ -113,7 +113,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   // ── Fetch data ──
   const { data: basesConduccion } = await supabase
     .from('bases_conduccion')
-    .select('id, nombre')
+    .select('id, nombre, redes')
     .in('nombre', basesToReport);
 
   const baseIds = (basesConduccion || []).map(b => b.id);
