@@ -33,6 +33,8 @@ function getAlertaIcon(alerta: Alerta) {
       return <FileCheck className="w-4 h-4" />;
     case 'pe1201':
       return <AlertCircle className="w-4 h-4" />;
+    case 'seg_especial':
+      return <Eye className="w-4 h-4" />;
   }
 }
 
@@ -44,8 +46,16 @@ function getAlertaLabel(alerta: Alerta): string {
       return 'PE 16.03';
     case 'pe1201':
       return 'PE 12.01';
+    case 'seg_especial':
+      return 'Seg. Especial';
   }
 }
+
+const segTipoLabel: Record<string, string> = {
+  acompanamiento: 'Acompañamiento',
+  registro: 'Análisis de registro',
+  formativa: 'Acción formativa',
+};
 
 function getAlertaDescription(alerta: Alerta): string {
   switch (alerta.tipo) {
@@ -55,6 +65,8 @@ function getAlertaDescription(alerta: Alerta): string {
       return `${alerta.tipo_actuacion}: ${alerta.etiqueta}`;
     case 'pe1201':
       return alerta.hito;
+    case 'seg_especial':
+      return segTipoLabel[alerta.tipo_actuacion] || alerta.tipo_actuacion;
   }
 }
 
