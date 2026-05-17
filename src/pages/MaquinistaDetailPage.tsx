@@ -11,6 +11,7 @@ import {
   Train, 
   FileCheck, 
   AlertTriangle,
+  AlertOctagon,
   Loader2,
   FileDown,
   ClipboardList,
@@ -22,6 +23,7 @@ import { MaquinistaCertificacionesTab } from '@/components/maquinista/Maquinista
 import { MaquinistaPE1603Tab } from '@/components/maquinista/MaquinistaPE1603Tab';
 import { MaquinistaPE1201Tab } from '@/components/maquinista/MaquinistaPE1201Tab';
 import { MaquinistaPlanAnualTab } from '@/components/maquinista/MaquinistaPlanAnualTab';
+import { MaquinistaSeguimientoEspecialTab } from '@/components/maquinista/MaquinistaSeguimientoEspecialTab';
 import { generateDossierPDF } from '@/utils/generateDossierPDF';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -166,7 +168,7 @@ export default function MaquinistaDetailPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-[650px]">
+          <TabsList className="grid w-full grid-cols-5 max-w-[820px]">
             <TabsTrigger value="certificaciones" className="flex items-center gap-2">
               <Train className="w-4 h-4" />
               Certificaciones
@@ -174,6 +176,10 @@ export default function MaquinistaDetailPage() {
             <TabsTrigger value="plan-anual" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
               Plan Anual
+            </TabsTrigger>
+            <TabsTrigger value="seg-especial" className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4" />
+              Seg. Especial
             </TabsTrigger>
             <TabsTrigger value="pe1603" className="flex items-center gap-2">
               <FileCheck className="w-4 h-4" />
@@ -267,6 +273,15 @@ export default function MaquinistaDetailPage() {
             <MaquinistaCertificacionesTab 
               maquinistaId={maquinista.id} 
               baseName={maquinista.base} 
+            />
+          </TabsContent>
+
+          {/* Tab: Seguimiento Especial */}
+          <TabsContent value="seg-especial">
+            <MaquinistaSeguimientoEspecialTab
+              maquinistaId={maquinista.id}
+              maquinistaNombre={`${maquinista.nombre} ${maquinista.apellidos}`}
+              maquinistaEmail={(maquinista as any).email}
             />
           </TabsContent>
 
