@@ -18,13 +18,26 @@ interface Props {
   maquinistaEmail?: string | null;
 }
 
-function estadoCalc(a: AccionSeguimiento, hoy: Date): { label: string; icon: any; cls: string } {
-  if (a.estado === 'cumplida') return { label: 'Cumplida', icon: CheckCircle2, cls: 'text-status-cumplida bg-status-cumplida-bg' };
+type EstadoBloque = 'cumplida' | 'vencida' | 'en_ventana';
+
+function getBlockState(a: AccionSeguimiento, hoy: Date): EstadoBloque {
+  if (a.estado === 'cumplida') return 'cumplida';
   const f = parseISO(a.fecha_objetivo);
-  const dias = differenceInDays(f, hoy);
-  if (a.estado === 'vencida' || dias < 0) return { label: `Vencida ${Math.abs(dias)}d`, icon: XCircle, cls: 'text-status-vencido bg-status-vencido-bg' };
-  return { label: `En ${dias}d`, icon: Clock, cls: 'text-status-proximo bg-status-proximo-bg' };
+  if (a.estado === 'vencida' || f < hoy) return 'vencida';
+  return 'en_ventana';
 }
+
+const tipoLabel: Record<string, string> = {
+  acompanamiento: 'Acompañamiento',
+  registro: 'Registro de conducción',
+  formativa: 'Acción formativa',
+};
+
+const tipoIcon: Record<string, any> = {
+  acompanamiento: Users,
+  registro: FileText,
+  formativa: GraduationCap,
+};
 
 export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombre, maquinistaEmail }: Props) {
   const { toast } = useToast();
