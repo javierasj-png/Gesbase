@@ -50,6 +50,13 @@ export default function PE1603Page() {
     return matchesSearch && matchesBase && matchesEstado;
   });
 
+  // KPIs recalculados sobre el resultado filtrado
+  const filteredKpis = {
+    totalActivos: filtered.filter(f => f.expediente.estado === 'abierto').length,
+    conVencidas: filtered.filter(f => f.resumen.vencidas > 0).length,
+    conEnVentana: filtered.filter(f => f.resumen.enVentana > 0).length,
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -68,7 +75,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold">{kpis.totalActivos}</p>
+                  <p className="text-2xl font-bold">{filteredKpis.totalActivos}</p>
                   <p className="text-sm text-muted-foreground">Expedientes activos</p>
                 </div>
                 <FileCheck className="w-8 h-8 text-status-ok" />
@@ -79,7 +86,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-status-vencido">{kpis.conVencidas}</p>
+                  <p className="text-2xl font-bold text-status-vencido">{filteredKpis.conVencidas}</p>
                   <p className="text-sm text-muted-foreground">Con actuaciones vencidas</p>
                 </div>
                 <XCircle className="w-8 h-8 text-status-vencido" />
@@ -90,7 +97,7 @@ export default function PE1603Page() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-status-proximo">{kpis.conEnVentana}</p>
+                  <p className="text-2xl font-bold text-status-proximo">{filteredKpis.conEnVentana}</p>
                   <p className="text-sm text-muted-foreground">Con actuaciones en ventana</p>
                 </div>
                 <Clock className="w-8 h-8 text-status-proximo" />
