@@ -22,7 +22,7 @@ interface Props {
 
 const tipoLabels: Record<TipoAccionSeg, string> = {
   acompanamiento: 'Acompañamiento',
-  registro: 'Registro de conducción',
+  registro: 'Análisis de registro',
   formativa: 'Acción formativa',
 };
 
