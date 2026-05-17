@@ -172,6 +172,16 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
           onDisenar={disenarPlan}
         />
       )}
+
+      <RegistrarAccionSeguimientoDialog
+        open={!!accionRegistro}
+        onOpenChange={(o) => { if (!o) setAccionRegistro(null); }}
+        accion={accionRegistro}
+        onSubmit={async (id, fechaReal, extras) => {
+          await registrarAccion(id, fechaReal, extras);
+          toast({ title: 'Acción registrada' });
+        }}
+      />
     </div>
   );
 }
