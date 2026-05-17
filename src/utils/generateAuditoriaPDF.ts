@@ -113,7 +113,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   // ── Fetch data ──
   const { data: basesConduccion } = await supabase
     .from('bases_conduccion')
-    .select('id, nombre')
+    .select('id, nombre, redes')
     .in('nombre', basesToReport);
 
   const baseIds = (basesConduccion || []).map(b => b.id);
@@ -152,11 +152,17 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   const exp1603Ids = (allExps1603 || []).map(e => e.id);
   const exp1201Ids = (allExps1201 || []).map(e => e.id);
 
+  const currentYear = new Date().getFullYear();
+  const yearStartISO = `${currentYear}-01-01`;
+  const yearEndISO = `${currentYear}-12-31`;
+  const threeYearsAgoISO = `${currentYear - 3}-01-01`;
+
   const [
     { data: plans1603 },
     { data: acts1603 },
     { data: plans1201 },
     { data: acts1201 },
+    { data: actsPlanAnual },
   ] = await Promise.all([
     exp1603Ids.length > 0
       ? supabase.from('plan_1603').select('*').in('expediente_id', exp1603Ids).order('tipo').order('mes')
@@ -169,6 +175,9 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
       : Promise.resolve({ data: [] as any[] }),
     exp1201Ids.length > 0
       ? supabase.from('actuaciones_1201').select('*').in('expediente_id', exp1201Ids).order('fecha_real')
+      : Promise.resolve({ data: [] as any[] }),
+    maqIds.length > 0
+      ? supabase.from('actuaciones_plan_anual').select('*').in('maquinista_id', maqIds).eq('anio', currentYear)
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
@@ -262,144 +271,172 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   }
 
   // ══════════════════════════════════════════
-  // SECCIÓN 2: SEGUIMIENTO INDIVIDUAL DE ACCIONES
-  // (resumen por maquinista de cumplimiento PE 16.03 y PE 12.01)
+  // SECCIÓN 2: SEGUIMIENTO INDIVIDUAL — PLAN DE ACCIÓN ANUAL
+  // (criterios de vigilancia por maquinista, año en curso)
   // ══════════════════════════════════════════
   doc.addPage();
-  addPageHeader(doc, 'Informe Auditoría — Seguimiento Individual');
-  y = sectionTitle(doc, '2. SEGUIMIENTO INDIVIDUAL DE ACCIONES', PAGE_HEADER_H + 8);
+  addPageHeader(doc, `Informe Auditoría — Plan Acción Anual ${currentYear}`);
+  y = sectionTitle(doc, `2. SEGUIMIENTO INDIVIDUAL — PLAN DE ACCIÓN ANUAL ${currentYear}`, PAGE_HEADER_H + 8);
 
-  const today = new Date();
-  const todayISO = today.toISOString().split('T')[0];
+  // Pre-calcula maquinistas con PE 12.01 reciente (últimos 3 años) — afecta a nº acompañamientos
+  const maqsCon1201Reciente = new Set<string>();
+  (allExps1201 || []).forEach((e: any) => {
+    if (e.fecha_primer_servicio && e.fecha_primer_servicio >= threeYearsAgoISO) {
+      maqsCon1201Reciente.add(e.maquinista_id);
+    }
+  });
+
+  // PE 16.03 actuaciones del año en curso, indexadas por maquinista
+  const acts1603Year = (acts1603 || []).filter((a: any) =>
+    a.fecha_real && a.fecha_real >= yearStartISO && a.fecha_real <= yearEndISO
+  );
+  const exp1603ToMaq = new Map<string, string>();
+  (allExps1603 || []).forEach((e: any) => exp1603ToMaq.set(e.id, e.maquinista_id));
 
   for (const baseNombre of basesToReport) {
     const baseMaqs = maqs.filter(m => m.base === baseNombre);
     if (baseMaqs.length === 0) continue;
 
-    y = needSpace(doc, y, 30, 'Informe Auditoría — Seguimiento Individual');
-    y = baseSubHeader(doc, baseNombre, y);
+    const baseRecord = (basesConduccion || []).find((b: any) => b.nombre === baseNombre);
+    const redesBase: ('convencional' | 'av')[] = baseRecord?.redes === 'ambas'
+      ? ['convencional', 'av']
+      : baseRecord?.redes === 'av' ? ['av'] : ['convencional'];
 
-    const seguimientoRows: any[] = [];
+    y = needSpace(doc, y, 30, `Informe Auditoría — Plan Acción Anual ${currentYear}`);
+    y = baseSubHeader(doc, `${baseNombre}  ·  Redes: ${redesBase.map(r => r === 'av' ? 'AV' : 'Convencional').join(' + ')}`, y);
+
+    // Cabecera dinámica según redes
+    const head: string[] = ['Maquinista', 'Matrícula'];
+    redesBase.forEach(r => {
+      const lbl = r === 'av' ? 'AV' : 'Conv.';
+      head.push(`Reg. ${lbl}\n(km/100)`);
+      head.push(`Acomp. ${lbl}\n(real/req)`);
+    });
+    head.push('Alcohol\n(≥1)');
+    head.push('Drogas\n(nº)');
+    head.push('Estado');
+
+    const rows: any[] = [];
+    let baseTotalActivos = 0;
+    let baseConDrogas = 0;
 
     for (const maq of baseMaqs) {
-      const exps1603Maq = (allExps1603 || []).filter((e: any) => e.maquinista_id === maq.id && e.estado === 'abierto');
-      const exps1201Maq = (allExps1201 || []).filter((e: any) => e.maquinista_id === maq.id && e.estado === 'abierto');
+      baseTotalActivos++;
+      const actsPlan = (actsPlanAnual || []).filter((a: any) => a.maquinista_id === maq.id);
+      const acts1603Maq = acts1603Year.filter((a: any) => exp1603ToMaq.get(a.expediente_id) === maq.id);
+      const allActs = [
+        ...actsPlan.map((a: any) => ({ ...a, _source: 'plan' as const })),
+        ...acts1603Maq.map((a: any) => ({ ...a, red: null, _source: 'pe1603' as const })),
+      ];
 
-      // PE 16.03
-      let total1603 = 0, realizadas1603 = 0, vencidas1603 = 0, exigibles1603 = 0;
-      for (const exp of exps1603Maq) {
-        const items = (plans1603 || []).filter((p: any) => p.expediente_id === exp.id);
-        total1603 += items.length;
-        for (const it of items) {
-          const justificado = it.justificado_traslado === true;
-          const realizada = !!it.actuacion_id;
-          const finVent = it.fin_ventana ? new Date(it.fin_ventana) : null;
-          if (realizada) realizadas1603++;
-          if (finVent && finVent <= today) {
-            exigibles1603++;
-            if (!realizada && !justificado) vencidas1603++;
-          }
-        }
+      const acompReq = maqsCon1201Reciente.has(maq.id) ? 2 : 1;
+      const row: any[] = [`${maq.apellidos}, ${maq.nombre}`, maq.matricula];
+      let cumpleAll = true;
+
+      for (const red of redesBase) {
+        // Registro: km acumulados ≥100 por red (PE 16.03 sin red asignada cuenta para la red)
+        const regs = allActs.filter(a => a.tipo === 'registro' && (a.red === red || a._source === 'pe1603'));
+        const kmRed = regs.reduce((s, a) => s + (Number(a.km_recorridos) || 0), 0);
+        const okReg = kmRed >= 100;
+        row.push(`${Math.round(kmRed)}/100`);
+        if (!okReg) cumpleAll = false;
+
+        // Acompañamiento
+        const acomps = allActs.filter(a => a.tipo === 'acompanamiento' && (a.red === red || a._source === 'pe1603'));
+        const okAcomp = acomps.length >= acompReq;
+        row.push(`${acomps.length}/${acompReq}`);
+        if (!okAcomp) cumpleAll = false;
       }
 
-      // PE 12.01
-      let total1201 = 0, realizadas1201 = 0, vencidas1201 = 0, exigibles1201 = 0;
-      for (const exp of exps1201Maq) {
-        const items = (plans1201 || []).filter((p: any) => p.expediente_id === exp.id && p.estado !== 'no_procede');
-        total1201 += items.length;
-        for (const it of items) {
-          const realizada = !!it.actuacion_id;
-          const fObj = it.fecha_objetivo ? new Date(it.fecha_objetivo) : null;
-          if (realizada) realizadas1201++;
-          if (fObj && fObj <= today) {
-            exigibles1201++;
-            if (!realizada) vencidas1201++;
-          }
-        }
-      }
+      // Alcohol (anual, ≥1)
+      const alcohols = allActs.filter(a => a.tipo === 'alcohol');
+      const okAlc = alcohols.length >= 1;
+      row.push(okAlc ? `SÍ (${alcohols.length})` : 'NO (0)');
+      if (!okAlc) cumpleAll = false;
 
-      const tieneExpedientes = exps1603Maq.length > 0 || exps1201Maq.length > 0;
-      if (!tieneExpedientes) continue;
+      // Drogas (individual; contribuye al 25% base)
+      const drogas = allActs.filter(a => a.tipo === 'drogas');
+      if (drogas.length > 0) baseConDrogas++;
+      row.push(String(drogas.length));
 
-      const cumple1603 = exps1603Maq.length === 0 ? '—' : (vencidas1603 === 0 ? 'SÍ' : 'NO');
-      const cumple1201 = exps1201Maq.length === 0 ? '—' : (vencidas1201 === 0 ? 'SÍ' : 'NO');
-      const cumpleGlobal = (vencidas1603 + vencidas1201) === 0 ? 'CUMPLE' : 'NO CUMPLE';
-
-      seguimientoRows.push([
-        `${maq.apellidos}, ${maq.nombre}`,
-        maq.matricula,
-        exps1603Maq.length > 0 ? `${realizadas1603}/${total1603}` : '—',
-        exps1603Maq.length > 0 ? String(vencidas1603) : '—',
-        cumple1603,
-        exps1201Maq.length > 0 ? `${realizadas1201}/${total1201}` : '—',
-        exps1201Maq.length > 0 ? String(vencidas1201) : '—',
-        cumple1201,
-        cumpleGlobal,
-      ]);
+      row.push(cumpleAll ? 'CUMPLE' : 'NO CUMPLE');
+      rows.push(row);
     }
 
-    if (seguimientoRows.length === 0) {
+    if (rows.length === 0) {
       doc.setFontSize(9);
       doc.setTextColor(...COOL_GRAY);
-      doc.text('Sin expedientes individuales activos en esta base.', MARGIN + 4, y + 4);
+      doc.text('Sin maquinistas activos en esta base.', MARGIN + 4, y + 4);
       doc.setTextColor(0, 0, 0);
       y += 10;
       continue;
     }
 
+    const colCount = head.length;
+    const colStyles: any = { 0: { cellWidth: 42 } };
+    for (let i = 2; i < colCount; i++) colStyles[i] = { halign: 'center' };
+    colStyles[colCount - 1] = { halign: 'center', fontStyle: 'bold' };
+
     autoTable(doc, {
       startY: y,
-      head: [[
-        'Maquinista', 'Matrícula',
-        '16.03\nReal/Total', '16.03\nVenc.', '16.03',
-        '12.01\nReal/Total', '12.01\nVenc.', '12.01',
-        'Estado',
-      ]],
-      body: seguimientoRows,
+      head: [head],
+      body: rows,
       theme: 'grid',
-      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7, halign: 'center' },
       styles: { fontSize: 7.5, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.5 },
       bodyStyles: { textColor: DARK },
-      columnStyles: {
-        0: { cellWidth: 44 },
-        2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' },
-        5: { halign: 'center' }, 6: { halign: 'center' }, 7: { halign: 'center' },
-        8: { halign: 'center', fontStyle: 'bold' },
-      },
+      columnStyles: colStyles,
       didParseCell: (data: any) => {
         if (data.section !== 'body') return;
         const raw = String(data.cell.raw ?? '');
-        // Vencidas columns (3, 6) red if > 0
-        if ((data.column.index === 3 || data.column.index === 6) && /^\d+$/.test(raw) && Number(raw) > 0) {
+        const idx = data.column.index;
+        // Estado global
+        if (idx === colCount - 1) {
+          if (raw === 'CUMPLE') data.cell.styles.textColor = GREEN;
+          else if (raw === 'NO CUMPLE') data.cell.styles.textColor = RED;
+          return;
+        }
+        // Alcohol column (penúltima - 1 = colCount - 3) → "NO (0)" en rojo
+        if (idx === colCount - 3 && raw.startsWith('NO')) {
           data.cell.styles.textColor = RED;
           data.cell.styles.fontStyle = 'bold';
+          return;
         }
-        // SÍ/NO per régimen (4, 7)
-        if (data.column.index === 4 || data.column.index === 7) {
-          if (raw === 'NO') { data.cell.styles.textColor = RED; data.cell.styles.fontStyle = 'bold'; }
-          else if (raw === 'SÍ') { data.cell.styles.textColor = GREEN; data.cell.styles.fontStyle = 'bold'; }
-        }
-        // Estado global (8)
-        if (data.column.index === 8) {
-          if (raw === 'CUMPLE') { data.cell.styles.textColor = GREEN; }
-          else if (raw === 'NO CUMPLE') { data.cell.styles.textColor = RED; }
+        // Registro "X/100" y Acompañamiento "X/Y" → rojo si no cumple
+        const m = raw.match(/^(\d+)\/(\d+)$/);
+        if (m && idx >= 2 && idx < colCount - 3) {
+          if (Number(m[1]) < Number(m[2])) {
+            data.cell.styles.textColor = RED;
+            data.cell.styles.fontStyle = 'bold';
+          } else {
+            data.cell.styles.textColor = GREEN;
+          }
         }
       },
     });
     y = tableEndY(doc, y) + 4;
 
-    // Leyenda breve
-    doc.setFontSize(7);
-    doc.setTextColor(...COOL_GRAY);
+    // Resumen de cobertura de drogas a nivel base (≥25%)
+    const pctDrogas = baseTotalActivos > 0 ? Math.round((baseConDrogas / baseTotalActivos) * 100) : 0;
+    const okDrogas = pctDrogas >= 25;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(okDrogas ? GREEN : RED));
     doc.text(
-      'Real/Total: actuaciones realizadas sobre bloques totales del plan. Venc.: bloques exigibles a fecha de hoy sin realizar ni justificar.',
+      `Cobertura Control Drogas en la base: ${baseConDrogas}/${baseTotalActivos} (${pctDrogas}%)  →  ${okDrogas ? 'CUMPLE ≥25%' : 'NO CUMPLE (req. ≥25%)'}`,
+      MARGIN, y
+    );
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COOL_GRAY);
+    doc.setFontSize(7);
+    y += 5;
+    doc.text(
+      `Criterios: Registro ≥100 km/red · Acompañamiento 1/año (2 si PE 12.01 últimos 3 años) · Alcohol ≥1/año · Drogas: cobertura base ≥25%.`,
       MARGIN, y
     );
     doc.setTextColor(0, 0, 0);
-    y += 6;
+    y += 8;
   }
-
-  void todayISO;
 
   // ══════════════════════════════════════════
   // SECCIÓN 3: FICHAS PE 16.03
