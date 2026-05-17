@@ -6,6 +6,7 @@ import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle,
 import { useSeguimientosEspeciales, type AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { SeguimientoEspecialModal } from './SeguimientoEspecialModal';
 import { DisenarPlanSeguimientoDialog } from './DisenarPlanSeguimientoDialog';
+import { RegistrarAccionSeguimientoDialog } from './RegistrarAccionSeguimientoDialog';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +30,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
   const { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
   const [open, setOpen] = useState(false);
   const [planDialog, setPlanDialog] = useState<{ id: string; fecha_inicio: string; hasPending: boolean } | null>(null);
+  const [accionRegistro, setAccionRegistro] = useState<AccionSeguimiento | null>(null);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
   if (loading) {
@@ -129,10 +131,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                           </div>
                           {s.estado === 'abierto' && a.estado === 'pendiente' && (
                             <div className="flex gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => {
-                                const d = prompt('Fecha real de realización (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
-                                if (d) registrarAccion(a.id, d).then(() => toast({ title: 'Acción registrada' }));
-                              }}>
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setAccionRegistro(a)}>
                                 Registrar
                               </Button>
                               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive" onClick={() => {
@@ -173,6 +172,16 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
           onDisenar={disenarPlan}
         />
       )}
+
+      <RegistrarAccionSeguimientoDialog
+        open={!!accionRegistro}
+        onOpenChange={(o) => { if (!o) setAccionRegistro(null); }}
+        accion={accionRegistro}
+        onSubmit={async (id, fechaReal, extras) => {
+          await registrarAccion(id, fechaReal, extras);
+          toast({ title: 'Acción registrada' });
+        }}
+      />
     </div>
   );
 }

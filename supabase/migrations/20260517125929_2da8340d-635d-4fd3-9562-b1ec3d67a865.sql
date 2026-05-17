@@ -1,0 +1,1 @@
+ALTER TABLE public.plan_seguimiento_especial ADD COLUMN IF NOT EXISTS indice_prever numeric;
