@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Loader2 } from 'lucide-react';
-import { NuevoSeguimientoInput, Periodicidad, TipoPlanAcciones } from '@/hooks/useSeguimientosEspeciales';
+import { NuevoSeguimientoInput } from '@/hooks/useSeguimientosEspeciales';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -28,7 +27,6 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
   const [prever, setPrever] = useState('');
   const [fechaAnomalia, setFechaAnomalia] = useState(today);
   const [fechaInicio, setFechaInicio] = useState(today);
-  const [fechaFin, setFechaFin] = useState('');
   const [observaciones, setObservaciones] = useState('');
 
   const [emailTo, setEmailTo] = useState(maquinistaEmail || '');
@@ -36,13 +34,10 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
   const [emailCuerpo, setEmailCuerpo] = useState('');
   const [emailEnviado, setEmailEnviado] = useState(false);
 
-  const [tipoPlan, setTipoPlan] = useState<TipoPlanAcciones>('ninguno');
-  const [periodicidad, setPeriodicidad] = useState<Periodicidad>('mensual');
-
   const reset = () => {
-    setMotivo(''); setPrever(''); setFechaAnomalia(today); setFechaInicio(today); setFechaFin('');
+    setMotivo(''); setPrever(''); setFechaAnomalia(today); setFechaInicio(today);
     setObservaciones(''); setEmailTo(maquinistaEmail || ''); setEmailAsunto(`Comunicación de anomalía — ${maquinistaNombre}`);
-    setEmailCuerpo(''); setEmailEnviado(false); setTipoPlan('ninguno'); setPeriodicidad('mensual');
+    setEmailCuerpo(''); setEmailEnviado(false);
   };
 
   const abrirMailto = () => {
@@ -53,7 +48,6 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
 
   const handleSubmit = async () => {
     if (!motivo.trim()) { toast({ title: 'Falta motivo', variant: 'destructive' }); return; }
-    if (tipoPlan !== 'ninguno' && !fechaFin) { toast({ title: 'Indica fecha fin para planificar', variant: 'destructive' }); return; }
     setSaving(true);
     try {
       await onCreate({
@@ -62,15 +56,14 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
         indice_prever: prever ? Number(prever) : null,
         fecha_anomalia: fechaAnomalia || null,
         fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin || null,
+        fecha_fin: null,
         observaciones: observaciones || null,
         email_destinatario: emailTo || null,
         email_asunto: emailAsunto || null,
         email_cuerpo: emailCuerpo || null,
         marcar_email_enviado: emailEnviado,
-        plan: { tipo: tipoPlan, periodicidad },
       });
-      toast({ title: 'Seguimiento especial creado' });
+      toast({ title: 'Seguimiento especial creado', description: 'Puedes diseñar un plan de acciones desde la ficha.' });
       reset();
       onOpenChange(false);
     } catch (e: any) {
@@ -104,6 +97,14 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
                 <Label>Fecha anomalía</Label>
                 <Input type="date" value={fechaAnomalia} onChange={e => setFechaAnomalia(e.target.value)} />
               </div>
+              <div>
+                <Label>Fecha inicio seguimiento *</Label>
+                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+              </div>
+              <div className="col-span-2">
+                <Label>Observaciones</Label>
+                <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={2} />
+              </div>
             </div>
           </section>
 
@@ -135,49 +136,9 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
             </div>
           </section>
 
-          {/* 3. Plan */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-primary">3. Plan de acciones (opcional)</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Fecha inicio *</Label>
-                <Input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
-              </div>
-              <div>
-                <Label>Fecha fin</Label>
-                <Input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
-              </div>
-              <div>
-                <Label>Tipo de acciones</Label>
-                <Select value={tipoPlan} onValueChange={v => setTipoPlan(v as TipoPlanAcciones)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ninguno">Ninguno (solo registro)</SelectItem>
-                    <SelectItem value="acompanamiento">Acompañamientos</SelectItem>
-                    <SelectItem value="registro">Registros</SelectItem>
-                    <SelectItem value="ambos">Ambos</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Periodicidad</Label>
-                <Select value={periodicidad} onValueChange={v => setPeriodicidad(v as Periodicidad)} disabled={tipoPlan === 'ninguno'}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="semanal">Semanal</SelectItem>
-                    <SelectItem value="quincenal">Quincenal</SelectItem>
-                    <SelectItem value="mensual">Mensual</SelectItem>
-                    <SelectItem value="trimestral">Trimestral</SelectItem>
-                    <SelectItem value="semestral">Semestral</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <Label>Observaciones</Label>
-                <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={2} />
-              </div>
-            </div>
-          </section>
+          <p className="text-xs text-muted-foreground border-t pt-3">
+            El plan de acciones (acompañamientos / registros con periodicidad) podrá diseñarse opcionalmente en la ficha del seguimiento una vez creado.
+          </p>
         </div>
 
         <DialogFooter>
