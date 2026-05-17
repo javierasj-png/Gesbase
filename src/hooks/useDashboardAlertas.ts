@@ -55,7 +55,7 @@ export interface AlertaSegEspecial {
   maquinista_nombre: string;
   maquinista_base: string;
   hito: string;
-  tipo_actuacion: 'acompanamiento' | 'registro';
+  tipo_actuacion: 'acompanamiento' | 'registro' | 'formativa';
   estado: 'Pendiente' | 'Vencida';
   dias_restantes: number;
   fecha_objetivo: Date;
