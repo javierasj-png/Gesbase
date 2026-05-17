@@ -50,25 +50,27 @@ No se ha utilizado motor de IA porque no hay una clave de IA configurada o porqu
     if (pe1603.length > 0) {
       informe += `### Estado PE 16.03
 
-| Maquinista | Cumplimiento | Acciones vencidas | Fecha fin prevista |
-|---|---:|---:|---|
+| Maquinista | Cumplimiento actual | Cumpl. global | Exigibles hoy | Vencidos | % tiempo | Fecha fin |
+|---|---:|---:|---:|---:|---:|---|
 `;
       for (const item of pe1603) {
-        informe += `| ${item.maquinista || "-"} | ${item.cumplimiento ?? 0}% | ${item.vencidos ?? 0} | ${item.fechaFin || "-"} |\n`;
+        const ca = item.cumplimientoActual === null ? "—" : `${item.cumplimientoActual}%`;
+        informe += `| ${item.maquinista || "-"} | ${ca} | ${item.cumplimientoGlobal ?? 0}% | ${item.exigiblesHoy ?? 0} | ${item.vencidos ?? 0} | ${item.pctTiempoTranscurrido ?? 0}% | ${item.fechaFin || "-"} |\n`;
       }
-      informe += "\n";
+      informe += "\n_Cumplimiento actual = realizado / exigible a día de hoy. Si no hay hitos exigibles aún, se marca '—' (expediente en curso, sin desviación)._\n\n";
     }
 
     if (pe1201.length > 0) {
       informe += `### Estado PE 12.01
 
-| Maquinista | Suceso | Cumplimiento | Acciones vencidas | Fecha fin prevista |
-|---|---|---:|---:|---|
+| Maquinista | Suceso | Cumplimiento actual | Cumpl. global | Exigibles hoy | Vencidos | % tiempo | Fecha fin |
+|---|---|---:|---:|---:|---:|---:|---|
 `;
       for (const item of pe1201) {
-        informe += `| ${item.maquinista || "-"} | ${item.idSuceso || "-"} | ${item.cumplimiento ?? 0}% | ${item.vencidos ?? 0} | ${item.fechaFin || "-"} |\n`;
+        const ca = item.cumplimientoActual === null ? "—" : `${item.cumplimientoActual}%`;
+        informe += `| ${item.maquinista || "-"} | ${item.idSuceso || "-"} | ${ca} | ${item.cumplimientoGlobal ?? 0}% | ${item.exigiblesHoy ?? 0} | ${item.vencidos ?? 0} | ${item.pctTiempoTranscurrido ?? 0}% | ${item.fechaFin || "-"} |\n`;
       }
-      informe += "\n";
+      informe += "\n_Cumplimiento actual = realizado / exigible a día de hoy. Si no hay hitos exigibles aún, se marca '—' (expediente en curso, sin desviación)._\n\n";
     }
 
     if (visitas.length > 0) {
