@@ -90,7 +90,7 @@ export function SeguimientoEspecialModal({ open, onOpenChange, maquinistaId, maq
                 <Textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={2} placeholder="Descripción de la anomalía PREVER, suceso, etc." />
               </div>
               <div>
-                <Label>Índice PREVER</Label>
+                <Label>Gestión de anomalías</Label>
                 <Input type="number" step="0.01" value={prever} onChange={e => setPrever(e.target.value)} />
               </div>
               <div>
