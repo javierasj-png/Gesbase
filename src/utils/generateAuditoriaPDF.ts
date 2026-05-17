@@ -504,11 +504,11 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   }
 
   // ══════════════════════════════════════════
-  // SECCIÓN 3: FICHAS PE 12.01
+  // SECCIÓN 4: FICHAS PE 12.01
   // ══════════════════════════════════════════
   doc.addPage();
   addPageHeader(doc, 'Informe Auditoría — PE 12.01');
-  y = sectionTitle(doc, '3. FICHAS DE SEGUIMIENTO PE 12.01', PAGE_HEADER_H + 8);
+  y = sectionTitle(doc, '4. FICHAS DE SEGUIMIENTO PE 12.01', PAGE_HEADER_H + 8);
 
   const exps1201ByBase = basesToReport.map(baseNombre => {
     const baseMaqs = maqs.filter(m => m.base === baseNombre);
