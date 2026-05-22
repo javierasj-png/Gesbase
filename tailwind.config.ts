@@ -74,6 +74,12 @@ export default {
           cumplida: "hsl(var(--status-cumplida))",
           "cumplida-bg": "hsl(var(--status-cumplida-bg))",
         },
+        cumpl: {
+          aceptable: "hsl(var(--cumpl-aceptable))",
+          "aceptable-bg": "hsl(var(--cumpl-aceptable-bg))",
+          mejorable: "hsl(var(--cumpl-mejorable))",
+          "mejorable-bg": "hsl(var(--cumpl-mejorable-bg))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

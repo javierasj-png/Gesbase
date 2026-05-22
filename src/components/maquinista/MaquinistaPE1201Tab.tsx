@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { getUmbralInfo } from '@/lib/cumplimientoUmbral';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -817,10 +818,10 @@ export function MaquinistaPE1201Tab({
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-sm font-medium">% Cumplimiento del Seguimiento</h4>
               <Badge 
-                variant={cumplimiento.porcentaje >= 75 ? 'default' : cumplimiento.porcentaje >= 50 ? 'secondary' : 'destructive'}
-                className="text-sm"
+                className={`text-sm ${getUmbralInfo(cumplimiento.porcentaje).badgeClass}`}
+                title={getUmbralInfo(cumplimiento.porcentaje).label}
               >
-                {cumplimiento.porcentaje}%
+                {cumplimiento.porcentaje}% · {getUmbralInfo(cumplimiento.porcentaje).label}
               </Badge>
             </div>
             <Progress value={cumplimiento.porcentaje} className="h-2" />

@@ -48,6 +48,11 @@
     --status-proximo-bg: 38 92% 95%;
     --status-vencido: 0 72% 51%;
     --status-vencido-bg: 0 72% 95%;
+    /* Umbrales cumplimiento SGS */
+    --cumpl-aceptable: 48 96% 53%;
+    --cumpl-aceptable-bg: 48 96% 95%;
+    --cumpl-mejorable: 25 95% 53%;
+    --cumpl-mejorable-bg: 25 95% 95%;
     --status-sin-evidencia: 240 1% 55%;
     --status-sin-evidencia-bg: 240 1% 95%;
     --status-pendiente: 320 60% 45%;
