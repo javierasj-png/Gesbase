@@ -3,6 +3,7 @@ import { MessageCircle, X, Send, Loader2, Bot, Paperclip, FileText } from 'lucid
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '@/integrations/supabase/client';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
