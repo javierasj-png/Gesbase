@@ -66,7 +66,7 @@ function addFooters(doc: jsPDF) {
     const ph = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.setTextColor(...COOL_GRAY);
-    doc.text(`Dossier Maquinista — Página ${i} de ${pageCount}`, pw / 2, ph - 8, { align: 'center' });
+    doc.text(`Dosier Maquinista — Página ${i} de ${pageCount}`, pw / 2, ph - 8, { align: 'center' });
     doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pw - 14, ph - 8, { align: 'right' });
   }
 }
@@ -166,7 +166,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   doc.setTextColor(...WHITE);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('DOSSIER DEL MAQUINISTA', pw / 2, 16, { align: 'center' });
+  doc.text('DOSIER DEL MAQUINISTA', pw / 2, 16, { align: 'center' });
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.text(nombreCompleto, pw / 2, 24, { align: 'center' });
@@ -373,7 +373,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   // SECCIÓN 2: PE 16.03
   // ═══════════════════════════════════════
   const allExps1603 = exps1603 || [];
-  const LABEL_1603 = 'Dossier — PE 16.03';
+  const LABEL_1603 = 'Dosier — PE 16.03';
 
   y = needSpace(doc, y, 30, LABEL_1603);
   doc.setFontSize(11);
@@ -496,7 +496,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   // SECCIÓN 3: PE 12.01
   // ═══════════════════════════════════════
   const allExps1201 = exps1201 || [];
-  const LABEL_1201 = 'Dossier — PE 12.01';
+  const LABEL_1201 = 'Dosier — PE 12.01';
 
   y = needSpace(doc, y, 30, LABEL_1201);
   doc.setFontSize(11);
@@ -597,7 +597,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   // SECCIÓN 4: SEGUIMIENTOS ESPECIALES
   // ═══════════════════════════════════════
   const allSegsEsp = segsEsp || [];
-  const LABEL_SEG = 'Dossier — Seguimiento Especial';
+  const LABEL_SEG = 'Dosier — Seguimiento Especial';
 
   y = needSpace(doc, y, 30, LABEL_SEG);
   doc.setFontSize(11);
@@ -694,7 +694,7 @@ export async function generateDossierPDF(maquinistaId: string) {
   // ═══════════════════════════════════════
   // SECCIÓN 5: PLAN ANUAL DE ACCIÓN
   // ═══════════════════════════════════════
-  const LABEL_PLAN = `Dossier — Plan Anual ${currentYear}`;
+  const LABEL_PLAN = `Dosier — Plan Anual ${currentYear}`;
   y = needSpace(doc, y, 30, LABEL_PLAN);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -806,6 +806,6 @@ export async function generateDossierPDF(maquinistaId: string) {
 
 
   // ── Save ──
-  const filename = `Dossier_${maq.matricula}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+  const filename = `Dosier_${maq.matricula}_${format(new Date(), 'yyyyMMdd')}.pdf`;
   doc.save(filename);
 }
