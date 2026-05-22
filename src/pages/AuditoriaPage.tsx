@@ -1,5 +1,6 @@
 import { callGesbaseLLM } from "@/lib/callGesbaseLLM";
 import { usePageMeta } from '@/hooks/usePageMeta';
+import { getUmbralInfo } from '@/lib/cumplimientoUmbral';
 import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
