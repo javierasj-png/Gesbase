@@ -383,9 +383,8 @@ export default function AuditoriaPage() {
   const partesNuevos = partes.filter(p => p.estado === 'Nuevo').length;
 
   const getCumplimientoBadge = (porcentaje: number) => {
-    if (porcentaje >= 80) return <Badge className="bg-status-ok text-primary-foreground">{porcentaje}%</Badge>;
-    if (porcentaje >= 50) return <Badge className="bg-status-proximo text-primary-foreground">{porcentaje}%</Badge>;
-    return <Badge className="bg-status-vencido text-primary-foreground">{porcentaje}%</Badge>;
+    const info = getUmbralInfo(porcentaje);
+    return <Badge className={info.badgeClass} title={info.label}>{porcentaje}%</Badge>;
   };
 
   return (

@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { format, parseISO, addMonths, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { getCumplimientoRGB } from '@/lib/cumplimientoUmbral';
 
 // ── Renfe colors ──
 const MAGENTA: [number, number, number] = [130, 0, 94];
@@ -498,7 +499,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
       if (expPlan.length > 0) {
         const cumplidas = expPlan.filter((p: any) => p.actuacion_id).length;
         const pct = Math.round((cumplidas / expPlan.length) * 100);
-        const color = pct >= 80 ? GREEN : pct >= 50 ? YELLOW : RED;
+        const color = getCumplimientoRGB(pct);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...color);
@@ -604,7 +605,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
         const bloquesQueProceden = expPlan.filter((p: any) => p.estado !== 'no_procede').length;
         const realizados = expPlan.filter((p: any) => p.actuacion_id && p.estado !== 'no_procede').length;
         const pct = bloquesQueProceden > 0 ? Math.round((realizados / bloquesQueProceden) * 100) : 0;
-        const color = pct >= 80 ? GREEN : pct >= 50 ? YELLOW : RED;
+        const color = getCumplimientoRGB(pct);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...color);
