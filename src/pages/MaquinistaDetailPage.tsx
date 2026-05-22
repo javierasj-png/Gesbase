@@ -164,7 +164,7 @@ export default function MaquinistaDetailPage() {
             }}
           >
             {generatingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-            Dossier PDF
+            Dosier PDF
           </Button>
         </div>
 
