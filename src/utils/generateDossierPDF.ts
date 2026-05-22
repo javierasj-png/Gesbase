@@ -86,6 +86,10 @@ function needSpace(doc: jsPDF, currentY: number, needed: number, headerLabel: st
 }
 
 export async function generateDossierPDF(maquinistaId: string) {
+  const currentYear = new Date().getFullYear();
+  const yearStart = `${currentYear}-01-01`;
+  const yearEnd = `${currentYear}-12-31`;
+
   // ── 1. Fetch all data in parallel ──
   const [
     { data: maq },
@@ -94,18 +98,23 @@ export async function generateDossierPDF(maquinistaId: string) {
     { data: exps1603 },
     { data: exps1201 },
     { data: segsEsp },
+    { data: actsPlanAnual },
   ] = await Promise.all([
     supabase.from('maquinistas').select('*').eq('id', maquinistaId).single(),
-    supabase.from('bases_conduccion').select('id, nombre').order('nombre'),
+    supabase.from('bases_conduccion').select('id, nombre, redes').order('nombre'),
     supabase.from('maquinista_certificaciones').select('*').eq('maquinista_id', maquinistaId),
     supabase.from('expedientes_1603').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
     supabase.from('expedientes_1201').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
     supabase.from('seguimientos_especiales').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
+    supabase.from('actuaciones_plan_anual').select('*').eq('maquinista_id', maquinistaId).eq('anio', currentYear).order('fecha_real'),
   ]);
 
   if (!maq) throw new Error('Maquinista no encontrado');
 
   const baseRecord = baseData?.find(b => b.nombre === maq.base);
+  const baseRedes: ('convencional' | 'av')[] = (baseRecord as any)?.redes === 'ambas'
+    ? ['convencional', 'av']
+    : (baseRecord as any)?.redes === 'av' ? ['av'] : ['convencional'];
   const { data: baseCertsConfig } = baseRecord
     ? await supabase.from('base_certificaciones').select('*').eq('base_id', baseRecord.id)
     : { data: [] };
@@ -141,6 +150,10 @@ export async function generateDossierPDF(maquinistaId: string) {
       ? supabase.from('plan_seguimiento_especial').select('*').in('seguimiento_id', segEspIds).order('fecha_objetivo')
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Also fetch PE 16.03 actuaciones for the current year (separately, may overlap)
+  // We already have acts1603; filter by year inline.
+
 
   // ── 2. Build PDF ──
   const doc = new jsPDF();
