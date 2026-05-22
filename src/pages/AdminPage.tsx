@@ -34,8 +34,11 @@ import {
   Trash2,
   Shield,
   FileText,
-  Award
+  Award,
+  Gauge
 } from 'lucide-react';
+import { UMBRALES, getUmbralInfo } from '@/lib/cumplimientoUmbral';
+
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
@@ -220,7 +223,12 @@ export default function AdminPage() {
                 Plantillas SGS
               </TabsTrigger>
             )}
+            <TabsTrigger value="criterios" className="flex items-center gap-2">
+              <Gauge className="w-4 h-4" />
+              Criterios de Cumplimiento
+            </TabsTrigger>
           </TabsList>
+
 
           {/* Usuarios - Admin and Gestor */}
           <TabsContent value="usuarios">
@@ -451,7 +459,86 @@ export default function AdminPage() {
             </TabsContent>
           )}
 
+          {/* Criterios de Cumplimiento - visible para todos los roles del admin */}
+          <TabsContent value="criterios">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gauge className="w-5 h-5" />
+                  Criterios de Cumplimiento SGS
+                </CardTitle>
+                <CardDescription>
+                  Umbrales oficiales aplicados en toda la aplicación (dosieres, dashboards, PE 12.01, PE 16.03, Plan Anual y auditorías).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {([
+                    { pct: 90, rango: `> ${UMBRALES.satisfactorio}%`, desc: 'Cumplimiento conforme a objetivos del SGS.' },
+                    { pct: 72, rango: `${UMBRALES.aceptable}% — ${UMBRALES.satisfactorio}%`, desc: 'Cumplimiento dentro del margen tolerable; vigilar evolución.' },
+                    { pct: 58, rango: `${UMBRALES.mejorable}% — ${UMBRALES.aceptable}%`, desc: 'Requiere plan de mejora y refuerzo de actuaciones.' },
+                    { pct: 30, rango: `< ${UMBRALES.mejorable}%`, desc: 'Nivel crítico; actuación correctora inmediata.' },
+                  ]).map(({ pct, rango, desc }) => {
+                    const info = getUmbralInfo(pct);
+                    return (
+                      <div
+                        key={info.nivel}
+                        className={`rounded-lg border p-4 ${info.bgClass}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge className={info.badgeClass}>{info.label}</Badge>
+                          <span className={`text-sm font-mono font-semibold ${info.textClass}`}>{rango}</span>
+                        </div>
+                        <p className="text-sm text-foreground/80">{desc}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <h3 className="text-sm font-semibold mb-3">Tabla resumen</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 font-medium">Nivel</th>
+                        <th className="text-left p-2 font-medium">Rango (%)</th>
+                        <th className="text-left p-2 font-medium">Interpretación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-2"><Badge className={getUmbralInfo(90).badgeClass}>Satisfactorio</Badge></td>
+                        <td className="p-2 font-mono">&gt; {UMBRALES.satisfactorio}%</td>
+                        <td className="p-2 text-muted-foreground">Objetivo alcanzado.</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2"><Badge className={getUmbralInfo(72).badgeClass}>Aceptable</Badge></td>
+                        <td className="p-2 font-mono">{UMBRALES.aceptable}% — {UMBRALES.satisfactorio}%</td>
+                        <td className="p-2 text-muted-foreground">Tolerable, requiere seguimiento.</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2"><Badge className={getUmbralInfo(58).badgeClass}>Mejorable</Badge></td>
+                        <td className="p-2 font-mono">{UMBRALES.mejorable}% — {UMBRALES.aceptable}%</td>
+                        <td className="p-2 text-muted-foreground">Plan de mejora necesario.</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2"><Badge className={getUmbralInfo(30).badgeClass}>Insuficiente</Badge></td>
+                        <td className="p-2 font-mono">&lt; {UMBRALES.mejorable}%</td>
+                        <td className="p-2 text-muted-foreground">Actuación correctora inmediata.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Estos umbrales se aplican de forma uniforme en los indicadores de cumplimiento de maquinistas, bases y planes (PE 12.01, PE 16.03 y Plan Anual de Acción).
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
+
 
         {/* Modal de edición de certificación del catálogo */}
         <EditCertificacionModal
