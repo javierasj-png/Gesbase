@@ -223,7 +223,12 @@ export default function AdminPage() {
                 Plantillas SGS
               </TabsTrigger>
             )}
+            <TabsTrigger value="criterios" className="flex items-center gap-2">
+              <Gauge className="w-4 h-4" />
+              Criterios de Cumplimiento
+            </TabsTrigger>
           </TabsList>
+
 
           {/* Usuarios - Admin and Gestor */}
           <TabsContent value="usuarios">
