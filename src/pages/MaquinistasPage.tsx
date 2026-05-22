@@ -23,7 +23,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, ChevronRight, Loader2, AlertTriangle, FileDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { generateDossierPDF } from '@/utils/generateDossierPDF';
+import { useToast } from '@/hooks/use-toast';
 import { useMaquinistas } from '@/hooks/useMaquinistas';
 import { useTableSort } from '@/hooks/useTableSort';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
@@ -62,7 +65,23 @@ export default function MaquinistasPage() {
   const { expedientes } = useExpedientes1603();
   const { expedientes: expedientes1201 } = useExpedientes1201();
   const { isAdmin } = useAuth();
+  const { toast } = useToast();
   const [segEspByMaq, setSegEspByMaq] = useState<Record<string, number>>({});
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadDossier = async (e: React.MouseEvent, maquinistaId: string, nombre: string) => {
+    e.stopPropagation();
+    if (downloadingId) return;
+    setDownloadingId(maquinistaId);
+    try {
+      await generateDossierPDF(maquinistaId);
+      toast({ title: 'Dosier generado', description: nombre });
+    } catch (err: any) {
+      toast({ title: 'Error al generar dosier', description: err?.message || 'Inténtalo de nuevo', variant: 'destructive' });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -177,13 +196,14 @@ export default function MaquinistasPage() {
                   <TableHead className="text-center">PE 12.01</TableHead>
                   <TableHead className="text-center">Seg. Especial</TableHead>
                   <TableHead>Estado General</TableHead>
+                  <TableHead className="w-[80px] text-center">Dosier</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredMaquinistas.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No se encontraron maquinistas
                     </TableCell>
                   </TableRow>
@@ -267,6 +287,22 @@ export default function MaquinistasPage() {
                             estado={status.label} 
                             size="sm"
                           />
+                        </TableCell>
+                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Descargar dosier PDF"
+                            disabled={downloadingId === maquinista.id}
+                            onClick={(e) => handleDownloadDossier(e, maquinista.id, maquinista.nombre_apellidos)}
+                          >
+                            {downloadingId === maquinista.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FileDown className="w-4 h-4 text-primary" />
+                            )}
+                          </Button>
                         </TableCell>
                         <TableCell>
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
