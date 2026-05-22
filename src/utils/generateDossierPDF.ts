@@ -747,27 +747,27 @@ export async function generateDossierPDF(maquinistaId: string) {
     critRows.push([
       `Km analizados — ${redLabel}`,
       `${km} km`,
-      `≥ ${REQ_KM} km`,
+      `>= ${REQ_KM} km`,
       km >= REQ_KM ? 'Cumple' : 'No cumple',
     ]);
     const ac = acompPorRed[red] || 0;
     critRows.push([
       `Acompañamientos — ${redLabel}${tuvo1201Reciente ? ' (PE 12.01 reciente)' : ''}`,
       `${ac}`,
-      `≥ ${REQ_ACOMP}`,
+      `>= ${REQ_ACOMP}`,
       ac >= REQ_ACOMP ? 'Cumple' : 'No cumple',
     ]);
   });
   critRows.push([
     'Control de Alcohol (obligatorio)',
     `${ctrlAlcohol}`,
-    `≥ ${REQ_ALCOHOL}`,
+    `>= ${REQ_ALCOHOL}`,
     ctrlAlcohol >= REQ_ALCOHOL ? 'Cumple' : 'No cumple',
   ]);
   critRows.push([
     'Control de Drogas (contribuye 25% base)',
     `${ctrlDrogas}`,
-    '≥ 1 (individual)',
+    '>= 1 (individual)',
     ctrlDrogas >= 1 ? 'Cumple' : 'Sin registro',
   ]);
 
