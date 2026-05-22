@@ -34,8 +34,11 @@ import {
   Trash2,
   Shield,
   FileText,
-  Award
+  Award,
+  Gauge
 } from 'lucide-react';
+import { UMBRALES, getUmbralInfo } from '@/lib/cumplimientoUmbral';
+
 import { EditCertificacionModal } from '@/components/admin/EditCertificacionModal';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { BasesManagement } from '@/components/admin/BasesManagement';
