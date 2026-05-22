@@ -131,11 +131,15 @@ export function ChatBubble() {
   };
 
   const streamChat = useCallback(async (allMessages: Msg[]) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Debes iniciar sesión para usar el asistente.');
+    }
     const resp = await fetch(CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ messages: allMessages }),
     });
