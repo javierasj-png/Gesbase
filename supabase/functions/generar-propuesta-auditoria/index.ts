@@ -444,7 +444,12 @@ CRITERIO CLAVE DE CUMPLIMIENTO (MUY IMPORTANTE):
 - El indicador prioritario NO es \`cumplimientoGlobal\` (realizado / total del plan completo), sino \`cumplimientoActual\` (realizado / exigible a día de hoy).
 - Un expediente recién abierto tendrá \`cumplimientoGlobal\` bajo de forma natural porque aún no ha transcurrido el tiempo; eso NO es una no conformidad.
 - Una desviación sólo es preocupante si \`cumplimientoActual\` es bajo y/o hay \`vencidos > 0\`. Si \`exigiblesHoy = 0\`, el expediente está en periodo de gracia y debe marcarse como "En curso — sin hitos exigibles aún", NO como incumplimiento.
-- Pondera siempre el \`pctTiempoTranscurrido\` del expediente: si es <20% el expediente está iniciándose; si es >80% y \`cumplimientoActual\` < 90%, es alto riesgo.
+- Pondera siempre el \`pctTiempoTranscurrido\` del expediente: si es <20% el expediente está iniciándose; si es >80% y \`cumplimientoActual\` < 80%, es alto riesgo.
+- UMBRALES OFICIALES DE CUMPLIMIENTO (aplicar SIEMPRE sobre \`cumplimientoActual\`):
+  · > 80%  → 🟢 **Satisfactorio** (conforme)
+  · 65–80% → 🟡 **Aceptable** (observación menor)
+  · 50–65% → 🟠 **Mejorable** (observación / NC menor)
+  · < 50%  → 🔴 **Insuficiente** (no conformidad)
 - En las tablas y semáforos usa SIEMPRE \`cumplimientoActual\` (no el global). Muestra el global solo como referencia secundaria.`;
 
     const userPrompt = `Fecha de emisión: ${fechaHoy}
@@ -466,7 +471,7 @@ Párrafo de 6-10 líneas con: contexto, criticidad global (Alta/Media/Baja JUSTI
 con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, acciones vencidas totales, NCs abiertas, partes recientes.
 
 ## 2. Alcance y metodología
-Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy): ≥90% conforme 🟢, 70-89% observación 🟡, <70% con vencidos >0 no conformidad 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
+Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy) con los UMBRALES OFICIALES: >80% Satisfactorio 🟢, 65-80% Aceptable 🟡, 50-65% Mejorable 🟠, <50% Insuficiente 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
 
 ## 3. Análisis detallado por base
 Para CADA base, una subsección \`### 3.x Base [NOMBRE]\` con:
