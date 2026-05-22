@@ -713,55 +713,82 @@ export async function generateDossierPDF(maquinistaId: string) {
     ...acts1603Year.map((a: any) => ({ ...a, _src: '16.03', red: a.red || null })),
   ];
 
-  // KM por red (suma de tipo acompañamiento + registro)
+  // KM por red y acompañamientos por red
   const kmPorRed: Record<string, number> = { convencional: 0, av: 0 };
+  const acompPorRed: Record<string, number> = { convencional: 0, av: 0 };
   allYearActs.forEach(a => {
+    const red = a.red || 'convencional';
     if ((a.tipo === 'acompanamiento' || a.tipo === 'registro') && a.km_recorridos) {
-      const red = a.red || 'convencional';
       kmPorRed[red] = (kmPorRed[red] || 0) + Number(a.km_recorridos);
+    }
+    if (a.tipo === 'acompanamiento') {
+      acompPorRed[red] = (acompPorRed[red] || 0) + 1;
     }
   });
 
-  // Tabla resumen por red
+  // ¿PE 12.01 reciente (últimos 3 años)? → 2 acompañamientos por red, si no 1
+  const threeYearsAgo = `${currentYear - 3}-01-01`;
+  const tuvo1201Reciente = (exps1201 || []).some((e: any) =>
+    e.fecha_primer_servicio && e.fecha_primer_servicio >= threeYearsAgo
+  );
   const REQ_KM = 100;
-  const kmRows = baseRedes.map(red => {
+  const REQ_ACOMP = tuvo1201Reciente ? 2 : 1;
+
+  // Conteos anuales de alcohol/drogas
+  const ctrlAlcohol = allYearActs.filter(a => a.tipo === 'alcohol').length;
+  const ctrlDrogas = allYearActs.filter(a => a.tipo === 'drogas').length;
+  const REQ_ALCOHOL = 1;
+
+  // Tabla completa de criterios
+  const critRows: any[] = [];
+  baseRedes.forEach(red => {
+    const redLabel = red === 'av' ? 'Alta Velocidad' : 'Convencional';
     const km = Math.round(kmPorRed[red] || 0);
-    const pct = Math.min(100, Math.round((km / REQ_KM) * 100));
-    const estado = km >= REQ_KM ? 'Cumple' : 'No cumple';
-    return [
-      red === 'av' ? 'Alta Velocidad' : 'Convencional',
+    critRows.push([
+      `Km analizados — ${redLabel}`,
       `${km} km`,
-      `${REQ_KM} km`,
-      `${pct} %`,
-      estado,
-    ];
+      `≥ ${REQ_KM} km`,
+      km >= REQ_KM ? 'Cumple' : 'No cumple',
+    ]);
+    const ac = acompPorRed[red] || 0;
+    critRows.push([
+      `Acompañamientos — ${redLabel}${tuvo1201Reciente ? ' (PE 12.01 reciente)' : ''}`,
+      `${ac}`,
+      `≥ ${REQ_ACOMP}`,
+      ac >= REQ_ACOMP ? 'Cumple' : 'No cumple',
+    ]);
   });
+  critRows.push([
+    'Control de Alcohol (obligatorio)',
+    `${ctrlAlcohol}`,
+    `≥ ${REQ_ALCOHOL}`,
+    ctrlAlcohol >= REQ_ALCOHOL ? 'Cumple' : 'No cumple',
+  ]);
+  critRows.push([
+    'Control de Drogas (contribuye 25% base)',
+    `${ctrlDrogas}`,
+    '≥ 1 (individual)',
+    ctrlDrogas >= 1 ? 'Cumple' : 'Sin registro',
+  ]);
 
   autoTable(doc, {
     startY: y,
-    head: [['Red', 'Km acumulados', 'Requisito', 'Cobertura', 'Estado']],
-    body: kmRows,
+    head: [['Criterio', 'Cumplido', 'Requisito', 'Estado']],
+    body: critRows,
     theme: 'grid',
     headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
     styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
     bodyStyles: { textColor: DARK },
+    columnStyles: { 0: { cellWidth: 80 } },
     didParseCell: (data: any) => {
-      if (data.section === 'body' && data.column.index === 4) {
+      if (data.section === 'body' && data.column.index === 3) {
         const val = data.cell.raw as string;
-        data.cell.styles.textColor = val === 'Cumple' ? GREEN : RED;
+        data.cell.styles.textColor = val === 'Cumple' ? GREEN : val === 'Sin registro' ? COOL_GRAY : RED;
         data.cell.styles.fontStyle = 'bold';
       }
     },
   });
-  y = tableEndY(doc, y) + 4;
-
-  // Conteo de alcohol/drogas del año
-  const ctrlAlcohol = allYearActs.filter(a => a.tipo === 'alcohol').length;
-  const ctrlDrogas = allYearActs.filter(a => a.tipo === 'drogas').length;
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  doc.text(`Controles año ${currentYear}:  Alcohol: ${ctrlAlcohol}  •  Drogas: ${ctrlDrogas}`, 18, y);
-  y += 6;
+  y = tableEndY(doc, y) + 6;
 
   // Detalle de actuaciones del año
   if (allYearActs.length > 0) {
