@@ -154,10 +154,10 @@ export default function MaquinistaDetailPage() {
               setGeneratingPDF(true);
               try {
                 await generateDossierPDF(maquinista.id);
-                toast({ title: 'Dossier generado', description: 'El PDF se ha descargado correctamente' });
+                toast({ title: 'Dosier generado', description: 'El PDF se ha descargado correctamente' });
               } catch (e) {
                 console.error(e);
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo generar el dossier' });
+                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo generar el dosier' });
               } finally {
                 setGeneratingPDF(false);
               }
