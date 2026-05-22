@@ -86,6 +86,10 @@ function needSpace(doc: jsPDF, currentY: number, needed: number, headerLabel: st
 }
 
 export async function generateDossierPDF(maquinistaId: string) {
+  const currentYear = new Date().getFullYear();
+  const yearStart = `${currentYear}-01-01`;
+  const yearEnd = `${currentYear}-12-31`;
+
   // ── 1. Fetch all data in parallel ──
   const [
     { data: maq },
@@ -94,18 +98,23 @@ export async function generateDossierPDF(maquinistaId: string) {
     { data: exps1603 },
     { data: exps1201 },
     { data: segsEsp },
+    { data: actsPlanAnual },
   ] = await Promise.all([
     supabase.from('maquinistas').select('*').eq('id', maquinistaId).single(),
-    supabase.from('bases_conduccion').select('id, nombre').order('nombre'),
+    supabase.from('bases_conduccion').select('id, nombre, redes').order('nombre'),
     supabase.from('maquinista_certificaciones').select('*').eq('maquinista_id', maquinistaId),
     supabase.from('expedientes_1603').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
     supabase.from('expedientes_1201').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
     supabase.from('seguimientos_especiales').select('*').eq('maquinista_id', maquinistaId).order('created_at', { ascending: false }),
+    supabase.from('actuaciones_plan_anual').select('*').eq('maquinista_id', maquinistaId).eq('anio', currentYear).order('fecha_real'),
   ]);
 
   if (!maq) throw new Error('Maquinista no encontrado');
 
   const baseRecord = baseData?.find(b => b.nombre === maq.base);
+  const baseRedes: ('convencional' | 'av')[] = (baseRecord as any)?.redes === 'ambas'
+    ? ['convencional', 'av']
+    : (baseRecord as any)?.redes === 'av' ? ['av'] : ['convencional'];
   const { data: baseCertsConfig } = baseRecord
     ? await supabase.from('base_certificaciones').select('*').eq('base_id', baseRecord.id)
     : { data: [] };
@@ -141,6 +150,10 @@ export async function generateDossierPDF(maquinistaId: string) {
       ? supabase.from('plan_seguimiento_especial').select('*').in('seguimiento_id', segEspIds).order('fecha_objetivo')
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Also fetch PE 16.03 actuaciones for the current year (separately, may overlap)
+  // We already have acts1603; filter by year inline.
+
 
   // ── 2. Build PDF ──
   const doc = new jsPDF();
@@ -218,6 +231,79 @@ export async function generateDossierPDF(maquinistaId: string) {
     doc.text(obsLines, 18, y + 12);
     y += obsH + 4;
   }
+
+  // ═══════════════════════════════════════
+  // RESUMEN EJECUTIVO (KPIs)
+  // ═══════════════════════════════════════
+  const certStats = { vigentes: 0, proximas: 0, vencidas: 0, pendientes: 0 };
+  (baseCertsConfig || []).forEach(bc => {
+    const asignada = (maqCerts || []).find(mc => mc.certificacion_id === bc.certificacion_id);
+    const { estado } = calcEstadoCert(
+      asignada?.obtenida ?? false,
+      asignada?.fecha_ultimo_servicio || null,
+      bc.vigilar_vencimiento ?? false,
+      bc.periodo_inactividad_meses ?? 6,
+      bc.aviso_dias ?? 30,
+    );
+    if (estado === 'Vigente' || estado === 'Obtenida') certStats.vigentes++;
+    else if (estado === 'Próxima a vencer') certStats.proximas++;
+    else if (estado === 'Vencida') certStats.vencidas++;
+    else certStats.pendientes++;
+  });
+
+  const exp1603Abiertos = (exps1603 || []).filter(e => e.estado === 'abierto').length;
+  const exp1201Abiertos = (exps1201 || []).filter(e => e.estado === 'abierto').length;
+  const segAbiertos = (segsEsp || []).filter(s => s.estado === 'abierto').length;
+
+  const today = new Date();
+  let hitos1603Vencidos = 0;
+  (plans1603 || []).forEach((p: any) => {
+    if (!p.actuacion_id && !p.justificado_traslado && p.fin_ventana && new Date(p.fin_ventana) < today) {
+      hitos1603Vencidos++;
+    }
+  });
+  let hitos1201Vencidos = 0;
+  (plans1201 || []).forEach((p: any) => {
+    if (!p.actuacion_id && p.estado !== 'no_procede' && p.fecha_objetivo && new Date(p.fecha_objetivo) < today) {
+      hitos1201Vencidos++;
+    }
+  });
+
+  // KPI grid: 4 columns x 2 rows
+  const kpiTitle = (label: string, value: string, color: [number, number, number], col: number, row: number) => {
+    const colW = (pw - 28 - 6) / 4; // 3 gaps of 2mm
+    const x = 14 + col * (colW + 2);
+    const yk = y + row * 18;
+    doc.setFillColor(...CARD_BG);
+    doc.roundedRect(x, yk, colW, 16, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COOL_GRAY);
+    doc.text(label, x + 3, yk + 5);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...color);
+    doc.text(value, x + 3, yk + 13);
+  };
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...MAGENTA);
+  doc.text('RESUMEN EJECUTIVO', 14, y);
+  y += 4;
+
+  kpiTitle('Cert. vigentes', String(certStats.vigentes), GREEN, 0, 0);
+  kpiTitle('Cert. próximas', String(certStats.proximas), YELLOW, 1, 0);
+  kpiTitle('Cert. vencidas', String(certStats.vencidas), certStats.vencidas > 0 ? RED : COOL_GRAY, 2, 0);
+  kpiTitle('Cert. pendientes', String(certStats.pendientes), COOL_GRAY, 3, 0);
+  kpiTitle('Exp. 16.03 abiertos', String(exp1603Abiertos), exp1603Abiertos > 0 ? BLUE : COOL_GRAY, 0, 1);
+  kpiTitle('Exp. 12.01 abiertos', String(exp1201Abiertos), exp1201Abiertos > 0 ? BLUE : COOL_GRAY, 1, 1);
+  kpiTitle('Seg. especiales', String(segAbiertos), segAbiertos > 0 ? BLUE : COOL_GRAY, 2, 1);
+  kpiTitle('Hitos vencidos', String(hitos1603Vencidos + hitos1201Vencidos), (hitos1603Vencidos + hitos1201Vencidos) > 0 ? RED : GREEN, 3, 1);
+
+  y += 18 * 2 + 4;
+  doc.setTextColor(...DARK);
+
 
   // ═══════════════════════════════════════
   // SECCIÓN 1: CERTIFICACIONES
@@ -605,8 +691,119 @@ export async function generateDossierPDF(maquinistaId: string) {
     }
   }
 
+  // ═══════════════════════════════════════
+  // SECCIÓN 5: PLAN ANUAL DE ACCIÓN
+  // ═══════════════════════════════════════
+  const LABEL_PLAN = `Dossier — Plan Anual ${currentYear}`;
+  y = needSpace(doc, y, 30, LABEL_PLAN);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...MAGENTA);
+  doc.text(`5. PLAN ANUAL DE ACCIÓN — ${currentYear}`, 14, y);
+  y += 4;
+
+  // Merge actuaciones del plan anual con acompañamientos/registros de PE 16.03 del año
+  const acts1603Year = (acts1603 || []).filter((a: any) =>
+    a.fecha_real && a.fecha_real >= yearStart && a.fecha_real <= yearEnd
+    && (a.tipo === 'acompanamiento' || a.tipo === 'registro')
+  );
+
+  const allYearActs: any[] = [
+    ...((actsPlanAnual || []) as any[]).map(a => ({ ...a, _src: 'PA' })),
+    ...acts1603Year.map((a: any) => ({ ...a, _src: '16.03', red: a.red || null })),
+  ];
+
+  // KM por red (suma de tipo acompañamiento + registro)
+  const kmPorRed: Record<string, number> = { convencional: 0, av: 0 };
+  allYearActs.forEach(a => {
+    if ((a.tipo === 'acompanamiento' || a.tipo === 'registro') && a.km_recorridos) {
+      const red = a.red || 'convencional';
+      kmPorRed[red] = (kmPorRed[red] || 0) + Number(a.km_recorridos);
+    }
+  });
+
+  // Tabla resumen por red
+  const REQ_KM = 100;
+  const kmRows = baseRedes.map(red => {
+    const km = Math.round(kmPorRed[red] || 0);
+    const pct = Math.min(100, Math.round((km / REQ_KM) * 100));
+    const estado = km >= REQ_KM ? 'Cumple' : 'No cumple';
+    return [
+      red === 'av' ? 'Alta Velocidad' : 'Convencional',
+      `${km} km`,
+      `${REQ_KM} km`,
+      `${pct} %`,
+      estado,
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Red', 'Km acumulados', 'Requisito', 'Cobertura', 'Estado']],
+    body: kmRows,
+    theme: 'grid',
+    headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+    styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+    bodyStyles: { textColor: DARK },
+    didParseCell: (data: any) => {
+      if (data.section === 'body' && data.column.index === 4) {
+        const val = data.cell.raw as string;
+        data.cell.styles.textColor = val === 'Cumple' ? GREEN : RED;
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+  y = tableEndY(doc, y) + 4;
+
+  // Conteo de alcohol/drogas del año
+  const ctrlAlcohol = allYearActs.filter(a => a.tipo === 'alcohol').length;
+  const ctrlDrogas = allYearActs.filter(a => a.tipo === 'drogas').length;
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  doc.text(`Controles año ${currentYear}:  Alcohol: ${ctrlAlcohol}  •  Drogas: ${ctrlDrogas}`, 18, y);
+  y += 6;
+
+  // Detalle de actuaciones del año
+  if (allYearActs.length > 0) {
+    y = needSpace(doc, y, 20, LABEL_PLAN);
+    const tipoLabelsPA: Record<string, string> = {
+      acompanamiento: 'Acompañamiento',
+      registro: 'Registro',
+      alcohol: 'Alcohol',
+      drogas: 'Drogas',
+    };
+    const detailRows = allYearActs
+      .sort((a, b) => (a.fecha_real || '').localeCompare(b.fecha_real || ''))
+      .map(a => [
+        a.fecha_real ? format(parseISO(a.fecha_real), 'dd/MM/yyyy') : '-',
+        tipoLabelsPA[a.tipo] || a.tipo,
+        a.red === 'av' ? 'AV' : a.red === 'convencional' ? 'Conv.' : '-',
+        a.km_recorridos != null ? `${a.km_recorridos}` : '-',
+        a.indice_prever != null ? `${a.indice_prever}` : '-',
+        a.resultado || '-',
+        a._src,
+      ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Fecha', 'Tipo', 'Red', 'Km', 'PREVER', 'Resultado', 'Origen']],
+      body: detailRows,
+      theme: 'grid',
+      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+      styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+      bodyStyles: { textColor: DARK },
+    });
+    y = tableEndY(doc, y) + 6;
+  } else {
+    doc.setFontSize(8);
+    doc.setTextColor(...COOL_GRAY);
+    doc.text(`Sin actuaciones registradas en ${currentYear}.`, 18, y + 3);
+    y += 8;
+  }
+
   // ── Footers on all pages ──
   addFooters(doc);
+
 
   // ── Save ──
   const filename = `Dossier_${maq.matricula}_${format(new Date(), 'yyyyMMdd')}.pdf`;
