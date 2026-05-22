@@ -233,6 +233,79 @@ export async function generateDossierPDF(maquinistaId: string) {
   }
 
   // ═══════════════════════════════════════
+  // RESUMEN EJECUTIVO (KPIs)
+  // ═══════════════════════════════════════
+  const certStats = { vigentes: 0, proximas: 0, vencidas: 0, pendientes: 0 };
+  (baseCertsConfig || []).forEach(bc => {
+    const asignada = (maqCerts || []).find(mc => mc.certificacion_id === bc.certificacion_id);
+    const { estado } = calcEstadoCert(
+      asignada?.obtenida ?? false,
+      asignada?.fecha_ultimo_servicio || null,
+      bc.vigilar_vencimiento ?? false,
+      bc.periodo_inactividad_meses ?? 6,
+      bc.aviso_dias ?? 30,
+    );
+    if (estado === 'Vigente' || estado === 'Obtenida') certStats.vigentes++;
+    else if (estado === 'Próxima a vencer') certStats.proximas++;
+    else if (estado === 'Vencida') certStats.vencidas++;
+    else certStats.pendientes++;
+  });
+
+  const exp1603Abiertos = (exps1603 || []).filter(e => e.estado === 'abierto').length;
+  const exp1201Abiertos = (exps1201 || []).filter(e => e.estado === 'abierto').length;
+  const segAbiertos = (segsEsp || []).filter(s => s.estado === 'abierto').length;
+
+  const today = new Date();
+  let hitos1603Vencidos = 0;
+  (plans1603 || []).forEach((p: any) => {
+    if (!p.actuacion_id && !p.justificado_traslado && p.fin_ventana && new Date(p.fin_ventana) < today) {
+      hitos1603Vencidos++;
+    }
+  });
+  let hitos1201Vencidos = 0;
+  (plans1201 || []).forEach((p: any) => {
+    if (!p.actuacion_id && p.estado !== 'no_procede' && p.fecha_objetivo && new Date(p.fecha_objetivo) < today) {
+      hitos1201Vencidos++;
+    }
+  });
+
+  // KPI grid: 4 columns x 2 rows
+  const kpiTitle = (label: string, value: string, color: [number, number, number], col: number, row: number) => {
+    const colW = (pw - 28 - 6) / 4; // 3 gaps of 2mm
+    const x = 14 + col * (colW + 2);
+    const yk = y + row * 18;
+    doc.setFillColor(...CARD_BG);
+    doc.roundedRect(x, yk, colW, 16, 2, 2, 'F');
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...COOL_GRAY);
+    doc.text(label, x + 3, yk + 5);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...color);
+    doc.text(value, x + 3, yk + 13);
+  };
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...MAGENTA);
+  doc.text('RESUMEN EJECUTIVO', 14, y);
+  y += 4;
+
+  kpiTitle('Cert. vigentes', String(certStats.vigentes), GREEN, 0, 0);
+  kpiTitle('Cert. próximas', String(certStats.proximas), YELLOW, 1, 0);
+  kpiTitle('Cert. vencidas', String(certStats.vencidas), certStats.vencidas > 0 ? RED : COOL_GRAY, 2, 0);
+  kpiTitle('Cert. pendientes', String(certStats.pendientes), COOL_GRAY, 3, 0);
+  kpiTitle('Exp. 16.03 abiertos', String(exp1603Abiertos), exp1603Abiertos > 0 ? BLUE : COOL_GRAY, 0, 1);
+  kpiTitle('Exp. 12.01 abiertos', String(exp1201Abiertos), exp1201Abiertos > 0 ? BLUE : COOL_GRAY, 1, 1);
+  kpiTitle('Seg. especiales', String(segAbiertos), segAbiertos > 0 ? BLUE : COOL_GRAY, 2, 1);
+  kpiTitle('Hitos vencidos', String(hitos1603Vencidos + hitos1201Vencidos), (hitos1603Vencidos + hitos1201Vencidos) > 0 ? RED : GREEN, 3, 1);
+
+  y += 18 * 2 + 4;
+  doc.setTextColor(...DARK);
+
+
+  // ═══════════════════════════════════════
   // SECCIÓN 1: CERTIFICACIONES
   // ═══════════════════════════════════════
   doc.setFontSize(11);
