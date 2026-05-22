@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { getUmbralInfo } from '@/lib/cumplimientoUmbral';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatusBadge } from '@/components/StatusBadge';
