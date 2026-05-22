@@ -691,8 +691,119 @@ export async function generateDossierPDF(maquinistaId: string) {
     }
   }
 
+  // ═══════════════════════════════════════
+  // SECCIÓN 5: PLAN ANUAL DE ACCIÓN
+  // ═══════════════════════════════════════
+  const LABEL_PLAN = `Dossier — Plan Anual ${currentYear}`;
+  y = needSpace(doc, y, 30, LABEL_PLAN);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...MAGENTA);
+  doc.text(`5. PLAN ANUAL DE ACCIÓN — ${currentYear}`, 14, y);
+  y += 4;
+
+  // Merge actuaciones del plan anual con acompañamientos/registros de PE 16.03 del año
+  const acts1603Year = (acts1603 || []).filter((a: any) =>
+    a.fecha_real && a.fecha_real >= yearStart && a.fecha_real <= yearEnd
+    && (a.tipo === 'acompanamiento' || a.tipo === 'registro')
+  );
+
+  const allYearActs: any[] = [
+    ...((actsPlanAnual || []) as any[]).map(a => ({ ...a, _src: 'PA' })),
+    ...acts1603Year.map((a: any) => ({ ...a, _src: '16.03', red: a.red || null })),
+  ];
+
+  // KM por red (suma de tipo acompañamiento + registro)
+  const kmPorRed: Record<string, number> = { convencional: 0, av: 0 };
+  allYearActs.forEach(a => {
+    if ((a.tipo === 'acompanamiento' || a.tipo === 'registro') && a.km_recorridos) {
+      const red = a.red || 'convencional';
+      kmPorRed[red] = (kmPorRed[red] || 0) + Number(a.km_recorridos);
+    }
+  });
+
+  // Tabla resumen por red
+  const REQ_KM = 100;
+  const kmRows = baseRedes.map(red => {
+    const km = Math.round(kmPorRed[red] || 0);
+    const pct = Math.min(100, Math.round((km / REQ_KM) * 100));
+    const estado = km >= REQ_KM ? 'Cumple' : 'No cumple';
+    return [
+      red === 'av' ? 'Alta Velocidad' : 'Convencional',
+      `${km} km`,
+      `${REQ_KM} km`,
+      `${pct} %`,
+      estado,
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Red', 'Km acumulados', 'Requisito', 'Cobertura', 'Estado']],
+    body: kmRows,
+    theme: 'grid',
+    headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+    styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+    bodyStyles: { textColor: DARK },
+    didParseCell: (data: any) => {
+      if (data.section === 'body' && data.column.index === 4) {
+        const val = data.cell.raw as string;
+        data.cell.styles.textColor = val === 'Cumple' ? GREEN : RED;
+        data.cell.styles.fontStyle = 'bold';
+      }
+    },
+  });
+  y = tableEndY(doc, y) + 4;
+
+  // Conteo de alcohol/drogas del año
+  const ctrlAlcohol = allYearActs.filter(a => a.tipo === 'alcohol').length;
+  const ctrlDrogas = allYearActs.filter(a => a.tipo === 'drogas').length;
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  doc.text(`Controles año ${currentYear}:  Alcohol: ${ctrlAlcohol}  •  Drogas: ${ctrlDrogas}`, 18, y);
+  y += 6;
+
+  // Detalle de actuaciones del año
+  if (allYearActs.length > 0) {
+    y = needSpace(doc, y, 20, LABEL_PLAN);
+    const tipoLabelsPA: Record<string, string> = {
+      acompanamiento: 'Acompañamiento',
+      registro: 'Registro',
+      alcohol: 'Alcohol',
+      drogas: 'Drogas',
+    };
+    const detailRows = allYearActs
+      .sort((a, b) => (a.fecha_real || '').localeCompare(b.fecha_real || ''))
+      .map(a => [
+        a.fecha_real ? format(parseISO(a.fecha_real), 'dd/MM/yyyy') : '-',
+        tipoLabelsPA[a.tipo] || a.tipo,
+        a.red === 'av' ? 'AV' : a.red === 'convencional' ? 'Conv.' : '-',
+        a.km_recorridos != null ? `${a.km_recorridos}` : '-',
+        a.indice_prever != null ? `${a.indice_prever}` : '-',
+        a.resultado || '-',
+        a._src,
+      ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Fecha', 'Tipo', 'Red', 'Km', 'PREVER', 'Resultado', 'Origen']],
+      body: detailRows,
+      theme: 'grid',
+      headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+      styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+      bodyStyles: { textColor: DARK },
+    });
+    y = tableEndY(doc, y) + 6;
+  } else {
+    doc.setFontSize(8);
+    doc.setTextColor(...COOL_GRAY);
+    doc.text(`Sin actuaciones registradas en ${currentYear}.`, 18, y + 3);
+    y += 8;
+  }
+
   // ── Footers on all pages ──
   addFooters(doc);
+
 
   // ── Save ──
   const filename = `Dossier_${maq.matricula}_${format(new Date(), 'yyyyMMdd')}.pdf`;
