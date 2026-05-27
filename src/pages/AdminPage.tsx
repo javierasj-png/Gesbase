@@ -468,7 +468,7 @@ export default function AdminPage() {
                   Criterios de Cumplimiento SGS
                 </CardTitle>
                 <CardDescription>
-                  Umbrales oficiales aplicados en toda la aplicación (dosieres, dashboards, PE 12.01, PE 16.03, Plan Anual y auditorías).
+                  Umbrales oficiales aplicados en toda la aplicación (dosieres, dashboards, Plan Anual, PE 16.03, PE 12.01 y auditorías).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
