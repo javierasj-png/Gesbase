@@ -531,7 +531,7 @@ export default function AdminPage() {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Estos umbrales se aplican de forma uniforme en los indicadores de cumplimiento de maquinistas, bases y planes (PE 12.01, PE 16.03 y Plan Anual de Acción).
+                  Estos umbrales se aplican de forma uniforme en los indicadores de cumplimiento de maquinistas, bases y planes (Plan Anual de Acción, PE 16.03 y PE 12.01).
                 </p>
               </CardContent>
             </Card>
