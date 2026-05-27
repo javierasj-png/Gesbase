@@ -320,6 +320,8 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     const rows: any[] = [];
     let baseTotalActivos = 0;
     let baseConDrogas = 0;
+    let baseCumplen = 0;
+    let baseNoCumplen = 0;
 
     for (const maq of baseMaqs) {
       baseTotalActivos++;
