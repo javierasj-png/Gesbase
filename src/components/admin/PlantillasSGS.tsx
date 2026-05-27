@@ -14,6 +14,76 @@ export function PlantillasSGS() {
   
   return (
     <div className="space-y-6">
+      {/* Plan de Acción Anual */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-primary" />
+            <CardTitle>Plan de Acción Anual</CardTitle>
+          </div>
+          <CardDescription>
+            Criterios individuales de vigilancia para todos los maquinistas activos de cada base, aplicados por año natural.
+            Las actuaciones de PE 16.03 computan automáticamente. Las redes se configuran por base de conducción.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline">Registro</Badge>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <p className="font-medium text-sm">Análisis de Registro por Red</p>
+                <p className="text-xs text-muted-foreground mt-1">1 registro por cada tipo de red (Convencional / AV) con un mínimo de 100 km recorridos.</p>
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline">Acompañamiento</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <p className="font-medium text-sm">Acompañamiento por Red</p>
+                  <p className="text-xs text-muted-foreground mt-1">1 acompañamiento por tipo de red al año.</p>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="font-medium text-sm">Con PE 12.01 reciente</p>
+                  <p className="text-xs text-muted-foreground mt-1">2 acompañamientos por red si el maquinista ha tenido un expediente PE 12.01 en los últimos 3 años.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline">Alcohol</Badge>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <p className="font-medium text-sm">Control Anual</p>
+                <p className="text-xs text-muted-foreground mt-1">1 control de alcohol al año por maquinista.</p>
+              </div>
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline">Drogas</Badge>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <p className="font-medium text-sm">Cobertura de Base (25%)</p>
+                <p className="text-xs text-muted-foreground mt-1">Al menos el 25% de la plantilla activa de cada base debe tener un control de drogas al año.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-sm">
+              <strong>Nota:</strong> Las actuaciones registradas en PE 16.03 computan automáticamente en el Plan Anual.
+              Las redes (Convencional / AV) se configuran en la ficha de cada base de conducción.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* PE 16.03 */}
       <Card>
         <CardHeader>
@@ -104,76 +174,6 @@ export function PlantillasSGS() {
             <p className="text-sm text-amber-700 dark:text-amber-400">
               <strong>Nota:</strong> La ficha PE 12.01 tiene un período de vigilancia de 40 días desde el primer servicio tras el suceso.
               El cierre manual está disponible según criterio del mando (PREVER).
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Plan de Acción Anual */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-primary" />
-            <CardTitle>Plan de Acción Anual</CardTitle>
-          </div>
-          <CardDescription>
-            Criterios individuales de vigilancia para todos los maquinistas activos de cada base, aplicados por año natural.
-            Las actuaciones de PE 16.03 computan automáticamente. Las redes se configuran por base de conducción.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">Registro</Badge>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg border">
-                <p className="font-medium text-sm">Análisis de Registro por Red</p>
-                <p className="text-xs text-muted-foreground mt-1">1 registro por cada tipo de red (Convencional / AV) con un mínimo de 100 km recorridos.</p>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">Acompañamiento</Badge>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="p-3 bg-muted/50 rounded-lg border">
-                  <p className="font-medium text-sm">Acompañamiento por Red</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 acompañamiento por tipo de red al año.</p>
-                </div>
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <p className="font-medium text-sm">Con PE 12.01 reciente</p>
-                  <p className="text-xs text-muted-foreground mt-1">2 acompañamientos por red si el maquinista ha tenido un expediente PE 12.01 en los últimos 3 años.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">Alcohol</Badge>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg border">
-                <p className="font-medium text-sm">Control Anual</p>
-                <p className="text-xs text-muted-foreground mt-1">1 control de alcohol al año por maquinista.</p>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">Drogas</Badge>
-              </div>
-              <div className="p-3 bg-muted/50 rounded-lg border">
-                <p className="font-medium text-sm">Cobertura de Base (25%)</p>
-                <p className="text-xs text-muted-foreground mt-1">Al menos el 25% de la plantilla activa de cada base debe tener un control de drogas al año.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-            <p className="text-sm">
-              <strong>Nota:</strong> Las actuaciones registradas en PE 16.03 computan automáticamente en el Plan Anual.
-              Las redes (Convencional / AV) se configuran en la ficha de cada base de conducción.
             </p>
           </div>
         </CardContent>
