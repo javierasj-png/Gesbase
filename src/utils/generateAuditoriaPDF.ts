@@ -363,6 +363,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
       row.push(String(drogas.length));
 
       row.push(cumpleAll ? 'CUMPLE' : 'NO CUMPLE');
+      if (cumpleAll) baseCumplen++; else baseNoCumplen++;
       rows.push(row);
     }
 
