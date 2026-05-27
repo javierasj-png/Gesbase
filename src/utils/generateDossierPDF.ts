@@ -702,10 +702,10 @@ export async function generateDossierPDF(maquinistaId: string) {
   doc.text(`5. PLAN ANUAL DE ACCIÓN — ${currentYear}`, 14, y);
   y += 4;
 
-  // Merge actuaciones del plan anual con acompañamientos/registros de PE 16.03 del año
+  // Merge actuaciones del plan anual con todas las actuaciones de PE 16.03 del año
+  // (acompañamientos, registros, alcohol y drogas todos cuentan para el Plan Anual)
   const acts1603Year = (acts1603 || []).filter((a: any) =>
     a.fecha_real && a.fecha_real >= yearStart && a.fecha_real <= yearEnd
-    && (a.tipo === 'acompanamiento' || a.tipo === 'registro')
   );
 
   const allYearActs: any[] = [
