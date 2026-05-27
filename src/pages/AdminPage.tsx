@@ -468,7 +468,7 @@ export default function AdminPage() {
                   Criterios de Cumplimiento SGS
                 </CardTitle>
                 <CardDescription>
-                  Umbrales oficiales aplicados en toda la aplicación (dosieres, dashboards, PE 12.01, PE 16.03, Plan Anual y auditorías).
+                  Umbrales oficiales aplicados en toda la aplicación (dosieres, dashboards, Plan Anual, PE 16.03, PE 12.01 y auditorías).
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -531,7 +531,7 @@ export default function AdminPage() {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  Estos umbrales se aplican de forma uniforme en los indicadores de cumplimiento de maquinistas, bases y planes (PE 12.01, PE 16.03 y Plan Anual de Acción).
+                  Estos umbrales se aplican de forma uniforme en los indicadores de cumplimiento de maquinistas, bases y planes (Plan Anual de Acción, PE 16.03 y PE 12.01).
                 </p>
               </CardContent>
             </Card>
