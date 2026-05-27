@@ -320,6 +320,8 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     const rows: any[] = [];
     let baseTotalActivos = 0;
     let baseConDrogas = 0;
+    let baseCumplen = 0;
+    let baseNoCumplen = 0;
 
     for (const maq of baseMaqs) {
       baseTotalActivos++;
@@ -361,6 +363,7 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
       row.push(String(drogas.length));
 
       row.push(cumpleAll ? 'CUMPLE' : 'NO CUMPLE');
+      if (cumpleAll) baseCumplen++; else baseNoCumplen++;
       rows.push(row);
     }
 
@@ -417,10 +420,20 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     });
     y = tableEndY(doc, y) + 4;
 
+    // Resumen de cumplimiento individual a nivel base (igual al Cuadro de Mando)
+    const pctCumplen = baseTotalActivos > 0 ? Math.round((baseCumplen / baseTotalActivos) * 100) : 0;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(pctCumplen >= 80 ? GREEN : RED));
+    doc.text(
+      `Maquinistas que cumplen todos los criterios: ${baseCumplen}/${baseTotalActivos} (${pctCumplen}%)  ·  No cumplen: ${baseNoCumplen}`,
+      MARGIN, y
+    );
+    y += 5;
+
     // Resumen de cobertura de drogas a nivel base (≥25%)
     const pctDrogas = baseTotalActivos > 0 ? Math.round((baseConDrogas / baseTotalActivos) * 100) : 0;
     const okDrogas = pctDrogas >= 25;
-    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...(okDrogas ? GREEN : RED));
     doc.text(
