@@ -18,8 +18,8 @@ import {
   ClipboardList,
   ShieldCheck,
   RefreshCw,
-  ChevronUp,
-  ChevronDown
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
@@ -174,28 +174,24 @@ export default function MaquinistaDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/maquinistas')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="flex flex-col gap-0.5">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              disabled={!prevId}
-              onClick={() => goToSibling(prevId)}
-              title="Maquinista anterior"
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7"
-              disabled={!nextId}
-              onClick={() => goToSibling(nextId)}
-              title="Maquinista siguiente"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!prevId}
+            onClick={() => goToSibling(prevId)}
+            title="Maquinista anterior"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            disabled={!nextId}
+            onClick={() => goToSibling(nextId)}
+            title="Maquinista siguiente"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
           {total > 0 && currentIdx >= 0 && (
             <span className="text-xs text-muted-foreground font-mono">
               {currentIdx + 1}/{total}
