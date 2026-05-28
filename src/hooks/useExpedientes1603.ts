@@ -202,11 +202,18 @@ export function useExpedientes1603() {
       });
 
       // Filtrar por bases si no es admin
-      const filteredExpedientes = isAdmin 
+      const filteredExpedientes = (isAdmin 
         ? expedientesConPlan 
         : expedientesConPlan.filter(e => 
             e.maquinista && assignedBases.includes(e.maquinista.base as typeof assignedBases[number])
-          );
+          )
+      ).sort((a, b) => {
+        const aMaq = maquinistasData?.find(m => m.id === a.expediente.maquinista_id);
+        const bMaq = maquinistasData?.find(m => m.id === b.expediente.maquinista_id);
+        const aKey = `${aMaq?.apellidos ?? ''} ${aMaq?.nombre ?? ''}`.trim();
+        const bKey = `${bMaq?.apellidos ?? ''} ${bMaq?.nombre ?? ''}`.trim();
+        return aKey.localeCompare(bKey, 'es', { sensitivity: 'base' });
+      });
 
       setExpedientes(filteredExpedientes);
     } catch (error) {
