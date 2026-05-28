@@ -113,12 +113,22 @@ export function useDashboardAlertas(baseFilter?: string) {
         .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio, obtenida');
 
       if (!certError && maqCerts) {
-        // Obtener base_certificaciones para config de vigilancia
+        // Obtener base_certificaciones para config de vigilancia (clave: base_id + certificacion_id)
         const { data: baseCerts } = await supabase
           .from('base_certificaciones')
-          .select('certificacion_id, vigilar_vencimiento, periodo_inactividad_meses, aviso_dias');
+          .select('base_id, certificacion_id, vigilar_vencimiento, periodo_inactividad_meses, aviso_dias');
 
-        const configMap = new Map(baseCerts?.map(bc => [bc.certificacion_id, bc]) || []);
+        // Mapa de nombre de base -> id para resolver la config correcta por base
+        const { data: basesData } = await supabase
+          .from('bases_conduccion')
+          .select('id, nombre');
+        const baseNombreToId = new Map<string, string>(
+          (basesData || []).map((b: any) => [b.nombre, b.id])
+        );
+
+        const configMap = new Map(
+          (baseCerts || []).map((bc: any) => [`${bc.base_id}|${bc.certificacion_id}`, bc])
+        );
 
         // Obtener maquinistas
         const maqIds = [...new Set(maqCerts.map(mc => mc.maquinista_id))];
@@ -134,16 +144,18 @@ export function useDashboardAlertas(baseFilter?: string) {
           for (const mc of maqCerts) {
             // Solo certificaciones obtenidas con vigilancia activa
             if (!mc.obtenida) continue;
-            
-            const config = configMap.get(mc.certificacion_id);
-            if (!config?.vigilar_vencimiento) continue;
 
             const maq = maqMap.get(mc.maquinista_id);
             if (!maq) continue;
 
+            const baseId = baseNombreToId.get(maq.base);
+            const config = baseId ? configMap.get(`${baseId}|${mc.certificacion_id}`) : undefined;
+            if (!config?.vigilar_vencimiento) continue;
+
             // Filtrar por base
             if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
             if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+
 
             let fechaVencimiento: Date | null = null;
             let diasRestantes: number | null = null;
