@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   AlertTriangle as AlertTriangleIcon
 } from 'lucide-react';
-import { useBaseCertificaciones } from '@/hooks/useBaseCertificaciones';
+import { useBaseCertificaciones, type BaseCertificacionDB } from '@/hooks/useBaseCertificaciones';
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 import { CertificacionMaquinistasDialog } from '@/components/certificaciones/CertificacionMaquinistasDialog';
 
