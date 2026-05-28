@@ -107,10 +107,26 @@ export function useDashboardAlertas(baseFilter?: string) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // 1. CERTIFICACIONES: Obtener maquinista_certificaciones con fecha_ultimo_servicio
-      const { data: maqCerts, error: certError } = await supabase
-        .from('maquinista_certificaciones')
-        .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio, obtenida');
+      // 1. CERTIFICACIONES: Obtener TODAS las maquinista_certificaciones (paginado para superar el límite de 1000 de PostgREST)
+      const maqCerts: any[] = [];
+      let certError: any = null;
+      {
+        const PAGE = 1000;
+        let from = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from('maquinista_certificaciones')
+            .select('id, maquinista_id, certificacion_id, certificacion_nombre, certificacion_tipo, fecha_ultimo_servicio, obtenida')
+            .order('id', { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error) { certError = error; break; }
+          if (!data || data.length === 0) break;
+          maqCerts.push(...data);
+          if (data.length < PAGE) break;
+          from += PAGE;
+        }
+      }
+
 
       if (!certError && maqCerts) {
         // Obtener base_certificaciones para config de vigilancia (clave: base_id + certificacion_id)
