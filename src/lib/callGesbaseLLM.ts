@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 type CallGesbaseLLMParams = {
   prompt: string;
-  system?: string;
   model?: string;
   temperature?: number;
   maxOutputTokens?: number;
@@ -10,7 +9,6 @@ type CallGesbaseLLMParams = {
 
 export async function callGesbaseLLM({
   prompt,
-  system = "Eres el asistente experto de Gesbase para auditorías, partes y seguridad operacional ferroviaria.",
   model = "gpt-4.1-mini",
   temperature = 0.2,
   maxOutputTokens = 1200,
@@ -24,7 +22,6 @@ export async function callGesbaseLLM({
 
   const { data, error } = await supabase.functions.invoke("chatgpt", {
     body: {
-      system,
       prompt: safePrompt,
       model,
       temperature,
