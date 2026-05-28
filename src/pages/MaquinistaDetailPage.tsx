@@ -50,6 +50,51 @@ export default function MaquinistaDetailPage() {
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
 
+  // Hermanos en la misma base para navegar prev/next
+  const [siblings, setSiblings] = useState<{ id: string }[]>([]);
+  useEffect(() => {
+    if (!maquinista?.base) return;
+    let cancelled = false;
+    (async () => {
+      const all: { id: string }[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('maquinistas')
+          .select('id, apellidos, nombre')
+          .eq('base', maquinista.base)
+          .eq('activo', true)
+          .order('apellidos', { ascending: true })
+          .order('nombre', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data.map(d => ({ id: d.id })));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      if (!cancelled) setSiblings(all);
+    })();
+    return () => { cancelled = true; };
+  }, [maquinista?.base]);
+
+  const { prevId, nextId, currentIdx, total } = useMemo(() => {
+    const idx = siblings.findIndex(s => s.id === maquinista?.id);
+    return {
+      currentIdx: idx,
+      total: siblings.length,
+      prevId: idx > 0 ? siblings[idx - 1].id : null,
+      nextId: idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].id : null,
+    };
+  }, [siblings, maquinista?.id]);
+
+  const goToSibling = (sid: string | null) => {
+    if (!sid) return;
+    const tab = searchParams.get('tab');
+    navigate(`/maquinistas/${sid}${tab ? `?tab=${tab}` : ''}`);
+  };
+
+
   // License status
   const licenciaStatus = useMemo(() => {
     if (!maquinista?.fecha_licencia_conduccion) return null;
