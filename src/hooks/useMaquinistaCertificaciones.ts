@@ -15,6 +15,7 @@ export interface MaquinistaCertificacionDB {
   fecha_obtencion: string | null;
   fecha_ultimo_servicio: string | null;
   tipo_renovacion: TipoRenovacion | null;
+  referencia_renovacion: string | null;
 }
 
 export interface CertificacionConEstado extends MaquinistaCertificacionDB {
