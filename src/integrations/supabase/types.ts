@@ -446,6 +446,7 @@ export type Database = {
           id: string
           maquinista_id: string
           obtenida: boolean | null
+          referencia_renovacion: string | null
           tipo_renovacion: string | null
           updated_at: string | null
         }
@@ -459,6 +460,7 @@ export type Database = {
           id?: string
           maquinista_id: string
           obtenida?: boolean | null
+          referencia_renovacion?: string | null
           tipo_renovacion?: string | null
           updated_at?: string | null
         }
@@ -472,6 +474,7 @@ export type Database = {
           id?: string
           maquinista_id?: string
           obtenida?: boolean | null
+          referencia_renovacion?: string | null
           tipo_renovacion?: string | null
           updated_at?: string | null
         }

@@ -15,6 +15,7 @@ export interface MaquinistaCertificacionDB {
   fecha_obtencion: string | null;
   fecha_ultimo_servicio: string | null;
   tipo_renovacion: TipoRenovacion | null;
+  referencia_renovacion: string | null;
 }
 
 export interface CertificacionConEstado extends MaquinistaCertificacionDB {
@@ -149,6 +150,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           fecha_obtencion: asignada?.fecha_obtencion || null,
           fecha_ultimo_servicio: fechaServicio,
           tipo_renovacion: (asignada?.tipo_renovacion as TipoRenovacion) || null,
+          referencia_renovacion: (asignada as any)?.referencia_renovacion || null,
           obligatoria: bc.obligatoria,
           vigilar_vencimiento: vigilar,
           periodo_inactividad_meses: periodo,
@@ -198,13 +200,15 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
   const actualizarFechaServicio = async (
     certificacionId: string,
     fechaServicio: string,
-    tipoRenovacion: TipoRenovacion = 'servicio'
+    tipoRenovacion: TipoRenovacion = 'servicio',
+    referenciaRenovacion?: string | null
   ): Promise<boolean> => {
     if (!maquinistaId) return false;
 
     try {
       const baseCert = disponibles.find(d => d.id === certificacionId);
-      
+      const refValue = referenciaRenovacion?.trim() ? referenciaRenovacion.trim() : null;
+
       const { data: existente } = await supabase
         .from('maquinista_certificaciones')
         .select('id')
@@ -215,7 +219,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
       if (existente) {
         const { error } = await supabase
           .from('maquinista_certificaciones')
-          .update({ fecha_ultimo_servicio: fechaServicio, tipo_renovacion: tipoRenovacion })
+          .update({ fecha_ultimo_servicio: fechaServicio, tipo_renovacion: tipoRenovacion, referencia_renovacion: refValue } as any)
           .eq('id', existente.id);
 
         if (error) throw error;
@@ -230,7 +234,8 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
             obtenida: true,
             fecha_ultimo_servicio: fechaServicio,
             tipo_renovacion: tipoRenovacion,
-          }]);
+            referencia_renovacion: refValue,
+          } as any]);
 
         if (error) throw error;
       } else {

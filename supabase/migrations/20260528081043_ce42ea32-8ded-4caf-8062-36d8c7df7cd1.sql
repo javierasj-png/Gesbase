@@ -1,0 +1,1 @@
+ALTER TABLE public.maquinista_certificaciones ADD COLUMN IF NOT EXISTS referencia_renovacion text;
