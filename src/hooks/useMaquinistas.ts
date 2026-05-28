@@ -50,8 +50,8 @@ export function useMaquinistas() {
       let query = supabase
         .from('maquinistas')
         .select('*')
-        .order('nombre')
-        .order('apellidos');
+        .order('apellidos')
+        .order('nombre');
 
       // Si no es admin, filtrar por bases asignadas
       if (!isAdmin && assignedBases.length > 0) {
