@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useBaseCertificaciones } from '@/hooks/useBaseCertificaciones';
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
+import { CertificacionMaquinistasDialog } from '@/components/certificaciones/CertificacionMaquinistasDialog';
 
 export default function CertificacionesPage() {
   const navigate = useNavigate();
