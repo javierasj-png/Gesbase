@@ -18,8 +18,8 @@ import {
   ClipboardList,
   ShieldCheck,
   RefreshCw,
-  ChevronUp,
-  ChevronDown
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
