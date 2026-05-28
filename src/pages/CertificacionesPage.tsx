@@ -261,7 +261,7 @@ export default function CertificacionesPage() {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                               {lineas.map(cert => (
-                                <CertificacionCard key={cert.id} cert={cert} />
+                                <CertificacionCard key={cert.id} cert={cert} onClick={() => setSelectedCert({ cert, baseNombre: base.nombre })} />
                               ))}
                             </div>
                           </div>
