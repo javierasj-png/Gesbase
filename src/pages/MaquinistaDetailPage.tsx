@@ -174,6 +174,33 @@ export default function MaquinistaDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/maquinistas')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
+          <div className="flex flex-col gap-0.5">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!prevId}
+              onClick={() => goToSibling(prevId)}
+              title="Maquinista anterior"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!nextId}
+              onClick={() => goToSibling(nextId)}
+              title="Maquinista siguiente"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          {total > 0 && currentIdx >= 0 && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {currentIdx + 1}/{total}
+            </span>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
