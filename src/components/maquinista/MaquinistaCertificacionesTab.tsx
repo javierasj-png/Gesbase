@@ -283,6 +283,23 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
                 max={format(new Date(), 'yyyy-MM-dd')}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>
+                {tipoRenovacion === 'servicio' ? 'Tren (opcional)' : 'ID del curso (opcional)'}
+              </Label>
+              <Input
+                type="text"
+                value={referenciaRenovacion}
+                onChange={(e) => setReferenciaRenovacion(e.target.value)}
+                placeholder={tipoRenovacion === 'servicio' ? 'Ej: 04521' : 'Ej: CURSO-2025-014'}
+              />
+              <p className="text-xs text-muted-foreground">
+                {tipoRenovacion === 'servicio'
+                  ? 'Número del tren con el que se renueva la certificación'
+                  : 'Identificador del asesoramiento formativo'}
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
