@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
@@ -17,7 +17,9 @@ import {
   FileDown,
   ClipboardList,
   ShieldCheck,
-  RefreshCw
+  RefreshCw,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useMaquinistaDetail } from '@/hooks/useMaquinistaDetail';
 import { MaquinistaCertificacionesTab } from '@/components/maquinista/MaquinistaCertificacionesTab';
@@ -47,6 +49,51 @@ export default function MaquinistaDetailPage() {
   const { toast } = useToast();
 
   const { maquinista, expediente1603, plan1603, traslados1603, loading, error, refetch } = useMaquinistaDetail(id);
+
+  // Hermanos en la misma base para navegar prev/next
+  const [siblings, setSiblings] = useState<{ id: string }[]>([]);
+  useEffect(() => {
+    if (!maquinista?.base) return;
+    let cancelled = false;
+    (async () => {
+      const all: { id: string }[] = [];
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('maquinistas')
+          .select('id, apellidos, nombre')
+          .eq('base', maquinista.base)
+          .eq('activo', true)
+          .order('apellidos', { ascending: true })
+          .order('nombre', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data.map(d => ({ id: d.id })));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      if (!cancelled) setSiblings(all);
+    })();
+    return () => { cancelled = true; };
+  }, [maquinista?.base]);
+
+  const { prevId, nextId, currentIdx, total } = useMemo(() => {
+    const idx = siblings.findIndex(s => s.id === maquinista?.id);
+    return {
+      currentIdx: idx,
+      total: siblings.length,
+      prevId: idx > 0 ? siblings[idx - 1].id : null,
+      nextId: idx >= 0 && idx < siblings.length - 1 ? siblings[idx + 1].id : null,
+    };
+  }, [siblings, maquinista?.id]);
+
+  const goToSibling = (sid: string | null) => {
+    if (!sid) return;
+    const tab = searchParams.get('tab');
+    navigate(`/maquinistas/${sid}${tab ? `?tab=${tab}` : ''}`);
+  };
+
 
   // License status
   const licenciaStatus = useMemo(() => {
@@ -127,6 +174,33 @@ export default function MaquinistaDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/maquinistas')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
+          <div className="flex flex-col gap-0.5">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!prevId}
+              onClick={() => goToSibling(prevId)}
+              title="Maquinista anterior"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              disabled={!nextId}
+              onClick={() => goToSibling(nextId)}
+              title="Maquinista siguiente"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          {total > 0 && currentIdx >= 0 && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {currentIdx + 1}/{total}
+            </span>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
