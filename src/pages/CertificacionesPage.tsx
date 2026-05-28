@@ -294,15 +294,33 @@ export default function CertificacionesPage() {
             </div>
           </CardContent>
         </Card>
+
+        {selectedCert && (
+          <CertificacionMaquinistasDialog
+            open={!!selectedCert}
+            onOpenChange={(v) => !v && setSelectedCert(null)}
+            baseNombre={selectedCert.baseNombre}
+            certificacionId={selectedCert.cert.certificacion_id}
+            certificacionNombre={selectedCert.cert.certificacion_nombre}
+            certificacionTipo={selectedCert.cert.certificacion_tipo}
+            vigilarVencimiento={selectedCert.cert.vigilar_vencimiento}
+            periodoInactividadMeses={selectedCert.cert.periodo_inactividad_meses}
+            avisoDias={selectedCert.cert.aviso_dias}
+          />
+        )}
       </div>
     </AppLayout>
   );
 }
 
 // Componente de tarjeta de certificación
-function CertificacionCard({ cert }: { cert: ReturnType<typeof useBaseCertificaciones>['allCertificaciones'][0] }) {
+function CertificacionCard({ cert, onClick }: { cert: BaseCertificacionDB; onClick?: () => void }) {
   return (
-    <div className={`p-3 rounded-lg border ${cert.obligatoria ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left w-full p-3 rounded-lg border transition-colors hover:border-primary hover:bg-primary/5 ${cert.obligatoria ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'}`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="font-medium text-sm">{cert.certificacion_nombre}</p>
@@ -332,6 +350,6 @@ function CertificacionCard({ cert }: { cert: ReturnType<typeof useBaseCertificac
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
