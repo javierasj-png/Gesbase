@@ -43,15 +43,25 @@ serve(async (req) => {
   try {
     const {
       prompt,
-      system = "Eres el asistente experto de Gesbase para auditorías, partes y seguridad operacional ferroviaria.",
       model: requestedModel,
       temperature = 0.2,
       max_output_tokens = 1200,
     } = await req.json();
 
+    // Hardcoded system prompt — never accept caller-supplied system to prevent prompt injection
+    const SYSTEM_PROMPT =
+      "Eres el asistente experto de Gesbase para auditorías, partes y seguridad operacional ferroviaria.";
+    const MAX_PROMPT_CHARS = 16000;
+
     if (!prompt || typeof prompt !== "string") {
       return new Response(
         JSON.stringify({ error: "Falta 'prompt' en el body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    if (prompt.length > MAX_PROMPT_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `'prompt' demasiado largo (máx ${MAX_PROMPT_CHARS} caracteres)` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -60,7 +70,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const messages = [
-      { role: "system", content: system },
+      { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: prompt },
     ];
 
