@@ -33,6 +33,7 @@ export default function CertificacionesPage() {
   const [tipoFilter, setTipoFilter] = useState<string>('all');
   const [soloVigiladas, setSoloVigiladas] = useState(false);
   const [soloObligatorias, setSoloObligatorias] = useState(false);
+  const [selectedCert, setSelectedCert] = useState<{ cert: BaseCertificacionDB; baseNombre: string } | null>(null);
 
   const { certificacionesPorBase, loading, kpis, bases } = useBaseCertificaciones();
 
