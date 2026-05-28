@@ -150,6 +150,7 @@ export function useMaquinistaCertificaciones(maquinistaId: string | null, baseNa
           fecha_obtencion: asignada?.fecha_obtencion || null,
           fecha_ultimo_servicio: fechaServicio,
           tipo_renovacion: (asignada?.tipo_renovacion as TipoRenovacion) || null,
+          referencia_renovacion: (asignada as any)?.referencia_renovacion || null,
           obligatoria: bc.obligatoria,
           vigilar_vencimiento: vigilar,
           periodo_inactividad_meses: periodo,
