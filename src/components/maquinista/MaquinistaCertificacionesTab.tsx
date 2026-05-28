@@ -44,18 +44,20 @@ export function MaquinistaCertificacionesTab({ maquinistaId, baseName }: Maquini
   const [selectedCert, setSelectedCert] = useState<string>('');
   const [fechaServicio, setFechaServicio] = useState('');
   const [tipoRenovacion, setTipoRenovacion] = useState<TipoRenovacion>('servicio');
+  const [referenciaRenovacion, setReferenciaRenovacion] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleRegistrarServicio = async () => {
     if (!selectedCert || !fechaServicio) return;
 
     setSaving(true);
-    await actualizarFechaServicio(selectedCert, fechaServicio, tipoRenovacion);
+    await actualizarFechaServicio(selectedCert, fechaServicio, tipoRenovacion, referenciaRenovacion);
     setSaving(false);
     setRegistrarServicioOpen(false);
     setSelectedCert('');
     setFechaServicio('');
     setTipoRenovacion('servicio');
+    setReferenciaRenovacion('');
   };
 
   if (loading) {
