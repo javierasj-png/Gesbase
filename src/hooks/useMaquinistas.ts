@@ -127,10 +127,9 @@ export function useMaquinistas() {
 
   const createMaquinista = async (input: MaquinistaInput): Promise<boolean> => {
     try {
-      // Split nombre y apellidos
-      const parts = input.nombreApellidos.trim().split(' ');
-      const nombre = parts[0] || '';
-      const apellidos = parts.slice(1).join(' ') || '';
+      // Split nombre y apellidos (heurística española: últimos 2 tokens = apellidos)
+      const { nombre, apellidos } = splitNombreApellidos(input.nombreApellidos);
+
 
       const insertData = {
         matricula: input.matricula,
