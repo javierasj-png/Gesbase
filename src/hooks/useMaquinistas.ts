@@ -48,10 +48,9 @@ export function useMaquinistas() {
     setLoading(true);
     try {
       let query = supabase
+      let query = supabase
         .from('maquinistas')
-        .select('*')
-        .order('apellidos')
-        .order('nombre');
+        .select('*');
 
       // Si no es admin, filtrar por bases asignadas
       if (!isAdmin && assignedBases.length > 0) {
@@ -73,11 +72,19 @@ export function useMaquinistas() {
       // Add computed nombre_apellidos field
       const maquinistasConNombre: MaquinistaConNombre[] = (data || []).map(m => ({
         ...m,
-        nombre_apellidos: `${m.nombre} ${m.apellidos}`,
+        nombre_apellidos: `${m.nombre} ${m.apellidos}`.trim(),
         bajo_pe_1603: false, // Will be calculated from expedientes
       }));
 
+      // Orden alfabético robusto en español (maneja acentos, mayúsculas y nombres compuestos)
+      maquinistasConNombre.sort((a, b) => {
+        const aKey = `${a.apellidos ?? ''} ${a.nombre ?? ''}`.trim();
+        const bKey = `${b.apellidos ?? ''} ${b.nombre ?? ''}`.trim();
+        return aKey.localeCompare(bKey, 'es', { sensitivity: 'base', ignorePunctuation: true });
+      });
+
       setMaquinistas(maquinistasConNombre);
+
     } catch (error) {
       console.error('Error:', error);
     } finally {
