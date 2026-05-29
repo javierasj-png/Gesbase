@@ -765,11 +765,12 @@ export async function generateDossierPDF(maquinistaId: string) {
     ctrlAlcohol >= REQ_ALCOHOL ? 'Cumple' : 'No cumple',
   ]);
   critRows.push([
-    'Control de Drogas (contribuye 25% base)',
+    'Control de Drogas (objetivo de base)',
     `${ctrlDrogas}`,
-    '>= 1 (individual)',
-    ctrlDrogas >= 1 ? 'Cumple' : 'Sin registro',
+    '≥ 25% base',
+    'Se evalúa a nivel base',
   ]);
+
 
   autoTable(doc, {
     startY: y,
