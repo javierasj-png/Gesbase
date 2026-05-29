@@ -38,7 +38,34 @@ export interface MaquinistaInput {
   fechaLicencia?: Date;
 }
 
+// Divide un nombre completo en (nombre, apellidos) siguiendo la convención española:
+// los 2 últimos tokens son apellidos; las partículas (de, del, la, los, las, y, da, do, dos)
+// se agrupan con el siguiente apellido. Ej.: "Juan Carlos Pérez de la Rosa" => nombre "Juan Carlos", apellidos "Pérez de la Rosa".
+function splitNombreApellidos(full: string): { nombre: string; apellidos: string } {
+  const tokens = full.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) return { nombre: tokens[0] || '', apellidos: '' };
+  if (tokens.length === 2) return { nombre: tokens[0], apellidos: tokens[1] };
+
+  const particulas = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do', 'dos', 'van', 'von']);
+  // Buscamos el inicio del primer apellido recorriendo desde el final hasta dejar al menos 2 apellidos.
+  // Estrategia: tomar los últimos 2 tokens "no partícula" y arrastrar las partículas previas.
+  let apellidosCount = 0;
+  let cutIndex = tokens.length; // índice desde el que empieza el apellido
+  for (let i = tokens.length - 1; i >= 1; i--) {
+    const t = tokens[i].toLowerCase();
+    cutIndex = i;
+    if (!particulas.has(t)) apellidosCount++;
+    if (apellidosCount >= 2 && !particulas.has(tokens[i - 1]?.toLowerCase() ?? '')) break;
+  }
+  if (cutIndex < 1) cutIndex = tokens.length - 2;
+  return {
+    nombre: tokens.slice(0, cutIndex).join(' '),
+    apellidos: tokens.slice(cutIndex).join(' '),
+  };
+}
+
 export function useMaquinistas() {
+
   const { user, isAdmin, assignedBases } = useAuth();
   const { toast } = useToast();
   const [maquinistas, setMaquinistas] = useState<MaquinistaConNombre[]>([]);
