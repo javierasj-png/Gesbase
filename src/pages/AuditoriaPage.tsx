@@ -595,7 +595,7 @@ export default function AuditoriaPage() {
                             {getCumplimientoBadge(row.planAnualPorcentaje)}
                           </TableCell>
                           <TableCell className="text-center">
-                            {getCumplimientoBadge(row.coberturaDrogas)}
+                            {getDrogasBadge(row.coberturaDrogas)}
                           </TableCell>
                           <TableCell className="text-center">{row.pe1603Activos}</TableCell>
                           <TableCell className="text-center">
