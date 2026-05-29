@@ -48,7 +48,7 @@ export function useMaquinistas() {
     setLoading(true);
     try {
       let query = supabase
-      let query = supabase
+
         .from('maquinistas')
         .select('*');
 
