@@ -388,6 +388,15 @@ export default function AuditoriaPage() {
     return <Badge className={info.badgeClass} title={info.label}>{porcentaje}%</Badge>;
   };
 
+  // Drogas: criterio único ≥25% de cobertura de la base (no aplica escala SGS general)
+  const getDrogasBadge = (porcentaje: number) => {
+    const cumple = porcentaje >= 25;
+    const cls = cumple ? 'bg-status-ok text-primary-foreground' : 'bg-status-vencido text-primary-foreground';
+    const label = cumple ? 'Cumple (≥25%)' : 'No cumple (<25%)';
+    return <Badge className={cls} title={label}>{porcentaje}%</Badge>;
+  };
+
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -586,7 +595,7 @@ export default function AuditoriaPage() {
                             {getCumplimientoBadge(row.planAnualPorcentaje)}
                           </TableCell>
                           <TableCell className="text-center">
-                            {getCumplimientoBadge(row.coberturaDrogas)}
+                            {getDrogasBadge(row.coberturaDrogas)}
                           </TableCell>
                           <TableCell className="text-center">{row.pe1603Activos}</TableCell>
                           <TableCell className="text-center">
