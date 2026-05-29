@@ -38,7 +38,34 @@ export interface MaquinistaInput {
   fechaLicencia?: Date;
 }
 
+// Divide un nombre completo en (nombre, apellidos) siguiendo la convención española:
+// los 2 últimos tokens son apellidos; las partículas (de, del, la, los, las, y, da, do, dos)
+// se agrupan con el siguiente apellido. Ej.: "Juan Carlos Pérez de la Rosa" => nombre "Juan Carlos", apellidos "Pérez de la Rosa".
+function splitNombreApellidos(full: string): { nombre: string; apellidos: string } {
+  const tokens = full.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length <= 1) return { nombre: tokens[0] || '', apellidos: '' };
+  if (tokens.length === 2) return { nombre: tokens[0], apellidos: tokens[1] };
+
+  const particulas = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do', 'dos', 'van', 'von']);
+  // Buscamos el inicio del primer apellido recorriendo desde el final hasta dejar al menos 2 apellidos.
+  // Estrategia: tomar los últimos 2 tokens "no partícula" y arrastrar las partículas previas.
+  let apellidosCount = 0;
+  let cutIndex = tokens.length; // índice desde el que empieza el apellido
+  for (let i = tokens.length - 1; i >= 1; i--) {
+    const t = tokens[i].toLowerCase();
+    cutIndex = i;
+    if (!particulas.has(t)) apellidosCount++;
+    if (apellidosCount >= 2 && !particulas.has(tokens[i - 1]?.toLowerCase() ?? '')) break;
+  }
+  if (cutIndex < 1) cutIndex = tokens.length - 2;
+  return {
+    nombre: tokens.slice(0, cutIndex).join(' '),
+    apellidos: tokens.slice(cutIndex).join(' '),
+  };
+}
+
 export function useMaquinistas() {
+
   const { user, isAdmin, assignedBases } = useAuth();
   const { toast } = useToast();
   const [maquinistas, setMaquinistas] = useState<MaquinistaConNombre[]>([]);
@@ -48,10 +75,9 @@ export function useMaquinistas() {
     setLoading(true);
     try {
       let query = supabase
+
         .from('maquinistas')
-        .select('*')
-        .order('apellidos')
-        .order('nombre');
+        .select('*');
 
       // Si no es admin, filtrar por bases asignadas
       if (!isAdmin && assignedBases.length > 0) {
@@ -73,11 +99,19 @@ export function useMaquinistas() {
       // Add computed nombre_apellidos field
       const maquinistasConNombre: MaquinistaConNombre[] = (data || []).map(m => ({
         ...m,
-        nombre_apellidos: `${m.nombre} ${m.apellidos}`,
+        nombre_apellidos: `${m.nombre} ${m.apellidos}`.trim(),
         bajo_pe_1603: false, // Will be calculated from expedientes
       }));
 
+      // Orden alfabético robusto en español (maneja acentos, mayúsculas y nombres compuestos)
+      maquinistasConNombre.sort((a, b) => {
+        const aKey = `${a.apellidos ?? ''} ${a.nombre ?? ''}`.trim();
+        const bKey = `${b.apellidos ?? ''} ${b.nombre ?? ''}`.trim();
+        return aKey.localeCompare(bKey, 'es', { sensitivity: 'base', ignorePunctuation: true });
+      });
+
       setMaquinistas(maquinistasConNombre);
+
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -93,10 +127,9 @@ export function useMaquinistas() {
 
   const createMaquinista = async (input: MaquinistaInput): Promise<boolean> => {
     try {
-      // Split nombre y apellidos
-      const parts = input.nombreApellidos.trim().split(' ');
-      const nombre = parts[0] || '';
-      const apellidos = parts.slice(1).join(' ') || '';
+      // Split nombre y apellidos (heurística española: últimos 2 tokens = apellidos)
+      const { nombre, apellidos } = splitNombreApellidos(input.nombreApellidos);
+
 
       const insertData = {
         matricula: input.matricula,
@@ -155,10 +188,11 @@ export function useMaquinistas() {
 
       if (input.matricula !== undefined) updateData.matricula = input.matricula;
       if (input.nombreApellidos !== undefined) {
-        const parts = input.nombreApellidos.trim().split(' ');
-        updateData.nombre = parts[0] || '';
-        updateData.apellidos = parts.slice(1).join(' ') || '';
+        const { nombre, apellidos } = splitNombreApellidos(input.nombreApellidos);
+        updateData.nombre = nombre;
+        updateData.apellidos = apellidos;
       }
+
       if (input.base !== undefined) updateData.base = input.base;
       if (input.activo !== undefined) updateData.activo = input.activo;
       if (input.observaciones !== undefined) updateData.observaciones = input.observaciones || null;
