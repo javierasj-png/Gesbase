@@ -268,17 +268,9 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
       actuaciones: alcohols,
     });
 
-    // Drogas - individual (contributes to base %)
-    const drogas = allActuaciones.filter(a => a.tipo === 'drogas');
-    result.push({
-      criterio: 'Control de Drogas (contribuye al 25% base)',
-      tipo: 'drogas',
-      red: null,
-      requerido: 0, // No individual requirement, base-level
-      cumplido: drogas.length,
-      cumple: drogas.length > 0, // Has at least one
-      actuaciones: drogas,
-    });
+    // Drogas: NO se aplica criterio individual SGS (objetivo es ≥25% de la base).
+    // Se evalúa únicamente a nivel base en la tarjeta de Cobertura de Drogas.
+
 
     return result;
   }, [allActuaciones, redes, tuvo1201Reciente]);
