@@ -188,10 +188,11 @@ export function useMaquinistas() {
 
       if (input.matricula !== undefined) updateData.matricula = input.matricula;
       if (input.nombreApellidos !== undefined) {
-        const parts = input.nombreApellidos.trim().split(' ');
-        updateData.nombre = parts[0] || '';
-        updateData.apellidos = parts.slice(1).join(' ') || '';
+        const { nombre, apellidos } = splitNombreApellidos(input.nombreApellidos);
+        updateData.nombre = nombre;
+        updateData.apellidos = apellidos;
       }
+
       if (input.base !== undefined) updateData.base = input.base;
       if (input.activo !== undefined) updateData.activo = input.activo;
       if (input.observaciones !== undefined) updateData.observaciones = input.observaciones || null;
