@@ -41,6 +41,22 @@ async function callGroq(userPrompt: string): Promise<Response | null> {
   });
 }
 
+async function callOllama(userPrompt: string): Promise<Response | null> {
+  if (!OLLAMA_API_KEY) return null;
+  return await fetch("https://ollama.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${OLLAMA_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-oss:20b",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.4,
+    }),
+  });
+}
+
 async function callLovable(userPrompt: string): Promise<Response | null> {
   if (!LOVABLE_API_KEY) return null;
   return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
