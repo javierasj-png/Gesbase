@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY");
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const SYSTEM_PROMPT = `Eres un mando de Renfe redactando una comunicación interna a un maquinista sobre una anomalía detectada (PREVER, suceso, incidencia).
@@ -31,6 +32,22 @@ async function callGroq(userPrompt: string): Promise<Response | null> {
     headers: { Authorization: `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.4,
+    }),
+  });
+}
+
+async function callOllama(userPrompt: string): Promise<Response | null> {
+  if (!OLLAMA_API_KEY) return null;
+  return await fetch("https://ollama.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${OLLAMA_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-oss:20b",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
@@ -103,6 +120,13 @@ serve(async (req) => {
       if (resp && resp.status !== 429 && resp.status !== 401 && resp.status !== 403) {
         const err = await resp.text();
         console.error("Groq error:", resp.status, err);
+      }
+      resp = await callOllama(userPrompt);
+    }
+    if (!resp || !resp.ok) {
+      if (resp && resp.status !== 429 && resp.status !== 401 && resp.status !== 403) {
+        const err = await resp.text();
+        console.error("Ollama error:", resp.status, err);
       }
       resp = await callLovable(userPrompt);
     }

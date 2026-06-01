@@ -174,6 +174,7 @@ serve(async (req) => {
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
@@ -576,9 +577,26 @@ REGLAS DE REDACCIÓN:
       });
     }
 
-    // Si el motor principal falla, intentamos el otro como respaldo
+    // Si el motor principal falla, probamos Ollama Cloud (gpt-oss:20b) como fallback intermedio
+    if (!response.ok && OLLAMA_API_KEY) {
+      console.warn(`Motor principal respondió ${response.status}. Intentando fallback Ollama Cloud...`);
+      response = await fetch("https://ollama.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OLLAMA_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-oss:20b",
+          messages: aiMessages,
+          max_tokens: 8000,
+        }),
+      });
+    }
+
+    // Si Ollama también falla, intentamos Groq como último fallback
     if (!response.ok && LOVABLE_API_KEY && GROQ_API_KEY) {
-      console.warn(`Motor principal respondió ${response.status}. Intentando fallback Groq...`);
+      console.warn(`Fallback Ollama respondió ${response.status}. Intentando fallback Groq...`);
       response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
