@@ -180,9 +180,22 @@ serve(async (req) => {
       throw new Error("No hay ninguna API key de IA configurada");
     }
 
+    // Sanitize caller-supplied messages: only allow user/assistant roles,
+    // cap message count and per-message length to prevent prompt injection
+    // and abuse via oversized payloads.
+    const MAX_TURNS = 40;
+    const MAX_MSG_CHARS = 8000;
+    const safeMessages = (Array.isArray(messages) ? messages : [])
+      .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m: any) => ({
+        role: m.role,
+        content: m.content.length > MAX_MSG_CHARS ? m.content.slice(0, MAX_MSG_CHARS) : m.content,
+      }))
+      .slice(-MAX_TURNS);
+
     const requestMessages = [
       { role: "system", content: SYSTEM_PROMPT },
-      ...messages,
+      ...safeMessages,
     ];
 
     // Primary: OpenAI (si hay key), si no Groq
