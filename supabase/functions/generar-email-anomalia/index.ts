@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY");
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const SYSTEM_PROMPT = `Eres un mando de Renfe redactando una comunicación interna a un maquinista sobre una anomalía detectada (PREVER, suceso, incidencia).
