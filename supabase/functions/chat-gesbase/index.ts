@@ -174,8 +174,9 @@ serve(async (req) => {
     const { messages } = await req.json();
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!OPENAI_API_KEY && !GROQ_API_KEY && !LOVABLE_API_KEY) {
+    if (!OPENAI_API_KEY && !GROQ_API_KEY && !OLLAMA_API_KEY && !LOVABLE_API_KEY) {
       throw new Error("No hay ninguna API key de IA configurada");
     }
 
@@ -199,7 +200,7 @@ serve(async (req) => {
           stream: true,
         }),
       });
-    } else {
+    } else if (GROQ_API_KEY) {
       response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -212,11 +213,30 @@ serve(async (req) => {
           stream: true,
         }),
       });
+    } else {
+      response = new Response(null, { status: 429 });
     }
 
-    // Fallback to Lovable AI on 429
-    if (!response.ok && response.status === 429 && LOVABLE_API_KEY) {
-      console.warn("Groq cuota agotada, usando fallback Lovable AI...");
+    // Fallback 1: Ollama Cloud on Groq failure
+    if (!response.ok && OLLAMA_API_KEY) {
+      console.warn(`Proveedor primario falló (${response.status}), usando Ollama Cloud...`);
+      response = await fetch("https://ollama.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OLLAMA_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-oss:20b",
+          messages: requestMessages,
+          stream: true,
+        }),
+      });
+    }
+
+    // Fallback 2: Lovable AI
+    if (!response.ok && LOVABLE_API_KEY) {
+      console.warn(`Ollama también falló (${response.status}), usando fallback Lovable AI...`);
       response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
