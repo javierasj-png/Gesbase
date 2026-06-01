@@ -174,6 +174,7 @@ serve(async (req) => {
 
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const OLLAMA_API_KEY = Deno.env.get("OLLAMA_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
