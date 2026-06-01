@@ -121,6 +121,13 @@ serve(async (req) => {
         const err = await resp.text();
         console.error("Groq error:", resp.status, err);
       }
+      resp = await callOllama(userPrompt);
+    }
+    if (!resp || !resp.ok) {
+      if (resp && resp.status !== 429 && resp.status !== 401 && resp.status !== 403) {
+        const err = await resp.text();
+        console.error("Ollama error:", resp.status, err);
+      }
       resp = await callLovable(userPrompt);
     }
 
