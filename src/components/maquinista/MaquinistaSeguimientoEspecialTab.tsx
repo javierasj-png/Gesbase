@@ -42,8 +42,9 @@ const tipoIcon: Record<string, any> = {
 
 export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombre, maquinistaEmail }: Props) {
   const { toast } = useToast();
-  const { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
+  const { seguimientos, acciones, loading, crear, actualizar, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
   const [open, setOpen] = useState(false);
+  const [editSeg, setEditSeg] = useState<SeguimientoEspecial | null>(null);
   const [planDialog, setPlanDialog] = useState<{ id: string; fecha_inicio: string; hasPending: boolean } | null>(null);
   const [accionRegistro, setAccionRegistro] = useState<AccionSeguimiento | null>(null);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
