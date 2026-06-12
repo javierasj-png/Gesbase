@@ -14,6 +14,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   seguimiento: SeguimientoEspecial | null;
+  maquinistaNombre: string;
   onSave: (id: string, cambios: any) => Promise<unknown>;
 }
 
