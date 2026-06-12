@@ -38,6 +38,7 @@ interface Props {
   seguimientoId: string;
   fechaInicioDefault: string;
   hasPendingActions: boolean;
+  existingAcciones?: AccionSeguimiento[];
   onDisenar: (input: DisenarPlanInput) => Promise<unknown>;
 }
 
@@ -54,7 +55,7 @@ interface FormativaItem {
   id_sap_sf: string;
 }
 
-export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId, fechaInicioDefault, hasPendingActions, onDisenar }: Props) {
+export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId, fechaInicioDefault, hasPendingActions, existingAcciones, onDisenar }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [reemplazar, setReemplazar] = useState(true);
@@ -72,6 +73,45 @@ export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId
   const [formativas, setFormativas] = useState<FormativaItem[]>([
     { titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' },
   ]);
+
+  // Preload from existing pending actions when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    const pendientes = (existingAcciones || []).filter(a => a.estado === 'pendiente');
+
+    const buildRango = (tipo: 'acompanamiento' | 'registro'): RangoState => {
+      const fechas = pendientes.filter(a => a.tipo === tipo).map(a => a.fecha_objetivo);
+      if (fechas.length === 0) {
+        return { enabled: false, periodicidad: 'mensual', fecha_inicio: fechaInicioDefault, fecha_fin: '' };
+      }
+      const sorted = [...fechas].sort();
+      return {
+        enabled: true,
+        periodicidad: inferPeriodicidad(sorted),
+        fecha_inicio: sorted[0],
+        fecha_fin: sorted[sorted.length - 1],
+      };
+    };
+
+    setAcompanamiento(buildRango('acompanamiento'));
+    setRegistro(buildRango('registro'));
+
+    const forms = pendientes
+      .filter(a => a.tipo === 'formativa')
+      .map(a => {
+        const { titulo, id_sap_sf } = parseFormativaObs(a.observaciones);
+        return { titulo, fecha_unica: a.fecha_objetivo, id_sap_sf };
+      });
+    if (forms.length > 0) {
+      setFormativaEnabled(true);
+      setFormativas(forms);
+    } else {
+      setFormativaEnabled(false);
+      setFormativas([{ titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' }]);
+    }
+    setReemplazar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const addFormativa = () => setFormativas(prev => [...prev, { titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' }]);
   const removeFormativa = (i: number) => setFormativas(prev => prev.filter((_, idx) => idx !== i));
