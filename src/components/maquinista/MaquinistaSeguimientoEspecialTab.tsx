@@ -242,6 +242,13 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
         onCreate={crear}
       />
 
+      <EditarSeguimientoEspecialDialog
+        open={!!editSeg}
+        onOpenChange={(o) => { if (!o) setEditSeg(null); }}
+        seguimiento={editSeg}
+        onSave={actualizar}
+      />
+
       {planDialog && (
         <DisenarPlanSeguimientoDialog
           open={!!planDialog}
