@@ -106,6 +106,9 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                 <div className="flex items-center gap-2">
                   {s.estado === 'abierto' && (
                     <>
+                      <Button variant="outline" size="sm" onClick={() => setEditSeg(s)} className="gap-1">
+                        <Pencil className="w-3 h-3" /> Editar
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setPlanDialog({ id: s.id, fecha_inicio: s.fecha_inicio, hasPending: lista.some(a => a.estado === 'pendiente') })} className="gap-1">
                         <CalendarRange className="w-3 h-3" /> {total > 0 ? 'Rediseñar plan' : 'Diseñar plan'}
                       </Button>
