@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +6,31 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Users, ClipboardList, GraduationCap, Plus, Trash2 } from 'lucide-react';
-import { DisenarPlanInput, Periodicidad, BloquePlan } from '@/hooks/useSeguimientosEspeciales';
+import { DisenarPlanInput, Periodicidad, BloquePlan, AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { useToast } from '@/hooks/use-toast';
+
+function inferPeriodicidad(fechas: string[]): Periodicidad {
+  if (fechas.length < 2) return 'mensual';
+  const sorted = [...fechas].sort();
+  const diffs: number[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const d = (new Date(sorted[i]).getTime() - new Date(sorted[i - 1]).getTime()) / 86400000;
+    diffs.push(d);
+  }
+  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  if (avg <= 10) return 'semanal';
+  if (avg <= 22) return 'quincenal';
+  if (avg <= 50) return 'mensual';
+  if (avg <= 135) return 'trimestral';
+  return 'semestral';
+}
+
+function parseFormativaObs(obs: string | null): { titulo: string; id_sap_sf: string } {
+  if (!obs) return { titulo: '', id_sap_sf: '' };
+  const titulo = obs.match(/Curso:\s*([^·]+)/i)?.[1]?.trim() || '';
+  const id_sap_sf = obs.match(/ID SAP SF:\s*([^·]+)/i)?.[1]?.trim() || '';
+  return { titulo, id_sap_sf };
+}
 
 interface Props {
   open: boolean;
