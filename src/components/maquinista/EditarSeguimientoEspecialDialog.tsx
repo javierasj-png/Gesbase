@@ -123,7 +123,7 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
             <h3 className="text-sm font-semibold text-primary">Anomalía</h3>
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-12 md:col-span-3">
-                <Label className="text-xs">Índice PREVER</Label>
+                <Label className="text-xs">Índice PREVER - Gestión de anomalías</Label>
                 <Input type="number" step="0.01" value={prever} onChange={e => setPrever(e.target.value)} className="mt-1" />
               </div>
               <div className="col-span-6 md:col-span-3">
