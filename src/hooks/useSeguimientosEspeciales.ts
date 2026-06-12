@@ -242,6 +242,26 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     await fetchData();
   };
 
+  const actualizar = async (
+    id: string,
+    cambios: Partial<Pick<SeguimientoEspecial,
+      'motivo' | 'indice_prever' | 'fecha_anomalia' | 'fecha_inicio' |
+      'observaciones' | 'email_destinatario' | 'email_asunto' | 'email_cuerpo'
+    >> & { marcar_email_enviado?: boolean | null }
+  ) => {
+    if (!user) throw new Error('No autenticado');
+    const { marcar_email_enviado, ...rest } = cambios;
+    const payload: Record<string, unknown> = { ...rest, updated_by: user.id };
+    if (marcar_email_enviado === true) {
+      payload.email_enviado_at = new Date().toISOString();
+    } else if (marcar_email_enviado === false) {
+      payload.email_enviado_at = null;
+    }
+    const { error } = await supabase.from('seguimientos_especiales').update(payload).eq('id', id);
+    if (error) throw error;
+    await fetchData();
+  };
+
   const eliminar = async (id: string) => {
     await supabase.from('seguimientos_especiales').delete().eq('id', id);
     await fetchData();
@@ -272,5 +292,5 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     await fetchData();
   };
 
-  return { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
+  return { seguimientos, acciones, loading, crear, actualizar, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
 }

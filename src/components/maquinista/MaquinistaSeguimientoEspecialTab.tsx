@@ -3,9 +3,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Calendar, CalendarRange, Users, FileText, GraduationCap, MessageSquare } from 'lucide-react';
-import { useSeguimientosEspeciales, type AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
+import { Plus, AlertOctagon, Loader2, Mail, Trash2, Lock, CheckCircle2, XCircle, Calendar, CalendarRange, Users, FileText, GraduationCap, MessageSquare, Pencil } from 'lucide-react';
+import { useSeguimientosEspeciales, type AccionSeguimiento, type SeguimientoEspecial } from '@/hooks/useSeguimientosEspeciales';
 import { SeguimientoEspecialModal } from './SeguimientoEspecialModal';
+import { EditarSeguimientoEspecialDialog } from './EditarSeguimientoEspecialDialog';
 import { DisenarPlanSeguimientoDialog } from './DisenarPlanSeguimientoDialog';
 import { RegistrarAccionSeguimientoDialog } from './RegistrarAccionSeguimientoDialog';
 import { format, parseISO } from 'date-fns';
@@ -41,8 +42,9 @@ const tipoIcon: Record<string, any> = {
 
 export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombre, maquinistaEmail }: Props) {
   const { toast } = useToast();
-  const { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
+  const { seguimientos, acciones, loading, crear, actualizar, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida } = useSeguimientosEspeciales(maquinistaId);
   const [open, setOpen] = useState(false);
+  const [editSeg, setEditSeg] = useState<SeguimientoEspecial | null>(null);
   const [planDialog, setPlanDialog] = useState<{ id: string; fecha_inicio: string; hasPending: boolean } | null>(null);
   const [accionRegistro, setAccionRegistro] = useState<AccionSeguimiento | null>(null);
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -104,6 +106,9 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
                 <div className="flex items-center gap-2">
                   {s.estado === 'abierto' && (
                     <>
+                      <Button variant="outline" size="sm" onClick={() => setEditSeg(s)} className="gap-1">
+                        <Pencil className="w-3 h-3" /> Editar
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => setPlanDialog({ id: s.id, fecha_inicio: s.fecha_inicio, hasPending: lista.some(a => a.estado === 'pendiente') })} className="gap-1">
                         <CalendarRange className="w-3 h-3" /> {total > 0 ? 'Rediseñar plan' : 'Diseñar plan'}
                       </Button>
@@ -235,6 +240,13 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
         maquinistaNombre={maquinistaNombre}
         maquinistaEmail={maquinistaEmail}
         onCreate={crear}
+      />
+
+      <EditarSeguimientoEspecialDialog
+        open={!!editSeg}
+        onOpenChange={(o) => { if (!o) setEditSeg(null); }}
+        seguimiento={editSeg}
+        onSave={actualizar}
       />
 
       {planDialog && (
