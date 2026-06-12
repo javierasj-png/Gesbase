@@ -257,6 +257,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
           seguimientoId={planDialog.id}
           fechaInicioDefault={planDialog.fecha_inicio}
           hasPendingActions={planDialog.hasPending}
+          existingAcciones={acciones[planDialog.id] || []}
           onDisenar={disenarPlan}
         />
       )}
