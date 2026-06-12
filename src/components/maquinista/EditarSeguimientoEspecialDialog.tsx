@@ -5,20 +5,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { SeguimientoEspecial } from '@/hooks/useSeguimientosEspeciales';
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   seguimiento: SeguimientoEspecial | null;
+  maquinistaNombre: string;
   onSave: (id: string, cambios: any) => Promise<unknown>;
 }
 
-export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, onSave }: Props) {
+export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, maquinistaNombre, onSave }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [generandoIA, setGenerandoIA] = useState(false);
 
   const [motivo, setMotivo] = useState('');
   const [prever, setPrever] = useState('');
@@ -49,6 +52,35 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
     const url = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailAsunto)}&body=${encodeURIComponent(emailCuerpo)}`;
     window.open(url, '_blank');
     setEmailEnviado(true);
+  };
+
+  const generarCuerpoIA = async () => {
+    if (!motivo.trim()) {
+      toast({ title: 'Indica primero el motivo de la anomalía', variant: 'destructive' });
+      return;
+    }
+    setGenerandoIA(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-email-anomalia', {
+        body: {
+          maquinista: maquinistaNombre,
+          motivo: motivo.trim(),
+          indice_prever: prever || null,
+          fecha_anomalia: fechaAnomalia || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.body) {
+        setEmailCuerpo(data.body);
+        toast({ title: 'Cuerpo generado por IA' });
+      } else if (data?.error) {
+        toast({ title: 'IA no disponible', description: data.error, variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Error generando con IA', description: e?.message, variant: 'destructive' });
+    } finally {
+      setGenerandoIA(false);
+    }
   };
 
   const handleSave = async () => {
@@ -127,7 +159,13 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
                 <Input value={emailAsunto} onChange={e => setEmailAsunto(e.target.value)} className="mt-1" />
               </div>
               <div className="col-span-12">
-                <Label className="text-xs">Cuerpo</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Cuerpo</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={generarCuerpoIA} disabled={generandoIA} className="h-7 text-xs">
+                    {generandoIA ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                    Generar con IA
+                  </Button>
+                </div>
                 <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={6} className="mt-1 resize-none" />
               </div>
             </div>

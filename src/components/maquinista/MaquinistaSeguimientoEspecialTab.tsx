@@ -246,6 +246,7 @@ export function MaquinistaSeguimientoEspecialTab({ maquinistaId, maquinistaNombr
         open={!!editSeg}
         onOpenChange={(o) => { if (!o) setEditSeg(null); }}
         seguimiento={editSeg}
+        maquinistaNombre={maquinistaNombre}
         onSave={actualizar}
       />
 
