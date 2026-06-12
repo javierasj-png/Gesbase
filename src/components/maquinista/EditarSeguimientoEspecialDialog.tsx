@@ -18,9 +18,10 @@ interface Props {
   onSave: (id: string, cambios: any) => Promise<unknown>;
 }
 
-export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, onSave }: Props) {
+export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, maquinistaNombre, onSave }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [generandoIA, setGenerandoIA] = useState(false);
 
   const [motivo, setMotivo] = useState('');
   const [prever, setPrever] = useState('');
