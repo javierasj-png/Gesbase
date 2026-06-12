@@ -292,5 +292,5 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     await fetchData();
   };
 
-  return { seguimientos, acciones, loading, crear, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
+  return { seguimientos, acciones, loading, crear, actualizar, disenarPlan, cerrar, eliminar, registrarAccion, marcarVencida, refetch: fetchData };
 }
