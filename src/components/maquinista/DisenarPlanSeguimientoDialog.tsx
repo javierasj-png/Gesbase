@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +6,31 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Users, ClipboardList, GraduationCap, Plus, Trash2 } from 'lucide-react';
-import { DisenarPlanInput, Periodicidad, BloquePlan } from '@/hooks/useSeguimientosEspeciales';
+import { DisenarPlanInput, Periodicidad, BloquePlan, AccionSeguimiento } from '@/hooks/useSeguimientosEspeciales';
 import { useToast } from '@/hooks/use-toast';
+
+function inferPeriodicidad(fechas: string[]): Periodicidad {
+  if (fechas.length < 2) return 'mensual';
+  const sorted = [...fechas].sort();
+  const diffs: number[] = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const d = (new Date(sorted[i]).getTime() - new Date(sorted[i - 1]).getTime()) / 86400000;
+    diffs.push(d);
+  }
+  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  if (avg <= 10) return 'semanal';
+  if (avg <= 22) return 'quincenal';
+  if (avg <= 50) return 'mensual';
+  if (avg <= 135) return 'trimestral';
+  return 'semestral';
+}
+
+function parseFormativaObs(obs: string | null): { titulo: string; id_sap_sf: string } {
+  if (!obs) return { titulo: '', id_sap_sf: '' };
+  const titulo = obs.match(/Curso:\s*([^·]+)/i)?.[1]?.trim() || '';
+  const id_sap_sf = obs.match(/ID SAP SF:\s*([^·]+)/i)?.[1]?.trim() || '';
+  return { titulo, id_sap_sf };
+}
 
 interface Props {
   open: boolean;
@@ -15,6 +38,7 @@ interface Props {
   seguimientoId: string;
   fechaInicioDefault: string;
   hasPendingActions: boolean;
+  existingAcciones?: AccionSeguimiento[];
   onDisenar: (input: DisenarPlanInput) => Promise<unknown>;
 }
 
@@ -31,7 +55,7 @@ interface FormativaItem {
   id_sap_sf: string;
 }
 
-export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId, fechaInicioDefault, hasPendingActions, onDisenar }: Props) {
+export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId, fechaInicioDefault, hasPendingActions, existingAcciones, onDisenar }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [reemplazar, setReemplazar] = useState(true);
@@ -49,6 +73,45 @@ export function DisenarPlanSeguimientoDialog({ open, onOpenChange, seguimientoId
   const [formativas, setFormativas] = useState<FormativaItem[]>([
     { titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' },
   ]);
+
+  // Preload from existing pending actions when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    const pendientes = (existingAcciones || []).filter(a => a.estado === 'pendiente');
+
+    const buildRango = (tipo: 'acompanamiento' | 'registro'): RangoState => {
+      const fechas = pendientes.filter(a => a.tipo === tipo).map(a => a.fecha_objetivo);
+      if (fechas.length === 0) {
+        return { enabled: false, periodicidad: 'mensual', fecha_inicio: fechaInicioDefault, fecha_fin: '' };
+      }
+      const sorted = [...fechas].sort();
+      return {
+        enabled: true,
+        periodicidad: inferPeriodicidad(sorted),
+        fecha_inicio: sorted[0],
+        fecha_fin: sorted[sorted.length - 1],
+      };
+    };
+
+    setAcompanamiento(buildRango('acompanamiento'));
+    setRegistro(buildRango('registro'));
+
+    const forms = pendientes
+      .filter(a => a.tipo === 'formativa')
+      .map(a => {
+        const { titulo, id_sap_sf } = parseFormativaObs(a.observaciones);
+        return { titulo, fecha_unica: a.fecha_objetivo, id_sap_sf };
+      });
+    if (forms.length > 0) {
+      setFormativaEnabled(true);
+      setFormativas(forms);
+    } else {
+      setFormativaEnabled(false);
+      setFormativas([{ titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' }]);
+    }
+    setReemplazar(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const addFormativa = () => setFormativas(prev => [...prev, { titulo: '', fecha_unica: fechaInicioDefault, id_sap_sf: '' }]);
   const removeFormativa = (i: number) => setFormativas(prev => prev.filter((_, idx) => idx !== i));
