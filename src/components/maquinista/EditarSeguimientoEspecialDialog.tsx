@@ -54,6 +54,35 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
     setEmailEnviado(true);
   };
 
+  const generarCuerpoIA = async () => {
+    if (!motivo.trim()) {
+      toast({ title: 'Indica primero el motivo de la anomalía', variant: 'destructive' });
+      return;
+    }
+    setGenerandoIA(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-email-anomalia', {
+        body: {
+          maquinista: maquinistaNombre,
+          motivo: motivo.trim(),
+          indice_prever: prever || null,
+          fecha_anomalia: fechaAnomalia || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.body) {
+        setEmailCuerpo(data.body);
+        toast({ title: 'Cuerpo generado por IA' });
+      } else if (data?.error) {
+        toast({ title: 'IA no disponible', description: data.error, variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Error generando con IA', description: e?.message, variant: 'destructive' });
+    } finally {
+      setGenerandoIA(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!motivo.trim()) { toast({ title: 'Falta motivo', variant: 'destructive' }); return; }
     setSaving(true);
