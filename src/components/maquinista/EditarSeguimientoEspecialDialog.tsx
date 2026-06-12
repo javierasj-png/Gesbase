@@ -159,7 +159,13 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
                 <Input value={emailAsunto} onChange={e => setEmailAsunto(e.target.value)} className="mt-1" />
               </div>
               <div className="col-span-12">
-                <Label className="text-xs">Cuerpo</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="text-xs">Cuerpo</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={generarCuerpoIA} disabled={generandoIA} className="h-7 text-xs">
+                    {generandoIA ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                    Generar con IA
+                  </Button>
+                </div>
                 <Textarea value={emailCuerpo} onChange={e => setEmailCuerpo(e.target.value)} rows={6} className="mt-1 resize-none" />
               </div>
             </div>
