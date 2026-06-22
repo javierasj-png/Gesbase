@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { RegistroListo, TipoParte, TipoInforme } from '@/types/partes';
 
 interface EditableExtractionFormProps {
@@ -26,6 +28,15 @@ function Field({ label, children, className }: { label: string; children: React.
 }
 
 export function EditableExtractionForm({ registroListo, onChange }: EditableExtractionFormProps) {
+  const { data: bases = [] } = useQuery({
+    queryKey: ['bases_conduccion_nombres'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('bases_conduccion').select('nombre').order('nombre');
+      if (error) throw error;
+      return (data || []).map((b: any) => b.nombre as string);
+    },
+  });
+
   const update = (key: keyof RegistroListo, value: string | number | null) => {
     onChange({ ...registroListo, [key]: value === '' ? null : value });
   };
@@ -98,11 +109,19 @@ export function EditableExtractionForm({ registroListo, onChange }: EditableExtr
           </Field>
 
           <Field label="Base/Dependencia">
-            <Input
-              value={registroListo.base || ''}
-              onChange={e => update('base', e.target.value)}
-              placeholder="Ej: Madrid-Chamartín"
-            />
+            <Select
+              value={registroListo.base && bases.includes(registroListo.base) ? registroListo.base : ''}
+              onValueChange={v => update('base', v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar base..." />
+              </SelectTrigger>
+              <SelectContent>
+                {bases.map(b => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Field label="Maquinista">
