@@ -81,6 +81,49 @@ RESPONDE ÚNICAMENTE con JSON válido (sin comentarios, sin markdown) con esta e
   }
 }`;
 
+// Normaliza texto para comparación: minúsculas, sin acentos, sin paréntesis/puntuación
+function normalizeForMatch(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9ñ\s]/gi, " ")
+    .replace(/\b(p|pc|pp|resi|residencia|md|conduccion|base|deposito|dep)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchCanonicalBase(raw: string | null | undefined, canonical: string[]): string | null {
+  if (!raw) return null;
+  const rn = normalizeForMatch(raw);
+  if (!rn) return null;
+  // 1) match exacto normalizado
+  for (const c of canonical) {
+    if (normalizeForMatch(c) === rn) return c;
+  }
+  // 2) inclusión por tokens
+  let best: { name: string; score: number } | null = null;
+  for (const c of canonical) {
+    const cn = normalizeForMatch(c);
+    const tokens = cn.split(" ").filter(t => t.length > 2);
+    if (!tokens.length) continue;
+    const matched = tokens.filter(t => rn.includes(t)).length;
+    const score = matched / tokens.length;
+    if (score >= 0.5 && (!best || score > best.score)) {
+      best = { name: c, score };
+    }
+    // bidireccional: nombre canónico contiene token largo del raw
+    const rTokens = rn.split(" ").filter(t => t.length > 4);
+    const rMatched = rTokens.filter(t => cn.includes(t)).length;
+    const rScore = rTokens.length ? rMatched / rTokens.length : 0;
+    if (rScore >= 0.5 && (!best || rScore > best.score)) {
+      best = { name: c, score: rScore };
+    }
+  }
+  return best?.name || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
