@@ -251,7 +251,7 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
           messageContent = [
             { 
               type: "text", 
-              text: `${EXTRACTION_PROMPT}\n\n--- CONTENIDO DEL DOCUMENTO (extraído del PDF "${fileName}") ---\n\n${pdfText}` 
+              text: `${EXTRACTION_PROMPT}${basesPromptBlock}\n\n--- CONTENIDO DEL DOCUMENTO (extraído del PDF "${fileName}") ---\n\n${pdfText}` 
             }
           ];
         } else {
