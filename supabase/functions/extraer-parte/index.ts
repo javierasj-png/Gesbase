@@ -397,6 +397,33 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
       extractedData.registroListo.fuente_archivo = fileName;
     }
 
+    // Normalización defensiva del nombre de base contra la lista canónica
+    if (canonicalBases.length) {
+      const rawBaseExtraido = extractedData?.parteExtraido?.base?.valor ?? null;
+      const rawBaseRegistro = extractedData?.registroListo?.base ?? null;
+      const rawBase = rawBaseExtraido || rawBaseRegistro;
+      if (rawBase && !canonicalBases.includes(rawBase)) {
+        const matched = matchCanonicalBase(rawBase, canonicalBases);
+        if (matched) {
+          console.log(`Base normalizada: "${rawBase}" → "${matched}"`);
+          if (extractedData.parteExtraido?.base) {
+            extractedData.parteExtraido.base.valor = matched;
+            extractedData.parteExtraido.base.normalizadoDesde = rawBase;
+          }
+          if (extractedData.registroListo) {
+            extractedData.registroListo.base = matched;
+          }
+          extractedData.dudas = extractedData.dudas || [];
+          extractedData.dudas.push({
+            campo: "base",
+            motivo: `Base normalizada automáticamente desde "${rawBase}" a "${matched}".`,
+            necesito: "Verifica que la base sea correcta.",
+          });
+        }
+      }
+    }
+
+
     return new Response(
       JSON.stringify({
         success: true,
