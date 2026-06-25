@@ -81,6 +81,49 @@ RESPONDE ÚNICAMENTE con JSON válido (sin comentarios, sin markdown) con esta e
   }
 }`;
 
+// Normaliza texto para comparación: minúsculas, sin acentos, sin paréntesis/puntuación
+function normalizeForMatch(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9ñ\s]/gi, " ")
+    .replace(/\b(p|pc|pp|resi|residencia|md|conduccion|base|deposito|dep)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchCanonicalBase(raw: string | null | undefined, canonical: string[]): string | null {
+  if (!raw) return null;
+  const rn = normalizeForMatch(raw);
+  if (!rn) return null;
+  // 1) match exacto normalizado
+  for (const c of canonical) {
+    if (normalizeForMatch(c) === rn) return c;
+  }
+  // 2) inclusión por tokens
+  let best: { name: string; score: number } | null = null;
+  for (const c of canonical) {
+    const cn = normalizeForMatch(c);
+    const tokens = cn.split(" ").filter(t => t.length > 2);
+    if (!tokens.length) continue;
+    const matched = tokens.filter(t => rn.includes(t)).length;
+    const score = matched / tokens.length;
+    if (score >= 0.5 && (!best || score > best.score)) {
+      best = { name: c, score };
+    }
+    // bidireccional: nombre canónico contiene token largo del raw
+    const rTokens = rn.split(" ").filter(t => t.length > 4);
+    const rMatched = rTokens.filter(t => cn.includes(t)).length;
+    const rScore = rTokens.length ? rMatched / rTokens.length : 0;
+    if (rScore >= 0.5 && (!best || rScore > best.score)) {
+      best = { name: c, score: rScore };
+    }
+  }
+  return best?.name || null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -102,6 +145,22 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Cargar bases canónicas de la app para que la IA normalice el nombre
+    const { data: basesData } = await supabaseAdmin
+      .from("bases_conduccion")
+      .select("nombre")
+      .eq("activa", true)
+      .order("nombre");
+    const canonicalBases: string[] = (basesData || []).map((b: any) => b.nombre);
+    const basesPromptBlock = canonicalBases.length
+      ? `\n\nIMPORTANTE — NORMALIZACIÓN DE LA BASE:
+El campo "base" DEBE ser uno EXACTO de esta lista oficial de bases de Gesbase. Aunque el documento use otra forma (p.ej. "P. CONDUCCIÓN RESI. CASTEJÓN (MD)"), debes mapearlo al nombre canónico equivalente de la lista (p.ej. "Castejón de Ebro"). Si ninguno coincide razonablemente, usa null.
+Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
+      : "";
+
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
@@ -166,7 +225,7 @@ serve(async (req) => {
     if (imageBase64) {
       console.log("Procesando imagen base64...");
       messageContent = [
-        { type: "text", text: EXTRACTION_PROMPT },
+        { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
         { type: "image_url", image_url: { url: imageBase64 } }
       ];
     } else if (file) {
@@ -192,7 +251,7 @@ serve(async (req) => {
           messageContent = [
             { 
               type: "text", 
-              text: `${EXTRACTION_PROMPT}\n\n--- CONTENIDO DEL DOCUMENTO (extraído del PDF "${fileName}") ---\n\n${pdfText}` 
+              text: `${EXTRACTION_PROMPT}${basesPromptBlock}\n\n--- CONTENIDO DEL DOCUMENTO (extraído del PDF "${fileName}") ---\n\n${pdfText}` 
             }
           ];
         } else {
@@ -203,7 +262,7 @@ serve(async (req) => {
           }
           const base64 = btoa(binary);
           messageContent = [
-            { type: "text", text: EXTRACTION_PROMPT },
+            { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
             { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
           ];
         }
@@ -215,7 +274,7 @@ serve(async (req) => {
         }
         const base64 = btoa(binary);
         messageContent = [
-          { type: "text", text: EXTRACTION_PROMPT },
+          { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
           { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
         ];
       }
@@ -337,6 +396,33 @@ serve(async (req) => {
     if (extractedData.registroListo) {
       extractedData.registroListo.fuente_archivo = fileName;
     }
+
+    // Normalización defensiva del nombre de base contra la lista canónica
+    if (canonicalBases.length) {
+      const rawBaseExtraido = extractedData?.parteExtraido?.base?.valor ?? null;
+      const rawBaseRegistro = extractedData?.registroListo?.base ?? null;
+      const rawBase = rawBaseExtraido || rawBaseRegistro;
+      if (rawBase && !canonicalBases.includes(rawBase)) {
+        const matched = matchCanonicalBase(rawBase, canonicalBases);
+        if (matched) {
+          console.log(`Base normalizada: "${rawBase}" → "${matched}"`);
+          if (extractedData.parteExtraido?.base) {
+            extractedData.parteExtraido.base.valor = matched;
+            extractedData.parteExtraido.base.normalizadoDesde = rawBase;
+          }
+          if (extractedData.registroListo) {
+            extractedData.registroListo.base = matched;
+          }
+          extractedData.dudas = extractedData.dudas || [];
+          extractedData.dudas.push({
+            campo: "base",
+            motivo: `Base normalizada automáticamente desde "${rawBase}" a "${matched}".`,
+            necesito: "Verifica que la base sea correcta.",
+          });
+        }
+      }
+    }
+
 
     return new Response(
       JSON.stringify({
