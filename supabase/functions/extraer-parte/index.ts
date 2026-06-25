@@ -145,6 +145,22 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Cargar bases canónicas de la app para que la IA normalice el nombre
+    const { data: basesData } = await supabaseAdmin
+      .from("bases_conduccion")
+      .select("nombre")
+      .eq("activa", true)
+      .order("nombre");
+    const canonicalBases: string[] = (basesData || []).map((b: any) => b.nombre);
+    const basesPromptBlock = canonicalBases.length
+      ? `\n\nIMPORTANTE — NORMALIZACIÓN DE LA BASE:
+El campo "base" DEBE ser uno EXACTO de esta lista oficial de bases de Gesbase. Aunque el documento use otra forma (p.ej. "P. CONDUCCIÓN RESI. CASTEJÓN (MD)"), debes mapearlo al nombre canónico equivalente de la lista (p.ej. "Castejón de Ebro"). Si ninguno coincide razonablemente, usa null.
+Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
+      : "";
+
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
