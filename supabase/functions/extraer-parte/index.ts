@@ -225,7 +225,7 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
     if (imageBase64) {
       console.log("Procesando imagen base64...");
       messageContent = [
-        { type: "text", text: EXTRACTION_PROMPT },
+        { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
         { type: "image_url", image_url: { url: imageBase64 } }
       ];
     } else if (file) {
@@ -262,7 +262,7 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
           }
           const base64 = btoa(binary);
           messageContent = [
-            { type: "text", text: EXTRACTION_PROMPT },
+            { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
             { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
           ];
         }
@@ -274,7 +274,7 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
         }
         const base64 = btoa(binary);
         messageContent = [
-          { type: "text", text: EXTRACTION_PROMPT },
+          { type: "text", text: EXTRACTION_PROMPT + basesPromptBlock },
           { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } }
         ];
       }
