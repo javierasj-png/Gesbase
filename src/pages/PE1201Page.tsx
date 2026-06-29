@@ -175,6 +175,16 @@ export default function PE1201Page() {
     return matchesSearch && matchesBase && matchesEstado;
   });
 
+  // KPIs según filtro de base (independiente de búsqueda/estado)
+  const baseScoped = expedientes.filter(item =>
+    baseFilter === 'all' || item.maquinista?.base === baseFilter
+  );
+  const kpis = {
+    totalAbiertas: baseScoped.filter(e => e.expediente.estado === 'abierto').length,
+    conPendientes: baseScoped.filter(e => e.resumen.pendientes > 0 && e.expediente.estado === 'abierto').length,
+    proximasCierre: baseScoped.filter(e => e.expediente.estado === 'abierto' && e.resumen.diasHastaCierre <= 7).length,
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
