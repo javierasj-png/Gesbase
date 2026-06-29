@@ -48,7 +48,7 @@ export default function PE1201Page() {
   const { toast } = useToast();
   const { user, isAdmin, assignedBases } = useAuth();
   
-  const { expedientes, loading, kpis, refetch } = useExpedientes1201();
+  const { expedientes, loading, refetch } = useExpedientes1201();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
