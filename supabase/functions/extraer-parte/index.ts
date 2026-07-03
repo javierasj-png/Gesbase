@@ -291,7 +291,7 @@ Lista oficial de bases: ${JSON.stringify(canonicalBases)}`
 
     // Use vision model for images, text model for extracted PDF text
     const hasImageContent = messageContent.some((c: any) => c.type === "image_url");
-    const groqModel = hasImageContent ? "meta-llama/llama-4-scout-17b-16e-instruct" : "llama-3.3-70b-versatile";
+    const groqModel = hasImageContent ? "meta-llama/llama-4-scout-17b-16e-instruct" : "openai/gpt-oss-120b";
 
     let response: Response;
     if (OPENAI_API_KEY) {
