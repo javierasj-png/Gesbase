@@ -257,7 +257,7 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     } else if (marcar_email_enviado === false) {
       payload.email_enviado_at = null;
     }
-    const { error } = await supabase.from('seguimientos_especiales').update(payload).eq('id', id);
+    const { error } = await supabase.from('seguimientos_especiales').update(payload as any).eq('id', id);
     if (error) throw error;
     await fetchData();
   };
@@ -280,7 +280,7 @@ export function useSeguimientosEspeciales(maquinistaId?: string) {
     if (extras?.observaciones !== undefined) payload.observaciones = extras.observaciones;
     if (extras?.indice_prever !== undefined) payload.indice_prever = extras.indice_prever;
     if (extras?.tipo !== undefined) payload.tipo = extras.tipo;
-    await supabase.from('plan_seguimiento_especial').update(payload).eq('id', accionId);
+    await supabase.from('plan_seguimiento_especial').update(payload as any).eq('id', accionId);
     await fetchData();
   };
 
