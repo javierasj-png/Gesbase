@@ -562,7 +562,7 @@ REGLAS DE REDACCIÓN:
         }),
       });
     } else {
-      console.log("Generando propuesta de auditoría con Groq (llama-3.3-70b-versatile)...");
+      console.log("Generando propuesta de auditoría con Groq (openai/gpt-oss-120b)...");
       response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -570,7 +570,7 @@ REGLAS DE REDACCIÓN:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           messages: aiMessages,
           max_tokens: 8000,
         }),
@@ -604,7 +604,7 @@ REGLAS DE REDACCIÓN:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
+          model: "openai/gpt-oss-120b",
           messages: aiMessages,
           max_tokens: 8000,
         }),
