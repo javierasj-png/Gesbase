@@ -115,8 +115,12 @@ export function useDashboardStats(baseFilter?: string) {
         
         newStats.totalMaquinistas = maqsFiltrados.length;
         newStats.maquinistasActivos = maqsFiltrados.filter(m => m.activo).length;
-        
-        const maqIds = maqsFiltrados.map(m => m.id);
+
+        // Para el resto de KPIs (certificaciones, PE 16.03, PE 12.01, seguimientos)
+        // solo consideramos maquinistas ACTIVOS: los dados de baja no deben generar
+        // alertas ni contar como vencidos.
+        const maqsActivos = maqsFiltrados.filter(m => m.activo);
+        const maqIds = maqsActivos.map(m => m.id);
 
         // 2. CERTIFICACIONES
         if (maqIds.length > 0) {
