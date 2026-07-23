@@ -36,14 +36,18 @@ export function useCriteriosPlanAnual(anio: number) {
     setLoading(true);
     setError(null);
     try {
+      // Buscar la fila del año o, si no existe, la más reciente anterior (herencia automática).
       const { data, error } = await supabase
         .from('criterios_plan_anual')
         .select('*')
-        .eq('anio', anio)
+        .lte('anio', anio)
+        .order('anio', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       if (data) {
-        setCriterios(data as CriteriosPlanAnual);
+        // Mantener el año seleccionado, aunque los valores vengan heredados de un año anterior.
+        setCriterios({ ...(data as CriteriosPlanAnual), anio });
       } else {
         setCriterios({ anio, ...CRITERIOS_DEFAULT, notas: null });
       }
@@ -63,13 +67,15 @@ export function useCriteriosPlanAnual(anio: number) {
   return { criterios, loading, error, refetch: fetchCriterios };
 }
 
-/** Carga en un solo batch los criterios de varios años (para dashboard multi-year, si se usa). */
+/** Devuelve criterios de un año; si no hay fila, hereda del último año publicado anterior. */
 export async function fetchCriteriosPorAnio(anio: number): Promise<CriteriosPlanAnual> {
   const { data } = await supabase
     .from('criterios_plan_anual')
     .select('*')
-    .eq('anio', anio)
+    .lte('anio', anio)
+    .order('anio', { ascending: false })
+    .limit(1)
     .maybeSingle();
-  if (data) return data as CriteriosPlanAnual;
+  if (data) return { ...(data as CriteriosPlanAnual), anio };
   return { anio, ...CRITERIOS_DEFAULT, notas: null };
 }
