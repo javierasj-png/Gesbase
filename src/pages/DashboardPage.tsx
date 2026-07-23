@@ -114,7 +114,7 @@ export default function DashboardPage() {
             subtitle="por inactividad"
             icon={AlertTriangle}
             variant="danger"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('vencidas')}
           />
           <KPICard
             title="Cert. Próximas (3m)"
@@ -122,7 +122,7 @@ export default function DashboardPage() {
             subtitle="próximas a vencer"
             icon={Clock}
             variant="warning"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('proximas')}
           />
           <KPICard
             title="Cert. en Vigor"
@@ -130,9 +130,16 @@ export default function DashboardPage() {
             subtitle={`${stats.certificacionesVigentes} de ${stats.totalCertificacionesVigiladas}`}
             icon={CheckCircle}
             variant="success"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('vigentes')}
           />
         </div>
+
+        <CertificacionesEstadoDialog
+          open={certDialog !== null}
+          onOpenChange={(o) => !o && setCertDialog(null)}
+          estado={certDialog}
+          baseFilter={effectiveBaseFilter}
+        />
 
         {/* Row 2: Plan de Acción Anual */}
         <Card>
