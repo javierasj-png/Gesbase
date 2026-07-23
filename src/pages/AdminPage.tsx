@@ -467,6 +467,13 @@ export default function AdminPage() {
             </TabsContent>
           )}
 
+          {/* Criterios Plan Anual por año - Admin only */}
+          {isAdmin && (
+            <TabsContent value="criterios-anual">
+              <CriteriosPlanAnualAdmin />
+            </TabsContent>
+          )}
+
           {/* Criterios de Cumplimiento - visible para todos los roles del admin */}
           <TabsContent value="criterios">
             <Card>
