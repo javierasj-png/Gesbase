@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fiexmmkokvmpguzevcnb.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "gesbase-mcp",
+      "version": "0.1.0",
+      "title": "GesBase — Renfe SGS"
+    },
+    "tools": [
+      {
+        "name": "list_maquinistas",
+        "title": "Listar maquinistas",
+        "description": "Devuelve los maquinistas visibles para el usuario autenticado (respeta RLS y bases asignadas). Filtro opcional por base y por estado activo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "Nombre de la base (opcional)."
+            },
+            "activo": {
+              "type": "boolean",
+              "description": "Filtrar por activo/inactivo."
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 500,
+              "description": "Máximo de filas (por defecto 100)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_maquinista",
+        "title": "Detalle de un maquinista",
+        "description": "Devuelve la ficha completa de un maquinista por id o matrícula, incluyendo sus certificaciones vigentes y su expediente PE 16.03 y PE 12.01 abiertos si existen.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID del maquinista."
+            },
+            "matricula": {
+              "type": "string",
+              "description": "Matrícula del maquinista (alternativa a id)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_alertas_certificaciones",
+        "title": "Alertas de certificaciones",
+        "description": "Devuelve las certificaciones de maquinistas próximas a vencer o vencidas (por inactividad), respetando las bases visibles para el usuario.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "Filtrar por base."
+            },
+            "dias": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 365,
+              "description": "Ventana en días para 'próxima a vencer' (por defecto 90)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_expedientes_1603",
+        "title": "Expedientes PE 16.03",
+        "description": "Lista expedientes PE 16.03 (nuevo acceso). Filtro opcional por base y estado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string"
+            },
+            "estado": {
+              "type": "string",
+              "description": "Ej: 'abierto' o 'cerrado'."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_expedientes_1201",
+        "title": "Expedientes PE 12.01",
+        "description": "Lista fichas PE 12.01 (factor humano). Filtro opcional por base y estado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "base": {
+              "type": "string"
+            },
+            "estado": {
+              "type": "string",
+              "description": "Ej: 'Abierta' o 'Cerrada'."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
