@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const { getAccessibleBases, isAdmin } = useBaseFilter();
   const { assignedBases } = useAuth();
   const [exportingFiltro, setExportingFiltro] = useState<PlanAnualFiltro | null>(null);
+  const [certDialog, setCertDialog] = useState<EstadoCert | null>(null);
   
   const effectiveBaseFilter = baseFilter === 'all' && !isAdmin && getAccessibleBases.length === 1 
     ? getAccessibleBases[0] 
