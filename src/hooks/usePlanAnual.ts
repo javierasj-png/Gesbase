@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCriteriosPlanAnual } from '@/hooks/useCriteriosPlanAnual';
 
 export type TipoActuacionPlanAnual = 'registro' | 'acompanamiento' | 'alcohol' | 'drogas';
 export type RedType = 'convencional' | 'av';
@@ -49,6 +50,7 @@ export interface PlanAnualData {
 
 export function usePlanAnual(maquinistaId: string, baseName: string, anio?: number): PlanAnualData {
   const currentYear = anio || new Date().getFullYear();
+  const { criterios: criteriosCfg } = useCriteriosPlanAnual(currentYear);
   const [redes, setRedes] = useState<RedType[]>(['convencional']);
   const [actuacionesPlanAnual, setActuacionesPlanAnual] = useState<ActuacionPlanAnual[]>([]);
   const [actuaciones1603, setActuaciones1603] = useState<ActuacionPlanAnual[]>([]);
