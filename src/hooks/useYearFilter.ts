@@ -58,8 +58,9 @@ export function useYearFilter(): [number, (v: number) => void] {
 /** Lista de años disponibles en el selector (año actual ± unos años). */
 export function getAvailableYears(): number[] {
   const current = new Date().getFullYear();
+  const end = Math.max(current + 1, 2026);
   const years: number[] = [];
-  // From 2024 (arranque del sistema) hasta año actual + 1
-  for (let y = 2024; y <= current + 1; y++) years.push(y);
+  // Sistema arranca en 2026
+  for (let y = 2026; y <= end; y++) years.push(y);
   return years.reverse(); // más reciente arriba
 }
