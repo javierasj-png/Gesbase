@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { addMonths, differenceInDays } from 'date-fns';
+import { fetchCriteriosPorAnio, CRITERIOS_DEFAULT } from '@/hooks/useCriteriosPlanAnual';
 
 interface DashboardStats {
   // Maquinistas
@@ -84,7 +85,7 @@ const initialStats: DashboardStats = {
   seguimientosPorcentajeCumplimiento: 0,
 };
 
-export function useDashboardStats(baseFilter?: string) {
+export function useDashboardStats(baseFilter?: string, anioFilter?: number) {
   const { user, isAdmin, assignedBases } = useAuth();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,8 @@ export function useDashboardStats(baseFilter?: string) {
     try {
       const newStats = { ...initialStats };
       const AVISO_MESES = 3; // 3 meses para "próxima a vencer"
+      const currentYear = anioFilter || new Date().getFullYear();
+      const criterios = await fetchCriteriosPorAnio(currentYear);
 
       // 1. MAQUINISTAS
       let maquinistasQuery = supabase.from('maquinistas').select('id, activo, base');
