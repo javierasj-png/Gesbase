@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { addMonths, differenceInDays } from 'date-fns';
+import { fetchCriteriosPorAnio, CRITERIOS_DEFAULT } from '@/hooks/useCriteriosPlanAnual';
 
 interface DashboardStats {
   // Maquinistas
@@ -84,7 +85,7 @@ const initialStats: DashboardStats = {
   seguimientosPorcentajeCumplimiento: 0,
 };
 
-export function useDashboardStats(baseFilter?: string) {
+export function useDashboardStats(baseFilter?: string, anioFilter?: number) {
   const { user, isAdmin, assignedBases } = useAuth();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,8 @@ export function useDashboardStats(baseFilter?: string) {
     try {
       const newStats = { ...initialStats };
       const AVISO_MESES = 3; // 3 meses para "próxima a vencer"
+      const currentYear = anioFilter || new Date().getFullYear();
+      const criterios = await fetchCriteriosPorAnio(currentYear);
 
       // 1. MAQUINISTAS
       let maquinistasQuery = supabase.from('maquinistas').select('id, activo, base');
@@ -329,8 +332,7 @@ export function useDashboardStats(baseFilter?: string) {
               }
             }
           }
-          // 5. PLAN DE ACCIÓN ANUAL
-          const currentYear = new Date().getFullYear();
+          // 5. PLAN DE ACCIÓN ANUAL (según año filtrado)
           const yearStart = `${currentYear}-01-01`;
           const yearEnd = `${currentYear}-12-31`;
 
@@ -375,8 +377,8 @@ export function useDashboardStats(baseFilter?: string) {
           const expToMaqMap = new Map<string, string>();
           (allExp1603ForPlan || []).forEach(e => expToMaqMap.set(e.id, e.maquinista_id));
 
-          // Check PE 12.01 in last 3 years per maquinista
-          const threeYearsAgo = `${currentYear - 3}-01-01`;
+          // Check PE 12.01 in last N years per maquinista (según criterios del año)
+          const threeYearsAgo = `${currentYear - criterios.vigencia_1201_anios}-01-01`;
           const { data: recientes1201 } = await supabase
             .from('expedientes_1201')
             .select('maquinista_id')
@@ -402,7 +404,9 @@ export function useDashboardStats(baseFilter?: string) {
 
           for (const maq of maqsFiltrados.filter(m => m.activo)) {
             const maqRedes = baseRedesMap.get(maq.base) || ['convencional'];
-            const acompRequeridos = maqsCon1201Reciente.has(maq.id) ? 2 : 1;
+            const acompRequeridos = maqsCon1201Reciente.has(maq.id)
+              ? criterios.acompanamientos_con_1201
+              : criterios.acompanamientos_por_red;
 
             // Gather actuaciones for this maquinista
             const planActs = (allPlanAnual || []).filter(a => a.maquinista_id === maq.id);
@@ -419,10 +423,10 @@ export function useDashboardStats(baseFilter?: string) {
             totalEvaluados++;
 
             for (const red of maqRedes) {
-              // Registro: 100km cumulative
+              // Registro: km cumulative (según criterios)
               const registros = allActs.filter(a => a.tipo === 'registro' && (a.red === red || (a.source === 'pe1603' && a.red === null)));
               const kmTotal = registros.reduce((sum, a) => sum + (a.km_recorridos ?? 0), 0);
-              if (kmTotal < 100) cumpleTodo = false;
+              if (kmTotal < criterios.registro_km_minimo) cumpleTodo = false;
 
               // Acompañamiento
               const acomps = allActs.filter(a => a.tipo === 'acompanamiento' && (a.red === red || (a.source === 'pe1603' && a.red === null)));
@@ -431,7 +435,7 @@ export function useDashboardStats(baseFilter?: string) {
 
             // Alcohol
             const alcohols = allActs.filter(a => a.tipo === 'alcohol');
-            if (alcohols.length < 1) cumpleTodo = false;
+            if (alcohols.length < criterios.alcohol_anual) cumpleTodo = false;
 
             if (cumpleTodo) maquinistasCumplen++;
           }
@@ -477,7 +481,7 @@ export function useDashboardStats(baseFilter?: string) {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin, assignedBases, baseFilter]);
+  }, [user, isAdmin, assignedBases, baseFilter, anioFilter]);
 
   useEffect(() => {
     fetchStats();

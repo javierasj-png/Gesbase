@@ -37,11 +37,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { CertificacionesEstadoDialog, type EstadoCert } from '@/components/dashboard/CertificacionesEstadoDialog';
+import { useYearFilter, getAvailableYears } from '@/hooks/useYearFilter';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   usePageMeta({ title: 'Cuadro de mando — Gestión de Base', description: 'Panel general con KPIs, alertas y planificación de vigilancia SGS para Renfe Viajeros.', path: '/dashboard' });
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
+  const [yearFilter, setYearFilter] = useYearFilter();
   
   const { getAccessibleBases, isAdmin } = useBaseFilter();
   const { assignedBases } = useAuth();
@@ -52,7 +54,7 @@ export default function DashboardPage() {
     ? getAccessibleBases[0] 
     : baseFilter;
   
-  const { stats, loading } = useDashboardStats(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter);
+  const { stats, loading } = useDashboardStats(effectiveBaseFilter === 'all' ? undefined : effectiveBaseFilter, yearFilter);
 
   const handleExportPlanAnual = async (filtro: PlanAnualFiltro) => {
     setExportingFiltro(filtro);
@@ -84,6 +86,16 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Select value={String(yearFilter)} onValueChange={(v) => setYearFilter(parseInt(v, 10))}>
+              <SelectTrigger className="w-[110px]" title="Año del Plan de Acción Anual">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableYears().map(y => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={effectiveBaseFilter} onValueChange={setBaseFilter}>
               <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Todas las bases" />
@@ -146,7 +158,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <CalendarCheck className="w-4 h-4 text-primary" />
-              Plan de Acción Anual {new Date().getFullYear()} - Criterios individuales de vigilancia
+              Plan de Acción Anual {yearFilter} - Criterios individuales de vigilancia
             </CardTitle>
           </CardHeader>
           <CardContent>

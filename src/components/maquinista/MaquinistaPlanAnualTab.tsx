@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlanAnual, TipoActuacionPlanAnual, RedType, ActuacionPlanAnual } from '@/hooks/usePlanAnual';
+import { useYearFilter, getAvailableYears } from '@/hooks/useYearFilter';
 import { Progress } from '@/components/ui/progress';
 
 interface MaquinistaPlanAnualTabProps {
@@ -47,7 +48,8 @@ const redLabels: Record<RedType, string> = {
 export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseName }: MaquinistaPlanAnualTabProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const planAnual = usePlanAnual(maquinistaId, baseName);
+  const [yearFilter, setYearFilter] = useYearFilter();
+  const planAnual = usePlanAnual(maquinistaId, baseName, yearFilter);
 
   const [registrarOpen, setRegistrarOpen] = useState(false);
   const [editarOpen, setEditarOpen] = useState(false);
@@ -239,7 +241,17 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                 Criterios individuales de vigilancia — {maquinistaNombre}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Select value={String(yearFilter)} onValueChange={(v) => setYearFilter(parseInt(v, 10))}>
+                <SelectTrigger className="w-[110px]" title="Año del Plan de Acción Anual">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getAvailableYears().map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Badge variant={porcentajeCumplimiento === 100 ? 'default' : porcentajeCumplimiento >= 50 ? 'secondary' : 'destructive'}>
                 {criteriosCumplidos}/{totalCriterios} criterios
               </Badge>

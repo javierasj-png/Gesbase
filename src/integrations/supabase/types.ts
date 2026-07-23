@@ -308,6 +308,51 @@ export type Database = {
         }
         Relationships: []
       }
+      criterios_plan_anual: {
+        Row: {
+          acompanamientos_con_1201: number
+          acompanamientos_por_red: number
+          alcohol_anual: number
+          anio: number
+          created_at: string
+          created_by: string | null
+          drogas_cobertura_pct: number
+          notas: string | null
+          registro_km_minimo: number
+          updated_at: string
+          updated_by: string | null
+          vigencia_1201_anios: number
+        }
+        Insert: {
+          acompanamientos_con_1201?: number
+          acompanamientos_por_red?: number
+          alcohol_anual?: number
+          anio: number
+          created_at?: string
+          created_by?: string | null
+          drogas_cobertura_pct?: number
+          notas?: string | null
+          registro_km_minimo?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_1201_anios?: number
+        }
+        Update: {
+          acompanamientos_con_1201?: number
+          acompanamientos_por_red?: number
+          alcohol_anual?: number
+          anio?: number
+          created_at?: string
+          created_by?: string | null
+          drogas_cobertura_pct?: number
+          notas?: string | null
+          registro_km_minimo?: number
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_1201_anios?: number
+        }
+        Relationships: []
+      }
       expedientes_1201: {
         Row: {
           cerrado_por: string | null

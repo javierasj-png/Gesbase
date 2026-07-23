@@ -35,7 +35,8 @@ import {
   Shield,
   FileText,
   Award,
-  Gauge
+  Gauge,
+  CalendarCheck,
 } from 'lucide-react';
 import { UMBRALES, getUmbralInfo } from '@/lib/cumplimientoUmbral';
 
@@ -46,6 +47,7 @@ import { BaseAsignacionCertificaciones } from '@/components/admin/BaseAsignacion
 import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
 import { MaquinistaCertificacionesModal } from '@/components/admin/MaquinistaCertificacionesModal';
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
+import { CriteriosPlanAnualAdmin } from '@/components/admin/CriteriosPlanAnualAdmin';
 import { useMaquinistas, MaquinistaConNombre, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 import { useAuth } from '@/contexts/AuthContext';
@@ -221,6 +223,12 @@ export default function AdminPage() {
               <TabsTrigger value="plantillas" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Plantillas SGS
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="criterios-anual" className="flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4" />
+                Criterios Plan Anual
               </TabsTrigger>
             )}
             <TabsTrigger value="criterios" className="flex items-center gap-2">
@@ -456,6 +464,13 @@ export default function AdminPage() {
           {isAdmin && (
             <TabsContent value="plantillas">
               <PlantillasSGS />
+            </TabsContent>
+          )}
+
+          {/* Criterios Plan Anual por año - Admin only */}
+          {isAdmin && (
+            <TabsContent value="criterios-anual">
+              <CriteriosPlanAnualAdmin />
             </TabsContent>
           )}
 
