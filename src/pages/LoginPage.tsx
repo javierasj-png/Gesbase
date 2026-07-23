@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
+  const postLoginTarget = safeNext ?? '/dashboard';
   const { signIn, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
   usePageMeta({
@@ -33,8 +37,9 @@ export default function LoginPage() {
   const [signupApellidos, setSignupApellidos] = useState('');
 
   // Redirect if already authenticated
+  // Redirect if already authenticated
   if (isAuthenticated) {
-    navigate('/dashboard');
+    navigate(postLoginTarget);
     return null;
   }
 
@@ -57,7 +62,7 @@ export default function LoginPage() {
         title: 'Bienvenido',
         description: 'Acceso correcto al sistema',
       });
-      navigate('/dashboard');
+      navigate(postLoginTarget);
     }
     
     setIsLoading(false);

@@ -18,6 +18,7 @@ import AdminPage from "./pages/AdminPage";
 import PartesPage from "./pages/PartesPage";
 import AuditoriaPage from "./pages/AuditoriaPage";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
                 <AdminPage />
               </ProtectedRoute>
             } />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
