@@ -313,32 +313,6 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
               </Badge>
             )}
           </CardTitle>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {kpis.certificaciones > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Train className="w-3 h-3" />
-                {kpis.certificaciones}
-              </Badge>
-            )}
-            {kpis.pe1603 > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <FileCheck className="w-3 h-3" />
-                {kpis.pe1603}
-              </Badge>
-            )}
-            {kpis.pe1201 > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {kpis.pe1201}
-              </Badge>
-            )}
-            {kpis.segEspecial > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Eye className="w-3 h-3" />
-                {kpis.segEspecial}
-              </Badge>
-            )}
-          </div>
         </div>
       </CardHeader>
       <CardContent>
