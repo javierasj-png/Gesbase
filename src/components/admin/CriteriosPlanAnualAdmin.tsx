@@ -46,8 +46,15 @@ export function CriteriosPlanAnualAdmin() {
 
   useEffect(() => {
     const existing = rows.find(r => r.anio === selectedYear);
-    if (existing) setCurrent({ ...existing });
-    else setCurrent({ anio: selectedYear, ...CRITERIOS_DEFAULT, notas: null });
+    if (existing) {
+      setCurrent({ ...existing });
+    } else {
+      // Herencia: si no existe fila para el año, precargar con el último año publicado anterior.
+      const prev = rows.find(r => r.anio < selectedYear);
+      if (prev) setCurrent({ ...prev, anio: selectedYear, notas: null });
+      else setCurrent({ anio: selectedYear, ...CRITERIOS_DEFAULT, notas: null });
+    }
+
   }, [rows, selectedYear]);
 
   const yearsWithData = new Set(rows.map(r => r.anio));
