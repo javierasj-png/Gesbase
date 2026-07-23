@@ -137,7 +137,7 @@ export default function DashboardPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <CalendarCheck className="w-4 h-4 text-primary" />
-              Plan de Acción Anual {new Date().getFullYear()}
+              Plan de Acción Anual {new Date().getFullYear()} - Criterios individuales de vigilancia
             </CardTitle>
           </CardHeader>
           <CardContent>
