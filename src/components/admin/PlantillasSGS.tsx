@@ -8,8 +8,13 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { plantilla1603Mock, catalogoHitos1201Mock } from '@/data/mockData';
+import { useYearFilter } from '@/hooks/useYearFilter';
+import { useCriteriosPlanAnual } from '@/hooks/useCriteriosPlanAnual';
 
 export function PlantillasSGS() {
+  const [yearFilter] = useYearFilter();
+  const { criterios, loading } = useCriteriosPlanAnual(yearFilter);
+
   const tiposActuacion = ['Acompañamiento', 'Registro', 'Alcohol', 'Drogas'] as const;
   
   return (
