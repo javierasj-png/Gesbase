@@ -36,6 +36,7 @@ import { exportPlanAnualMatriz, type PlanAnualFiltro } from '@/utils/exportPlanA
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { CertificacionesEstadoDialog, type EstadoCert } from '@/components/dashboard/CertificacionesEstadoDialog';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const { getAccessibleBases, isAdmin } = useBaseFilter();
   const { assignedBases } = useAuth();
   const [exportingFiltro, setExportingFiltro] = useState<PlanAnualFiltro | null>(null);
+  const [certDialog, setCertDialog] = useState<EstadoCert | null>(null);
   
   const effectiveBaseFilter = baseFilter === 'all' && !isAdmin && getAccessibleBases.length === 1 
     ? getAccessibleBases[0] 
@@ -112,7 +114,7 @@ export default function DashboardPage() {
             subtitle="por inactividad"
             icon={AlertTriangle}
             variant="danger"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('vencidas')}
           />
           <KPICard
             title="Cert. Próximas (3m)"
@@ -120,7 +122,7 @@ export default function DashboardPage() {
             subtitle="próximas a vencer"
             icon={Clock}
             variant="warning"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('proximas')}
           />
           <KPICard
             title="Cert. en Vigor"
@@ -128,9 +130,16 @@ export default function DashboardPage() {
             subtitle={`${stats.certificacionesVigentes} de ${stats.totalCertificacionesVigiladas}`}
             icon={CheckCircle}
             variant="success"
-            onClick={() => navigate('/certificaciones')}
+            onClick={() => setCertDialog('vigentes')}
           />
         </div>
+
+        <CertificacionesEstadoDialog
+          open={certDialog !== null}
+          onOpenChange={(o) => !o && setCertDialog(null)}
+          estado={certDialog}
+          baseFilter={effectiveBaseFilter}
+        />
 
         {/* Row 2: Plan de Acción Anual */}
         <Card>
