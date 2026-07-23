@@ -132,8 +132,9 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
       }
       setActuaciones1603(pe1603Acts);
 
-      // 4. Check if maquinista had PE 12.01 in last 3 years
-      const threeYearsAgo = `${currentYear - 3}-01-01`;
+      // 4. Check if maquinista had PE 12.01 in last N years (según criterios del año)
+      const nAtras = criteriosCfg.vigencia_1201_anios;
+      const threeYearsAgo = `${currentYear - nAtras}-01-01`;
       const { data: exp1201, error: err1201 } = await supabase
         .from('expedientes_1201')
         .select('id')
@@ -199,7 +200,7 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
         totalActivos,
         conControl,
         porcentaje,
-        cumple: porcentaje >= 25,
+        cumple: porcentaje >= criteriosCfg.drogas_cobertura_pct,
       });
 
     } catch (err) {
@@ -208,7 +209,7 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
     } finally {
       setLoading(false);
     }
-  }, [maquinistaId, baseName, currentYear]);
+  }, [maquinistaId, baseName, currentYear, criteriosCfg.vigencia_1201_anios, criteriosCfg.drogas_cobertura_pct]);
 
   useEffect(() => {
     fetchData();
@@ -222,24 +223,27 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
   // Compute criteria
   const criterios = useMemo((): CriterioEstado[] => {
     const result: CriterioEstado[] = [];
-    const acompRequeridos = tuvo1201Reciente ? 2 : 1;
+    const acompRequeridos = tuvo1201Reciente
+      ? criteriosCfg.acompanamientos_con_1201
+      : criteriosCfg.acompanamientos_por_red;
+    const kmMin = criteriosCfg.registro_km_minimo;
 
     // Per-network criteria
     for (const red of redes) {
       const redLabel = red === 'av' ? 'AV' : 'Convencional';
 
-      // Registro per network — 100km is cumulative across all registros in the year
+      // Registro per network — km cumulative across all registros in the year
       const registrosRed = allActuaciones.filter(
         a => a.tipo === 'registro' && (a.red === red || (a.source === 'pe1603' && a.red === null))
       );
       const kmTotalRed = registrosRed.reduce((sum, a) => sum + (a.km_recorridos ?? 0), 0);
       result.push({
-        criterio: `Registro ${redLabel} (≥100 km acumulados)`,
+        criterio: `Registro ${redLabel} (≥${kmMin} km acumulados)`,
         tipo: 'registro',
         red,
-        requerido: 100,
+        requerido: kmMin,
         cumplido: kmTotalRed,
-        cumple: kmTotalRed >= 100,
+        cumple: kmTotalRed >= kmMin,
         actuaciones: registrosRed,
       });
 
@@ -259,23 +263,22 @@ export function usePlanAnual(maquinistaId: string, baseName: string, anio?: numb
     }
 
     // Alcohol - annual
+    const alcoholMin = criteriosCfg.alcohol_anual;
     const alcohols = allActuaciones.filter(a => a.tipo === 'alcohol');
     result.push({
       criterio: 'Control de Alcohol',
       tipo: 'alcohol',
       red: null,
-      requerido: 1,
+      requerido: alcoholMin,
       cumplido: alcohols.length,
-      cumple: alcohols.length >= 1,
+      cumple: alcohols.length >= alcoholMin,
       actuaciones: alcohols,
     });
 
     // Drogas: NO se aplica criterio individual SGS (objetivo es ≥25% de la base).
-    // Se evalúa únicamente a nivel base en la tarjeta de Cobertura de Drogas.
-
 
     return result;
-  }, [allActuaciones, redes, tuvo1201Reciente]);
+  }, [allActuaciones, redes, tuvo1201Reciente, criteriosCfg]);
 
   return {
     anio: currentYear,
