@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Download,
   Eye,
+  IdCard,
 } from 'lucide-react';
 import { useDashboardAlertas, Alerta, GrupoAlerta } from '@/hooks/useDashboardAlertas';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -35,6 +36,8 @@ function getAlertaIcon(alerta: Alerta) {
       return <AlertCircle className="w-4 h-4" />;
     case 'seg_especial':
       return <Eye className="w-4 h-4" />;
+    case 'licencia':
+      return <IdCard className="w-4 h-4" />;
   }
 }
 
@@ -48,6 +51,8 @@ function getAlertaLabel(alerta: Alerta): string {
       return 'PE 12.01';
     case 'seg_especial':
       return 'Seg. Especial';
+    case 'licencia':
+      return 'Licencia';
   }
 }
 
@@ -67,6 +72,8 @@ function getAlertaDescription(alerta: Alerta): string {
       return alerta.hito;
     case 'seg_especial':
       return segTipoLabel[alerta.tipo_actuacion] || alerta.tipo_actuacion;
+    case 'licencia':
+      return `Licencia de conducción — caduca ${format(alerta.fecha_caducidad, 'dd/MM/yyyy')}`;
   }
 }
 
@@ -246,6 +253,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
       case 'seg_especial':
         navigate(`/maquinistas/${alerta.maquinista_id}?tab=seguimiento-especial`);
         break;
+      case 'licencia':
+        navigate(`/maquinistas/${alerta.maquinista_id}`);
+        break;
     }
   };
 
@@ -255,14 +265,16 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
       const desc = a.tipo === 'certificacion' ? a.certificacion_nombre
         : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
         : a.tipo === 'pe1201' ? a.hito
-        : (segTipoLabel[a.tipo_actuacion] || a.tipo_actuacion);
+        : a.tipo === 'seg_especial' ? (segTipoLabel[a.tipo_actuacion] || a.tipo_actuacion)
+        : `Licencia — caduca ${format(a.fecha_caducidad, 'dd/MM/yyyy')}`;
       const dias = a.dias_restantes === null ? 'Sin registro'
         : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
         : `${a.dias_restantes}d`;
       const label = a.tipo === 'certificacion' ? `Cert. ${a.certificacion_tipo}`
         : a.tipo === 'pe1603' ? 'PE 16.03'
         : a.tipo === 'pe1201' ? 'PE 12.01'
-        : 'Seg. Especial';
+        : a.tipo === 'seg_especial' ? 'Seg. Especial'
+        : 'Licencia';
       return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
     });
     const csv = '\uFEFF' + [header, ...rows].join('\n');

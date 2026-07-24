@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { addMonths, differenceInDays, endOfYear, addDays } from 'date-fns';
+import { addMonths, differenceInDays, endOfYear, addDays, addYears } from 'date-fns';
 
 export type GrupoAlerta = 'vencidas' | 'proximas_3_meses' | 'resto_anio';
 
@@ -62,7 +62,19 @@ export interface AlertaSegEspecial {
   grupo: GrupoAlerta;
 }
 
-export type Alerta = AlertaCertificacion | Alerta1603 | Alerta1201 | AlertaSegEspecial;
+export interface AlertaLicencia {
+  tipo: 'licencia';
+  id: string;
+  maquinista_id: string;
+  maquinista_nombre: string;
+  maquinista_base: string;
+  estado: 'Próxima a caducar' | 'Caducada';
+  dias_restantes: number;
+  fecha_caducidad: Date;
+  grupo: GrupoAlerta;
+}
+
+export type Alerta = AlertaCertificacion | Alerta1603 | Alerta1201 | AlertaSegEspecial | AlertaLicencia;
 
 // Función para determinar el grupo de una alerta basándose en su fecha límite
 function calcularGrupoAlerta(fechaLimite: Date | null, hoy: Date): GrupoAlerta | null {
@@ -389,6 +401,49 @@ export function useDashboardAlertas(baseFilter?: string) {
               estado,
               dias_restantes: diasRestantes,
               fecha_objetivo: fechaObj,
+              grupo,
+            });
+          }
+        }
+      }
+
+      // 5. LICENCIA DE CONDUCCIÓN: 10 años desde obtención, aviso a 6 meses
+      {
+        let qLic = supabase
+          .from('maquinistas')
+          .select('id, nombre, apellidos, base, fecha_licencia_conduccion, activo')
+          .eq('activo', true)
+          .not('fecha_licencia_conduccion', 'is', null);
+        const { data: maqsLic } = await qLic;
+        if (maqsLic) {
+          for (const m of maqsLic) {
+            if (!isAdmin && !assignedBases.includes(m.base as typeof assignedBases[number])) continue;
+            if (baseFilter && baseFilter !== 'all' && m.base !== baseFilter) continue;
+            if (!m.fecha_licencia_conduccion) continue;
+
+            const caducidad = addYears(new Date(m.fecha_licencia_conduccion), 10);
+            caducidad.setHours(0, 0, 0, 0);
+            const avisoDesde = addMonths(caducidad, -6);
+
+            // Solo alertar si está caducada o dentro de los 6 meses de aviso
+            if (caducidad >= today && avisoDesde > today) continue;
+
+            const grupo = calcularGrupoAlerta(caducidad, today);
+            if (!grupo) continue;
+
+            const diasRestantes = differenceInDays(caducidad, today);
+            const estado: 'Próxima a caducar' | 'Caducada' =
+              grupo === 'vencidas' ? 'Caducada' : 'Próxima a caducar';
+
+            allAlertas.push({
+              tipo: 'licencia',
+              id: m.id,
+              maquinista_id: m.id,
+              maquinista_nombre: `${m.nombre} ${m.apellidos}`,
+              maquinista_base: m.base,
+              estado,
+              dias_restantes: diasRestantes,
+              fecha_caducidad: caducidad,
               grupo,
             });
           }
