@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { addMonths, differenceInDays, endOfYear, addDays } from 'date-fns';
+import { addMonths, differenceInDays, endOfYear, addDays, addYears } from 'date-fns';
 
 export type GrupoAlerta = 'vencidas' | 'proximas_3_meses' | 'resto_anio';
 
