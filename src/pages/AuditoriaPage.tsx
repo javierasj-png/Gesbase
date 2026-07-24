@@ -592,34 +592,34 @@ export default function AuditoriaPage() {
                     <TableBody>
                       {cumplimientoData.map((row) => (
                         <TableRow key={row.base}>
-                          <TableCell className="font-medium">{row.base}</TableCell>
-                          <TableCell className="text-center">{row.maquinistas}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="font-medium align-middle">{row.base}</TableCell>
+                          <TableCell className="text-center align-middle">{row.maquinistas}</TableCell>
+                          <TableCell className="text-center align-middle">
                             {getCumplimientoBadge(row.planAnualPorcentaje)}
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center align-middle">
                             {getDrogasBadge(row.coberturaDrogas)}
                           </TableCell>
-                          <TableCell className="text-center">{row.pe1603Activos}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center align-middle">{row.pe1603Activos}</TableCell>
+                          <TableCell className="text-center align-middle">
                             {getCumplimientoBadge(row.pe1603Cumplimiento)}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-0.5">
+                          <TableCell className="text-center align-middle">
+                            <div className="relative inline-block">
                               {getCumplimientoBadge(row.pe1603CumplimientoHoy)}
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap leading-none">
                                 {row.pe1603RealizadosHoy}/{row.pe1603ExigiblesHoy}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">{row.pe1201Activos}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center align-middle">{row.pe1201Activos}</TableCell>
+                          <TableCell className="text-center align-middle">
                             {getCumplimientoBadge(row.pe1201Cumplimiento)}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-0.5">
+                          <TableCell className="text-center align-middle">
+                            <div className="relative inline-block">
                               {getCumplimientoBadge(row.pe1201CumplimientoHoy)}
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap leading-none">
                                 {row.pe1201RealizadosHoy}/{row.pe1201ExigiblesHoy}
                               </span>
                             </div>
