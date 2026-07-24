@@ -36,6 +36,8 @@ function getAlertaIcon(alerta: Alerta) {
       return <AlertCircle className="w-4 h-4" />;
     case 'seg_especial':
       return <Eye className="w-4 h-4" />;
+    case 'licencia':
+      return <IdCard className="w-4 h-4" />;
   }
 }
 
@@ -49,6 +51,8 @@ function getAlertaLabel(alerta: Alerta): string {
       return 'PE 12.01';
     case 'seg_especial':
       return 'Seg. Especial';
+    case 'licencia':
+      return 'Licencia';
   }
 }
 
@@ -68,6 +72,8 @@ function getAlertaDescription(alerta: Alerta): string {
       return alerta.hito;
     case 'seg_especial':
       return segTipoLabel[alerta.tipo_actuacion] || alerta.tipo_actuacion;
+    case 'licencia':
+      return `Licencia de conducción — caduca ${format(alerta.fecha_caducidad, 'dd/MM/yyyy')}`;
   }
 }
 
