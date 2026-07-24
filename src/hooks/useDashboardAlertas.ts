@@ -407,6 +407,49 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
+      // 5. LICENCIA DE CONDUCCIÓN: 10 años desde obtención, aviso a 6 meses
+      {
+        let qLic = supabase
+          .from('maquinistas')
+          .select('id, nombre, apellidos, base, fecha_licencia_conduccion, activo')
+          .eq('activo', true)
+          .not('fecha_licencia_conduccion', 'is', null);
+        const { data: maqsLic } = await qLic;
+        if (maqsLic) {
+          for (const m of maqsLic) {
+            if (!isAdmin && !assignedBases.includes(m.base as typeof assignedBases[number])) continue;
+            if (baseFilter && baseFilter !== 'all' && m.base !== baseFilter) continue;
+            if (!m.fecha_licencia_conduccion) continue;
+
+            const caducidad = addYears(new Date(m.fecha_licencia_conduccion), 10);
+            caducidad.setHours(0, 0, 0, 0);
+            const avisoDesde = addMonths(caducidad, -6);
+
+            // Solo alertar si está caducada o dentro de los 6 meses de aviso
+            if (caducidad >= today && avisoDesde > today) continue;
+
+            const grupo = calcularGrupoAlerta(caducidad, today);
+            if (!grupo) continue;
+
+            const diasRestantes = differenceInDays(caducidad, today);
+            const estado: 'Próxima a caducar' | 'Caducada' =
+              grupo === 'vencidas' ? 'Caducada' : 'Próxima a caducar';
+
+            allAlertas.push({
+              tipo: 'licencia',
+              id: m.id,
+              maquinista_id: m.id,
+              maquinista_nombre: `${m.nombre} ${m.apellidos}`,
+              maquinista_base: m.base,
+              estado,
+              dias_restantes: diasRestantes,
+              fecha_caducidad: caducidad,
+              grupo,
+            });
+          }
+        }
+      }
+
       // Ordenar: primero vencidas, luego próximas 3 meses, luego resto año
       // Dentro de cada grupo, ordenar por días restantes
       const ordenGrupo: Record<GrupoAlerta, number> = {
