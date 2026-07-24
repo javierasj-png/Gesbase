@@ -154,7 +154,14 @@ function AlertaItem({ alerta, onClick }: AlertaItemProps) {
           <p className="font-medium text-sm truncate">
             {alerta.maquinista_nombre}
           </p>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+          <Badge
+            variant="outline"
+            className={`text-[10px] px-1.5 py-0 ${
+              alerta.tipo === 'licencia'
+                ? 'bg-sky-100 text-sky-900 border-sky-300 dark:bg-sky-950 dark:text-sky-100 dark:border-sky-800'
+                : ''
+            }`}
+          >
             {getAlertaLabel(alerta)}
           </Badge>
         </div>
