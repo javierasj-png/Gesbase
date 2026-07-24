@@ -428,8 +428,16 @@ export function useDashboardAlertas(baseFilter?: string) {
             // Solo alertar si está caducada o dentro de los 6 meses de aviso
             if (caducidad >= today && avisoDesde > today) continue;
 
-            const grupo = calcularGrupoAlerta(caducidad, today);
-            if (!grupo) continue;
+            // Para licencia, el aviso es a 6 meses (puede exceder el año en curso),
+            // así que forzamos el grupo en función de la caducidad sin cortar por fin de año.
+            let grupo: GrupoAlerta;
+            if (caducidad < today) {
+              grupo = 'vencidas';
+            } else if (caducidad <= addDays(today, 90)) {
+              grupo = 'proximas_3_meses';
+            } else {
+              grupo = 'resto_anio';
+            }
 
             const diasRestantes = differenceInDays(caducidad, today);
             const estado: 'Próxima a caducar' | 'Caducada' =
