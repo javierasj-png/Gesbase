@@ -92,12 +92,40 @@ export function ComunicacionNoConformidadesDialog({
     }
   };
 
-  const abrirMailto = () => {
+  const registrarComunicacion = async () => {
+    const ids = items.map((i) => i.id).filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    setRegistrando(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('planes_vigilancia_acciones')
+        .update({
+          comunicada: true,
+          comunicada_at: new Date().toISOString(),
+          comunicada_por: userData?.user?.id ?? null,
+          comunicacion_destinatario: destinatario || null,
+          comunicacion_asunto: asunto || null,
+        } as any)
+        .in('id', ids);
+      if (error) throw error;
+      toast({ title: 'Comunicación registrada', description: 'Queda guardada como trazabilidad en el plan.' });
+      onComunicado?.();
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e?.message });
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
+  const abrirMailto = async () => {
     const url = `mailto:${encodeURIComponent(destinatario)}?subject=${encodeURIComponent(
       asunto
     )}&body=${encodeURIComponent(cuerpo)}`;
     window.open(url, '_blank');
+    await registrarComunicacion();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
