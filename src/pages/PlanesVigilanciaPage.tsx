@@ -24,7 +24,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Loader2, Archive, Trash2, Copy, ShieldCheck, Megaphone, UserCheck } from 'lucide-react';
+import { Plus, Search, Loader2, Archive, Trash2, Copy, ShieldCheck, Megaphone, UserCheck, Pencil } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +86,36 @@ export default function PlanesVigilanciaPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [detalle, setDetalle] = useState<PlanVigilanciaConProgreso | null>(null);
   const [confirmar, setConfirmar] = useState<{ plan: PlanVigilanciaConProgreso; accion: 'archivar' | 'eliminar' } | null>(null);
+  const [editar, setEditar] = useState<PlanVigilanciaConProgreso | null>(null);
+  const [editNombre, setEditNombre] = useState('');
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+
+  const abrirEdicion = (plan: PlanVigilanciaConProgreso) => {
+    setEditar(plan);
+    setEditNombre(plan.nombre);
+    setEditDescripcion(plan.descripcion || '');
+  };
+
+  const guardarEdicion = async () => {
+    if (!editar || !editNombre.trim()) return;
+    setGuardandoEdicion(true);
+    try {
+      const { error } = await supabase
+        .from('planes_vigilancia')
+        .update({ nombre: editNombre.trim(), descripcion: editDescripcion.trim() || null })
+        .eq('id', editar.id);
+      if (error) throw error;
+      toast({ title: 'Plan actualizado' });
+      setEditar(null);
+      refetch();
+    } catch (e) {
+      console.error(e);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el plan.' });
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
 
   const anios = useMemo(() => {
     const set = new Set<string>();
@@ -301,6 +341,9 @@ export default function PlanesVigilanciaPage() {
                     <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
                       Gestionar
                     </Button>
+                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                     <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => duplicar(p)}>
                       <Copy className="w-3.5 h-3.5" />
                     </Button>
@@ -314,7 +357,7 @@ export default function PlanesVigilanciaPage() {
                         <Archive className="w-3.5 h-3.5" />
                       </Button>
                     )}
-                    {p.estado === 'borrador' && (
+                    {(
                       <Button
                         variant="outline"
                         size="sm"
