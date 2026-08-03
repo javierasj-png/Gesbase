@@ -25,7 +25,8 @@ import {
   type AccionPlanVigilancia,
   type PlanVigilanciaConProgreso,
 } from '@/hooks/usePlanesVigilancia';
-import { CalendarRange, CheckCircle2, Loader2, Save, Shuffle } from 'lucide-react';
+import { CalendarRange, CheckCircle2, Loader2, Mail, Save, Shuffle } from 'lucide-react';
+import { ComunicacionNoConformidadesDialog } from './ComunicacionNoConformidadesDialog';
 
 interface Props {
   plan: PlanVigilanciaConProgreso | null;
@@ -55,6 +56,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   const [filas, setFilas] = useState<Fila[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [comunicacionOpen, setComunicacionOpen] = useState(false);
 
   const nombreTipo = (id: string) => tipos.find((t) => t.id === id)?.nombre ?? id;
 
@@ -150,6 +152,20 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
     return { total: filas.length, realizadas, pendientes };
   }, [filas]);
 
+  const noConformidades = useMemo(
+    () =>
+      filas
+        .filter((f) => f.resultado === 'no_conforme')
+        .map((f) => ({
+          maquinista: f.maquinistaNombre,
+          accion: f.tipo_accion_libre || nombreTipo(f.tipo_accion),
+          fecha: f.fecha_real || f.fecha_prevista,
+          observaciones: f.observaciones,
+        })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filas, tipos]
+  );
+
   if (!plan) return null;
 
   return (
@@ -174,7 +190,20 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           <Button size="sm" onClick={() => guardar('validado')} disabled={saving}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Validar plan
           </Button>
+          {noConformidades.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => setComunicacionOpen(true)}>
+              <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) · opcional
+            </Button>
+          )}
         </div>
+
+        <ComunicacionNoConformidadesDialog
+          open={comunicacionOpen}
+          onOpenChange={setComunicacionOpen}
+          planNombre={plan.nombre}
+          base={plan.base}
+          items={noConformidades}
+        />
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
