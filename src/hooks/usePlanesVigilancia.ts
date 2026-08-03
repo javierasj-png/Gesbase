@@ -13,6 +13,7 @@ export interface TipoAccionVigilancia {
   tipo_plan_anual: string | null;
   activo: boolean;
   orden: number;
+  categoria_plan?: string | null;
 }
 
 export interface PlanVigilancia {
