@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, Shield, Building2, Loader2, CheckCircle, Clock, UserCheck, Pencil, Trash2 } from 'lucide-react';
+import { Users, Shield, Building2, Loader2, CheckCircle, Clock, UserCheck, Pencil, Trash2, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppRole } from '@/types';
@@ -331,6 +331,26 @@ export function UserManagement() {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar el usuario' });
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  // ── Reset password (admin) ──
+  const handleResetPassword = async (user: UserWithDetails) => {
+    setSaving(user.user_id);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({
+        title: 'Correo enviado',
+        description: `Se ha enviado un enlace de restablecimiento de contraseña a ${user.email}`,
+      });
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar el correo de restablecimiento' });
+    } finally {
+      setSaving(null);
     }
   };
 
