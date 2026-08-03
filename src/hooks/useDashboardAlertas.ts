@@ -62,6 +62,21 @@ export interface AlertaSegEspecial {
   grupo: GrupoAlerta;
 }
 
+export interface AlertaPlanEspecifico {
+  tipo: 'plan_especifico';
+  id: string;
+  accion_id: string;
+  plan_nombre: string;
+  maquinista_id: string;
+  maquinista_nombre: string;
+  maquinista_base: string;
+  accion: string;
+  estado: 'Pendiente' | 'Vencida';
+  dias_restantes: number;
+  fecha_objetivo: Date;
+  grupo: GrupoAlerta;
+}
+
 export interface AlertaLicencia {
   tipo: 'licencia';
   id: string;
@@ -74,7 +89,8 @@ export interface AlertaLicencia {
   grupo: GrupoAlerta;
 }
 
-export type Alerta = AlertaCertificacion | Alerta1603 | Alerta1201 | AlertaSegEspecial | AlertaLicencia;
+export type Alerta = AlertaCertificacion | Alerta1603 | Alerta1201 | AlertaSegEspecial | AlertaLicencia | AlertaPlanEspecifico;
+
 
 // Función para determinar el grupo de una alerta basándose en su fecha límite
 function calcularGrupoAlerta(fechaLimite: Date | null, hoy: Date): GrupoAlerta | null {
