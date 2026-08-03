@@ -242,7 +242,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
 
           {noConformidades.length > 0 && (
             <Button size="sm" variant="outline" onClick={() => setComunicacionOpen(true)}>
-              <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) · opcional
+              <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) ·{' '}
+              {pendientesComunicar === 0 ? 'comunicadas' : `${pendientesComunicar} sin comunicar`}
             </Button>
           )}
         </div>
@@ -253,7 +254,12 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           planNombre={plan.nombre}
           base={plan.base}
           items={noConformidades}
+          onComunicado={() => {
+            cargar();
+            onChanged();
+          }}
         />
+
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
