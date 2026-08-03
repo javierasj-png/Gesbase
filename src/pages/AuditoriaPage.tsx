@@ -408,28 +408,6 @@ export default function AuditoriaPage() {
               Genera informes de cumplimiento SGS y controla el registro de partes
             </p>
           </div>
-          {selectedTab === 'cumplimiento' && (
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                disabled={generatingPDF || accessibleBases.length === 0}
-                onClick={async () => {
-                  setGeneratingPDF(true);
-                  try {
-                    await generateAuditoriaPDF({ bases: accessibleBases, baseFilter });
-                  } catch (e) {
-                    console.error('Error generating audit PDF:', e);
-                  } finally {
-                    setGeneratingPDF(false);
-                  }
-                }}
-              >
-                {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                {generatingPDF ? 'Generando...' : 'Exportar PDF'}
-              </Button>
-            </div>
-          )}
 
         </div>
 
@@ -563,11 +541,33 @@ export default function AuditoriaPage() {
             {/* Cumplimiento Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Informe de Cumplimiento por Base</CardTitle>
-                <CardDescription>
-                  Resumen del estado de cumplimiento de los procesos SGS
-                </CardDescription>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <CardTitle>Informe de Cumplimiento por Base</CardTitle>
+                    <CardDescription>
+                      Resumen del estado de cumplimiento de los procesos SGS
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="default"
+                    disabled={generatingPDF || accessibleBases.length === 0}
+                    onClick={async () => {
+                      setGeneratingPDF(true);
+                      try {
+                        await generateAuditoriaPDF({ bases: accessibleBases, baseFilter });
+                      } catch (e) {
+                        console.error('Error generating audit PDF:', e);
+                      } finally {
+                        setGeneratingPDF(false);
+                      }
+                    }}
+                  >
+                    {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                    {generatingPDF ? 'Generando...' : 'Exportar PDF'}
+                  </Button>
+                </div>
               </CardHeader>
+
               <CardContent>
                 {loadingCumplimiento ? (
                   <div className="text-center py-8 text-muted-foreground">
