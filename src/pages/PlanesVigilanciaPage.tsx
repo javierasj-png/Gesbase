@@ -350,7 +350,7 @@ export default function PlanesVigilanciaPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar plan</DialogTitle>
-            <DialogDescription>Modifica el nombre o la descripción del plan.</DialogDescription>
+            <DialogDescription>Modifica el nombre, la descripción o el periodo del plan.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -360,6 +360,16 @@ export default function PlanesVigilanciaPage() {
             <div className="space-y-1.5">
               <Label>Descripción</Label>
               <Textarea rows={3} value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Inicio del periodo</Label>
+                <Input type="date" value={editInicio} onChange={(e) => setEditInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fin del periodo</Label>
+                <Input type="date" value={editFin} onChange={(e) => setEditFin(e.target.value)} />
+              </div>
             </div>
           </div>
           <DialogFooter>
