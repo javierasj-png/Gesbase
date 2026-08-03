@@ -147,8 +147,10 @@ export async function generatePlanVigilanciaMemoriaPDF(planId: string) {
     return y;
   };
 
-  const heading = (y: number, txt: string) => {
-    const yy = need(y, 16);
+  // reserve: espacio mínimo que debe quedar para el título + el inicio de su contenido,
+  // de forma que nunca quede un encabezado huérfano al final de la página
+  const heading = (y: number, txt: string, reserve = 42) => {
+    const yy = need(y, reserve);
     doc.setFontSize(11.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...MAGENTA);
@@ -156,6 +158,7 @@ export async function generatePlanVigilanciaMemoriaPDF(planId: string) {
     doc.setTextColor(...DARK);
     return yy + 6;
   };
+
 
   const para = (y: number, txt: string, size = 8.5) => {
     doc.setFontSize(size);
