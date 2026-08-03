@@ -1,0 +1,1 @@
+CREATE POLICY "user_insert_own_profile_by_user_id" ON public.profiles FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
