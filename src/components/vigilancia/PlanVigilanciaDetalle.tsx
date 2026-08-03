@@ -277,6 +277,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                   <th className="px-2 py-1.5 font-medium">Fecha real</th>
                   <th className="px-2 py-1.5 font-medium">Resultado</th>
                   <th className="px-2 py-1.5 font-medium">Observaciones</th>
+                  <th className="px-2 py-1.5 font-medium">Comunicada</th>
+
                 </tr>
               </thead>
               <tbody className="divide-y">
