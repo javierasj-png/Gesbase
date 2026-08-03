@@ -487,7 +487,8 @@ export function useDashboardAlertas(baseFilter?: string) {
             .from('planes_vigilancia_acciones')
             .select('id, plan_id, maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista, estado')
             .in('plan_id', planesVal.map((p) => p.id))
-            .eq('estado', 'pendiente');
+            .in('estado', ['pendiente', 'no_realizada']);
+
 
           const { data: tiposAcc } = await supabase
             .from('tipos_accion_vigilancia')
@@ -511,7 +512,8 @@ export function useDashboardAlertas(baseFilter?: string) {
 
               const fechaObj = new Date(a.fecha_prevista);
               fechaObj.setHours(0, 0, 0, 0);
-              const grupo = calcularGrupoAlerta(fechaObj, today);
+              const esNoRealizada = a.estado === 'no_realizada';
+              const grupo = esNoRealizada ? 'vencidas' : calcularGrupoAlerta(fechaObj, today);
               if (!grupo) continue;
 
               allAlertas.push({
@@ -523,11 +525,12 @@ export function useDashboardAlertas(baseFilter?: string) {
                 maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
                 maquinista_base: maq.base,
                 accion: a.tipo_accion_libre || tipoMap.get(a.tipo_accion) || a.tipo_accion,
-                estado: grupo === 'vencidas' ? 'Vencida' : 'Pendiente',
+                estado: esNoRealizada || grupo === 'vencidas' ? 'Vencida' : 'Pendiente',
                 dias_restantes: differenceInDays(fechaObj, today),
                 fecha_objetivo: fechaObj,
                 grupo,
               });
+
             }
           }
         }

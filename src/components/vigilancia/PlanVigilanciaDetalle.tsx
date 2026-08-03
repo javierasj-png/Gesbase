@@ -49,6 +49,22 @@ const sumarDias = (iso: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+
+// Estado automático: realizada si hay fecha real (dentro de periodo) y resultado;
+// no realizada si el periodo del plan ya terminó y sigue pendiente.
+const estadoAuto = (
+  f: { fecha_real?: string | null; resultado?: string | null },
+  plan: { fecha_inicio: string; fecha_fin: string }
+): 'pendiente' | 'realizada' | 'no_realizada' => {
+  const dentro =
+    !!f.fecha_real && f.fecha_real >= plan.fecha_inicio && f.fecha_real <= plan.fecha_fin;
+  if (dentro && f.resultado) return 'realizada';
+  if (hoyISO() > plan.fecha_fin) return 'no_realizada';
+  return 'pendiente';
+};
+
+
 export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: Props) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -71,6 +87,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
       .order('fecha_prevista');
     const list: Fila[] = ((data as any[]) || []).map((a) => ({
       ...(a as AccionPlanVigilancia),
+      estado: estadoAuto(a, plan),
       maquinistaNombre: a.maquinistas
         ? `${a.maquinistas.apellidos}, ${a.maquinistas.nombre}`
         : '—',
@@ -81,6 +98,21 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
     );
     setFilas(list);
     setLoading(false);
+
+    // Persistir los estados que hayan cambiado automáticamente
+    const cambios = ((data as any[]) || []).filter((a) => estadoAuto(a, plan) !== a.estado);
+    if (cambios.length > 0) {
+      await Promise.all(
+        cambios.map((a) =>
+          supabase
+            .from('planes_vigilancia_acciones')
+            .update({ estado: estadoAuto(a, plan) } as any)
+            .eq('id', a.id)
+        )
+      );
+      onChanged();
+    }
+
   }, [plan]);
 
   useEffect(() => {
@@ -117,7 +149,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           .update({
             fecha_prevista: f.fecha_prevista,
             fecha_real: f.fecha_real,
-            estado: f.estado,
+            estado: estadoAuto(f, plan),
             resultado: f.resultado,
             observaciones: f.observaciones,
             updated_by: user?.id ?? null,
@@ -148,14 +180,15 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   };
 
   const resumen = useMemo(() => {
-    // Una acción cuenta como realizada si su fecha real cae dentro del periodo del plan,
-    // aunque no coincida con la fecha propuesta.
-    const dentroPeriodo = (f: Fila) =>
-      !!f.fecha_real && !!plan && f.fecha_real >= plan.fecha_inicio && f.fecha_real <= plan.fecha_fin;
-    const realizadas = filas.filter((f) => f.estado === 'realizada' || dentroPeriodo(f)).length;
-    const pendientes = filas.filter((f) => f.estado === 'pendiente' && !dentroPeriodo(f)).length;
-    return { total: filas.length, realizadas, pendientes };
+    if (!plan) return { total: filas.length, realizadas: 0, pendientes: 0 };
+    const estados = filas.map((f) => estadoAuto(f, plan));
+    return {
+      total: filas.length,
+      realizadas: estados.filter((e) => e === 'realizada').length,
+      pendientes: estados.filter((e) => e === 'pendiente').length,
+    };
   }, [filas, plan]);
+
 
   const noConformidades = useMemo(
     () =>
@@ -250,17 +283,27 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <Select
-                        value={f.estado}
-                        onValueChange={(v) => setFila(f.id, { estado: v as Fila['estado'] })}
-                      >
-                        <SelectTrigger className="h-7 w-[125px] text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pendiente">Pendiente</SelectItem>
-                          <SelectItem value="realizada">Realizada</SelectItem>
-                          <SelectItem value="no_realizada">No realizada</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {(() => {
+                        const est = estadoAuto(f, plan);
+                        return (
+                          <Badge
+                            variant={
+                              est === 'realizada'
+                                ? 'default'
+                                : est === 'no_realizada'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                            className="text-[10px]"
+                          >
+                            {est === 'realizada'
+                              ? 'Realizada'
+                              : est === 'no_realizada'
+                              ? 'No realizada'
+                              : 'Pendiente'}
+                          </Badge>
+                        );
+                      })()}
                     </td>
                     <td className="px-2 py-1">
                       <Input
@@ -270,10 +313,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         onChange={(e) => {
                           const v = e.target.value || null;
                           const dentro = !!v && v >= plan.fecha_inicio && v <= plan.fecha_fin;
-                          setFila(f.id, {
-                            fecha_real: v,
-                            ...(dentro ? { estado: 'realizada' as Fila['estado'] } : {}),
-                          });
+                          setFila(f.id, { fecha_real: v });
+
                           if (v && !dentro) {
                             toast({
                               variant: 'destructive',
