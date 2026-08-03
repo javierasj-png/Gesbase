@@ -276,8 +276,9 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                   <th className="px-2 py-1.5 font-medium">Estado</th>
                   <th className="px-2 py-1.5 font-medium">Fecha real</th>
                   <th className="px-2 py-1.5 font-medium">Resultado</th>
-                  <th className="px-2 py-1.5 font-medium">Observaciones</th>
                   <th className="px-2 py-1.5 font-medium">Comunicada</th>
+                  <th className="px-2 py-1.5 font-medium">Observaciones</th>
+
 
                 </tr>
               </thead>
@@ -355,13 +356,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-2 py-1">
-                      <Input
-                        className="h-7 text-xs min-w-[160px]"
-                        value={f.observaciones || ''}
-                        onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
-                      />
-                    </td>
                     <td className="px-2 py-1 whitespace-nowrap">
                       {f.resultado === 'no_conforme' ? (
                         f.comunicada ? (
@@ -374,6 +368,13 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                    </td>
+                    <td className="px-2 py-1">
+                      <Input
+                        className="h-7 text-xs min-w-[160px]"
+                        value={f.observaciones || ''}
+                        onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
+                      />
                     </td>
                   </tr>
                 ))}
