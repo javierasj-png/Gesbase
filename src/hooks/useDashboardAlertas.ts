@@ -474,6 +474,67 @@ export function useDashboardAlertas(baseFilter?: string) {
         }
       }
 
+      // 6. PLANES ESPECÍFICOS DE VIGILANCIA (solo planes validados)
+      {
+        const { data: planesVal } = await supabase
+          .from('planes_vigilancia')
+          .select('id, nombre, base, estado')
+          .eq('estado', 'validado');
+
+        if (planesVal && planesVal.length > 0) {
+          const planMap = new Map(planesVal.map((p) => [p.id, p]));
+          const { data: accionesPV } = await supabase
+            .from('planes_vigilancia_acciones')
+            .select('id, plan_id, maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista, estado')
+            .in('plan_id', planesVal.map((p) => p.id))
+            .eq('estado', 'pendiente');
+
+          const { data: tiposAcc } = await supabase
+            .from('tipos_accion_vigilancia')
+            .select('id, nombre');
+          const tipoMap = new Map((tiposAcc || []).map((t) => [t.id, t.nombre]));
+
+          if (accionesPV && accionesPV.length > 0) {
+            const maqIdsPV = [...new Set(accionesPV.map((a) => a.maquinista_id))];
+            const { data: maqsPV } = await supabase
+              .from('maquinistas')
+              .select('id, nombre, apellidos, base')
+              .in('id', maqIdsPV);
+            const maqMapPV = new Map((maqsPV || []).map((m) => [m.id, m]));
+
+            for (const a of accionesPV) {
+              const plan = planMap.get(a.plan_id);
+              const maq = maqMapPV.get(a.maquinista_id);
+              if (!plan || !maq) continue;
+              if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
+              if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+
+              const fechaObj = new Date(a.fecha_prevista);
+              fechaObj.setHours(0, 0, 0, 0);
+              const grupo = calcularGrupoAlerta(fechaObj, today);
+              if (!grupo) continue;
+
+              allAlertas.push({
+                tipo: 'plan_especifico',
+                id: plan.id,
+                accion_id: a.id,
+                plan_nombre: plan.nombre,
+                maquinista_id: a.maquinista_id,
+                maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+                maquinista_base: maq.base,
+                accion: a.tipo_accion_libre || tipoMap.get(a.tipo_accion) || a.tipo_accion,
+                estado: grupo === 'vencidas' ? 'Vencida' : 'Pendiente',
+                dias_restantes: differenceInDays(fechaObj, today),
+                fecha_objetivo: fechaObj,
+                grupo,
+              });
+            }
+          }
+        }
+      }
+
+
+
       // Ordenar: primero vencidas, luego próximas 3 meses, luego resto año
       // Dentro de cada grupo, ordenar por días restantes
       const ordenGrupo: Record<GrupoAlerta, number> = {
