@@ -336,7 +336,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
             <p className="text-sm text-muted-foreground">
               Selecciona los tipos de acción y el número de repeticiones por maquinista.
             </p>
-            {tipos.map((t) => {
+            {tiposDisponibles.map((t) => {
               const val = seleccionTipos[t.id] || 0;
               return (
                 <div key={t.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">
