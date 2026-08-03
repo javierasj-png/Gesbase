@@ -190,7 +190,13 @@ export function ComunicacionNoConformidadesDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
-          <Button variant="outline" onClick={registrarComunicacion} disabled={registrando}>
+          {items.some((i) => i.comunicada) && (
+            <Button variant="outline" onClick={() => registrarComunicacion(false)} disabled={registrando}>
+              {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+              Desmarcar como comunicadas
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => registrarComunicacion(true)} disabled={registrando}>
             {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
             Marcar como comunicadas
           </Button>
@@ -198,6 +204,7 @@ export function ComunicacionNoConformidadesDialog({
             <Mail className="w-4 h-4 mr-1" /> Abrir correo y registrar
           </Button>
         </DialogFooter>
+
 
       </DialogContent>
     </Dialog>
