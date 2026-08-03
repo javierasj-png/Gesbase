@@ -41,12 +41,15 @@ export function ComunicacionNoConformidadesDialog({
   planNombre,
   base,
   items,
+  onComunicado,
 }: Props) {
   const { toast } = useToast();
   const [destinatario, setDestinatario] = useState('');
   const [asunto, setAsunto] = useState('');
   const [cuerpo, setCuerpo] = useState('');
   const [generando, setGenerando] = useState(false);
+  const [registrando, setRegistrando] = useState(false);
+
 
   const detalle = items
     .map(
