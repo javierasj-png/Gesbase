@@ -149,7 +149,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           .update({
             fecha_prevista: f.fecha_prevista,
             fecha_real: f.fecha_real,
-            estado: f.estado,
+            estado: estadoAuto(f, plan),
             resultado: f.resultado,
             observaciones: f.observaciones,
             updated_by: user?.id ?? null,
