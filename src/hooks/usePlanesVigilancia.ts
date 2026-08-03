@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type CategoriaPlan = 'especifico' | 'campania';
 export type ModoAlcance = 'concretos' | 'porcentaje' | 'todos';
 export type DistribucionPlan = 'uniforme' | 'aleatoria' | 'manual';
-export type EstadoPlan = 'borrador' | 'propuesta' | 'validado' | 'completado' | 'archivado';
+export type EstadoPlan = 'propuesta' | 'validado' | 'completado' | 'archivado';
 
 export interface TipoAccionVigilancia {
   id: string;

@@ -180,7 +180,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
           fecha_inicio: fechaInicio,
           fecha_fin: fechaFin,
           distribucion,
-          estado: 'borrador',
+          estado: 'propuesta',
           created_by: user?.id ?? null,
           updated_by: user?.id ?? null,
         })
@@ -188,7 +188,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
         .single();
       if (error) throw error;
 
-      // Guardar el alcance y los tipos elegidos como acciones base del borrador
+      // Guardar el alcance y los tipos elegidos como acciones base de la propuesta
       const filas: {
         plan_id: string;
         maquinista_id: string;
@@ -502,7 +502,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
           ) : (
             <Button disabled={!puedeAvanzar() || saving} onClick={guardarBorrador}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Guardar como borrador
+              Guardar propuesta
             </Button>
           )}
         </DialogFooter>
