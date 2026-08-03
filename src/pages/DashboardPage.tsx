@@ -433,8 +433,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Planes Específicos de Vigilancia */}
+        <PlanesEspecificosResumen baseFilter={effectiveBaseFilter} />
+
         {/* Panel de Alertas */}
         <AlertasPanel baseFilter={effectiveBaseFilter} maxItems={15} />
+
       </div>
     </AppLayout>
   );
