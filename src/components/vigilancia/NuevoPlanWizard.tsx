@@ -153,6 +153,14 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
     );
   }, [maquinistas, busqueda]);
 
+  const tiposDisponibles = useMemo(
+    () =>
+      tipos.filter(
+        (t) => !t.categoria_plan || t.categoria_plan === 'ambos' || t.categoria_plan === categoria
+      ),
+    [tipos, categoria]
+  );
+
   const tiposElegidos = Object.entries(seleccionTipos).filter(([, n]) => n > 0);
 
   const puedeAvanzar = () => {
