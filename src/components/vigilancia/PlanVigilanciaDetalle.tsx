@@ -376,8 +376,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
                       />
                     </td>
-
-                    </td>
                   </tr>
                 ))}
 
