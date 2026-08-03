@@ -180,14 +180,15 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   };
 
   const resumen = useMemo(() => {
-    // Una acción cuenta como realizada si su fecha real cae dentro del periodo del plan,
-    // aunque no coincida con la fecha propuesta.
-    const dentroPeriodo = (f: Fila) =>
-      !!f.fecha_real && !!plan && f.fecha_real >= plan.fecha_inicio && f.fecha_real <= plan.fecha_fin;
-    const realizadas = filas.filter((f) => f.estado === 'realizada' || dentroPeriodo(f)).length;
-    const pendientes = filas.filter((f) => f.estado === 'pendiente' && !dentroPeriodo(f)).length;
-    return { total: filas.length, realizadas, pendientes };
+    if (!plan) return { total: filas.length, realizadas: 0, pendientes: 0 };
+    const estados = filas.map((f) => estadoAuto(f, plan));
+    return {
+      total: filas.length,
+      realizadas: estados.filter((e) => e === 'realizada').length,
+      pendientes: estados.filter((e) => e === 'pendiente').length,
+    };
   }, [filas, plan]);
+
 
   const noConformidades = useMemo(
     () =>
