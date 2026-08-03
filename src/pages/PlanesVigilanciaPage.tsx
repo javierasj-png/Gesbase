@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Loader2, Archive, Trash2, Copy, ShieldCheck, Megaphone, UserCheck, Pencil } from 'lucide-react';
+import { Plus, Search, Loader2, Archive, Trash2, ShieldCheck, Megaphone, UserCheck, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -141,44 +141,6 @@ export default function PlanesVigilanciaPage() {
   }, [planes, categoriaTab, baseFilter, estadoFilter, tipoFilter, anioFilter, busqueda]);
 
   const nombreTipo = (id: string) => tipos.find((t) => t.id === id)?.nombre ?? id;
-
-  const duplicar = async (plan: PlanVigilanciaConProgreso) => {
-    try {
-      const { data: nuevo, error } = await supabase
-        .from('planes_vigilancia')
-        .insert({
-          categoria: plan.categoria,
-          nombre: `${plan.nombre} (copia)`,
-          descripcion: plan.descripcion,
-          responsable: plan.responsable,
-          base: plan.base,
-          modo_alcance: plan.modo_alcance,
-          porcentaje: plan.porcentaje,
-          fecha_inicio: plan.fecha_inicio,
-          fecha_fin: plan.fecha_fin,
-          distribucion: plan.distribucion,
-          estado: 'borrador',
-        })
-        .select('id')
-        .single();
-      if (error) throw error;
-
-      const { data: acciones } = await supabase
-        .from('planes_vigilancia_acciones')
-        .select('maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista')
-        .eq('plan_id', plan.id);
-      if (acciones?.length) {
-        await supabase.from('planes_vigilancia_acciones').insert(
-          acciones.map((a) => ({ ...a, plan_id: nuevo!.id }))
-        );
-      }
-      toast({ title: 'Plan duplicado' });
-      refetch();
-    } catch (e) {
-      console.error(e);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo duplicar el plan.' });
-    }
-  };
 
   const ejecutarConfirmacion = async () => {
     if (!confirmar) return;
@@ -344,9 +306,6 @@ export default function PlanesVigilanciaPage() {
                     </Button>
                     <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
                       <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => duplicar(p)}>
-                      <Copy className="w-3.5 h-3.5" />
                     </Button>
                     {p.estado !== 'archivado' && (
                       <Button
