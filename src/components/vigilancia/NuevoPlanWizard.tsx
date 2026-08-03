@@ -349,12 +349,8 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{t.nombre}</p>
-                    {t.tipo_plan_anual && (
-                      <p className="text-[11px] text-muted-foreground">
-                        Se volcará como «{t.tipo_plan_anual}» en la planificación anual
-                      </p>
-                    )}
                   </div>
+
                   <Input
                     type="number"
                     min={1}
