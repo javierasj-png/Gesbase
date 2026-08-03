@@ -195,14 +195,20 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
       filas
         .filter((f) => f.resultado === 'no_conforme')
         .map((f) => ({
+          id: f.id,
           maquinista: f.maquinistaNombre,
           accion: f.tipo_accion_libre || nombreTipo(f.tipo_accion),
           fecha: f.fecha_real || f.fecha_prevista,
           observaciones: f.observaciones,
+          comunicada: !!f.comunicada,
+          comunicada_at: f.comunicada_at ?? null,
         })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, tipos]
   );
+
+  const pendientesComunicar = noConformidades.filter((n) => !n.comunicada).length;
+
 
   if (!plan) return null;
 
