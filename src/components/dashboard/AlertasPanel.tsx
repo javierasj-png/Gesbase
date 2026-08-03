@@ -38,7 +38,10 @@ function getAlertaIcon(alerta: Alerta) {
       return <Eye className="w-4 h-4" />;
     case 'licencia':
       return <IdCard className="w-4 h-4" />;
+    case 'plan_especifico':
+      return <ShieldCheck className="w-4 h-4" />;
   }
+
 }
 
 function getAlertaLabel(alerta: Alerta): string {
