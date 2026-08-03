@@ -579,6 +579,8 @@ export function useDashboardAlertas(baseFilter?: string) {
     pe1603: alertas.filter(a => a.tipo === 'pe1603').length,
     pe1201: alertas.filter(a => a.tipo === 'pe1201').length,
     segEspecial: alertas.filter(a => a.tipo === 'seg_especial').length,
+    planEspecifico: alertas.filter(a => a.tipo === 'plan_especifico').length,
+
   };
 
   return {
