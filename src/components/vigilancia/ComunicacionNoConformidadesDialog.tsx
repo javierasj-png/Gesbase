@@ -92,24 +92,36 @@ export function ComunicacionNoConformidadesDialog({
     }
   };
 
-  const registrarComunicacion = async () => {
+  const registrarComunicacion = async (marcar = true) => {
     const ids = items.map((i) => i.id).filter(Boolean) as string[];
     if (ids.length === 0) return;
     setRegistrando(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
+      const patch = marcar
+        ? {
+            comunicada: true,
+            comunicada_at: new Date().toISOString(),
+            comunicada_por: userData?.user?.id ?? null,
+            comunicacion_destinatario: destinatario || null,
+            comunicacion_asunto: asunto || null,
+          }
+        : {
+            comunicada: false,
+            comunicada_at: null,
+            comunicada_por: null,
+            comunicacion_destinatario: null,
+            comunicacion_asunto: null,
+          };
       const { error } = await supabase
         .from('planes_vigilancia_acciones')
-        .update({
-          comunicada: true,
-          comunicada_at: new Date().toISOString(),
-          comunicada_por: userData?.user?.id ?? null,
-          comunicacion_destinatario: destinatario || null,
-          comunicacion_asunto: asunto || null,
-        } as any)
+        .update(patch as any)
         .in('id', ids);
       if (error) throw error;
-      toast({ title: 'Comunicación registrada', description: 'Queda guardada como trazabilidad en el plan.' });
+      toast({
+        title: marcar ? 'Comunicación registrada' : 'Comunicación desmarcada',
+        description: marcar ? 'Queda guardada como trazabilidad en el plan.' : undefined,
+      });
       onComunicado?.();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e?.message });
@@ -178,7 +190,13 @@ export function ComunicacionNoConformidadesDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
-          <Button variant="outline" onClick={registrarComunicacion} disabled={registrando}>
+          {items.some((i) => i.comunicada) && (
+            <Button variant="outline" onClick={() => registrarComunicacion(false)} disabled={registrando}>
+              {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+              Desmarcar como comunicadas
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => registrarComunicacion(true)} disabled={registrando}>
             {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
             Marcar como comunicadas
           </Button>
@@ -186,6 +204,7 @@ export function ComunicacionNoConformidadesDialog({
             <Mail className="w-4 h-4 mr-1" /> Abrir correo y registrar
           </Button>
         </DialogFooter>
+
 
       </DialogContent>
     </Dialog>
