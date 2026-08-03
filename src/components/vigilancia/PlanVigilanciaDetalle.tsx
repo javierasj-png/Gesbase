@@ -26,6 +26,7 @@ import {
   type PlanVigilanciaConProgreso,
 } from '@/hooks/usePlanesVigilancia';
 import { CalendarRange, CheckCircle2, Loader2, Mail, Save, Shuffle } from 'lucide-react';
+
 import { ComunicacionNoConformidadesDialog } from './ComunicacionNoConformidadesDialog';
 
 interface Props {
