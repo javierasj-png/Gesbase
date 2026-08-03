@@ -666,6 +666,122 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     }
   }
 
+  // ── SECCIÓN 5: PLANES ESPECÍFICOS DE VIGILANCIA Y CAMPAÑAS ──
+  const [{ data: planesVig }, { data: tiposVig }] = await Promise.all([
+    supabase
+      .from('planes_vigilancia')
+      .select('*')
+      .in('base', basesToReport)
+      .lte('fecha_inicio', yearEndISO)
+      .gte('fecha_fin', threeYearsAgoISO)
+      .order('fecha_inicio', { ascending: false }),
+    supabase.from('tipos_accion_vigilancia').select('id, nombre'),
+  ]);
+
+  const planesList = (planesVig as any[]) || [];
+  const planIds = planesList.map((p) => p.id);
+  const { data: accionesVig } = planIds.length
+    ? await supabase.from('planes_vigilancia_acciones').select('*').in('plan_id', planIds).order('fecha_prevista')
+    : { data: [] as any[] };
+  const accionesList = (accionesVig as any[]) || [];
+  const tipoVigMap = new Map(((tiposVig as any[]) || []).map((t) => [t.id, t.nombre]));
+  const maqMapVig = new Map(maqs.map((m: any) => [m.id, m]));
+
+  if (planesList.length > 0) {
+    doc.addPage();
+    addPageHeader(doc, 'Informe de Auditoría SGS');
+    y = sectionTitle(doc, '5. PLANES ESPECÍFICOS DE VIGILANCIA Y CAMPAÑAS', PAGE_HEADER_H + 8);
+
+    for (const baseNombre of basesToReport) {
+      const planesBase = planesList.filter((p) => p.base === baseNombre);
+      if (planesBase.length === 0) continue;
+
+      y = needSpace(doc, y, 22, 'Informe de Auditoría SGS');
+      y = baseSubHeader(doc, baseNombre, y) + 1;
+
+      // Resumen de planes de la base
+      const resumenRows = planesBase.map((p) => {
+        const accs = accionesList.filter((a) => a.plan_id === p.id);
+        const realizadas = accs.filter((a) => a.estado === 'realizada').length;
+        const noRealizadas = accs.filter((a) => a.estado === 'no_realizada').length;
+        const noConformes = accs.filter((a) => a.resultado === 'no_conforme').length;
+        const comunicadas = accs.filter((a) => a.resultado === 'no_conforme' && a.comunicada).length;
+        const pct = accs.length > 0 ? Math.round((realizadas / accs.length) * 100) : 0;
+        return [
+          p.nombre,
+          p.categoria === 'especifico' ? 'Específico' : 'Campaña',
+          `${format(parseISO(p.fecha_inicio), 'dd/MM/yy')}–${format(parseISO(p.fecha_fin), 'dd/MM/yy')}`,
+          p.estado,
+          `${realizadas}/${accs.length} (${pct}%)`,
+          String(noRealizadas),
+          `${noConformes} (${comunicadas} com.)`,
+        ];
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Plan', 'Tipo', 'Periodo', 'Estado', 'Cumplimiento', 'No realizadas', 'No conformidades']],
+        body: resumenRows,
+        theme: 'grid',
+        headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7.5 },
+        styles: { fontSize: 7, cellPadding: 2.2, lineColor: COOL_GRAY, lineWidth: 0.5 },
+        bodyStyles: { textColor: DARK },
+      });
+      y = tableEndY(doc, y) + 6;
+
+      // Detalle de seguimiento por plan
+      for (const p of planesBase) {
+        const accs = accionesList.filter((a) => a.plan_id === p.id);
+        if (accs.length === 0) continue;
+
+        y = needSpace(doc, y, 26, 'Informe de Auditoría SGS');
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...DARK);
+        doc.text(`${p.nombre} — seguimiento`, MARGIN, y);
+        y += 3;
+
+        const detalleRows = accs.map((a) => {
+          const m: any = maqMapVig.get(a.maquinista_id);
+          return [
+            m ? `${m.apellidos}, ${m.nombre}` : '-',
+            a.tipo_accion_libre || tipoVigMap.get(a.tipo_accion) || a.tipo_accion,
+            format(parseISO(a.fecha_prevista), 'dd/MM/yy'),
+            a.fecha_real ? format(parseISO(a.fecha_real), 'dd/MM/yy') : '-',
+            a.estado === 'realizada' ? 'Realizada' : a.estado === 'no_realizada' ? 'No realizada' : 'Pendiente',
+            a.resultado === 'conforme' ? 'Conforme' : a.resultado === 'no_conforme' ? 'No conforme' : '-',
+            a.resultado === 'no_conforme' ? (a.comunicada ? 'Sí' : 'No') : '-',
+          ];
+        });
+
+        autoTable(doc, {
+          startY: y + 2,
+          head: [['Maquinista', 'Acción', 'Prevista', 'Real', 'Estado', 'Resultado', 'Comunicada']],
+          body: detalleRows,
+          theme: 'grid',
+          headStyles: { fillColor: COOL_GRAY, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+          styles: { fontSize: 6.8, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.4 },
+          bodyStyles: { textColor: DARK },
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.column.index === 4) {
+              const v = data.cell.raw as string;
+              if (v === 'Realizada') data.cell.styles.textColor = GREEN;
+              else if (v === 'No realizada') data.cell.styles.textColor = RED;
+              else data.cell.styles.textColor = YELLOW;
+            }
+            if (data.section === 'body' && data.column.index === 5) {
+              const v = data.cell.raw as string;
+              if (v === 'Conforme') data.cell.styles.textColor = GREEN;
+              else if (v === 'No conforme') data.cell.styles.textColor = RED;
+            }
+          },
+        });
+        y = tableEndY(doc, y) + 6;
+      }
+    }
+  }
+
+
   // ── Footers ──
   addFooters(doc, 'Informe Auditoría SGS');
 
