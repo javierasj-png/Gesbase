@@ -487,7 +487,8 @@ export function useDashboardAlertas(baseFilter?: string) {
             .from('planes_vigilancia_acciones')
             .select('id, plan_id, maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista, estado')
             .in('plan_id', planesVal.map((p) => p.id))
-            .eq('estado', 'pendiente');
+            .in('estado', ['pendiente', 'no_realizada']);
+
 
           const { data: tiposAcc } = await supabase
             .from('tipos_accion_vigilancia')
