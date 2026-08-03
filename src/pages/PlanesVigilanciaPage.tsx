@@ -50,7 +50,6 @@ import { PlanVigilanciaDetalle } from '@/components/vigilancia/PlanVigilanciaDet
 import { format, parseISO } from 'date-fns';
 
 const ESTADO_LABEL: Record<string, string> = {
-  borrador: 'Borrador',
   propuesta: 'Propuesta',
   validado: 'Validado',
   completado: 'Completado',
@@ -58,7 +57,6 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 const ESTADO_CLASS: Record<string, string> = {
-  borrador: 'bg-muted text-muted-foreground border-border',
   propuesta: 'bg-amber-100 text-amber-900 border-amber-300',
   validado: 'bg-emerald-100 text-emerald-900 border-emerald-300',
   completado: 'bg-sky-100 text-sky-900 border-sky-300',
@@ -383,7 +381,7 @@ export default function PlanesVigilanciaPage() {
             <AlertDialogDescription>
               {confirmar?.accion === 'archivar'
                 ? 'El plan pasará al histórico y dejará de mostrarse en la vista principal.'
-                : 'Se eliminará el borrador y todas sus acciones previstas. Esta acción no se puede deshacer.'}
+                : 'Se eliminará el plan y todas sus acciones previstas. Esta acción no se puede deshacer.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
