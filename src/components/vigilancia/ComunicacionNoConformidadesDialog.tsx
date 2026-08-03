@@ -168,14 +168,25 @@ export function ComunicacionNoConformidadesDialog({
           </div>
         </div>
 
+        {items.some((i) => i.comunicada) && (
+          <p className="text-[11px] text-muted-foreground">
+            {items.filter((i) => i.comunicada).length} de {items.length} ya constan como comunicadas.
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
+          <Button variant="outline" onClick={registrarComunicacion} disabled={registrando}>
+            {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+            Marcar como comunicadas
+          </Button>
           <Button onClick={abrirMailto} disabled={!destinatario.trim()}>
-            <Mail className="w-4 h-4 mr-1" /> Abrir correo
+            <Mail className="w-4 h-4 mr-1" /> Abrir correo y registrar
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
