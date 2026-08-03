@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Loader2, Archive, Trash2, ShieldCheck, Megaphone, UserCheck, Pencil } from 'lucide-react';
+import { Plus, Search, Loader2, Archive, Trash2, ShieldCheck, Megaphone, UserCheck, Pencil, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,9 @@ import {
 } from '@/hooks/usePlanesVigilancia';
 import { NuevoPlanWizard } from '@/components/vigilancia/NuevoPlanWizard';
 import { PlanVigilanciaDetalle } from '@/components/vigilancia/PlanVigilanciaDetalle';
+import { generatePlanVigilanciaMemoriaPDF } from '@/utils/generatePlanVigilanciaMemoriaPDF';
 import { format, parseISO } from 'date-fns';
+
 
 const ESTADO_LABEL: Record<string, string> = {
   propuesta: 'Propuesta',
@@ -90,6 +92,21 @@ export default function PlanesVigilanciaPage() {
   const [editInicio, setEditInicio] = useState('');
   const [editFin, setEditFin] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [memoriaId, setMemoriaId] = useState<string | null>(null);
+
+  const descargarMemoria = async (plan: PlanVigilanciaConProgreso) => {
+    setMemoriaId(plan.id);
+    try {
+      await generatePlanVigilanciaMemoriaPDF(plan.id);
+      toast({ title: 'Memoria generada' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error al generar la memoria', description: e.message });
+    } finally {
+      setMemoriaId(null);
+    }
+  };
+
+
 
   const abrirEdicion = (plan: PlanVigilanciaConProgreso) => {
     setEditar(plan);
@@ -312,22 +329,39 @@ export default function PlanesVigilanciaPage() {
                   </div>
 
                   <div className="flex gap-1 pt-1">
-                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
-                      Gestionar
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    {p.estado !== 'archivado' && (
+                    {p.estado === 'archivado' ? (
                       <Button
-                        variant="outline"
                         size="sm"
-                        className="h-7 px-2"
-                        onClick={() => setConfirmar({ plan: p, accion: 'archivar' })}
+                        className="h-7 px-2 text-xs"
+                        disabled={memoriaId === p.id}
+                        onClick={() => descargarMemoria(p)}
                       >
-                        <Archive className="w-3.5 h-3.5" />
+                        {memoriaId === p.id ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        Memoria PDF
                       </Button>
+                    ) : (
+                      <>
+                        <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
+                          Gestionar
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => setConfirmar({ plan: p, accion: 'archivar' })}
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
                     )}
+
                     {(
                       <Button
                         variant="outline"
