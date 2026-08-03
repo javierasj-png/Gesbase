@@ -441,65 +441,27 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
                     </TableCell>
                     <TableCell>{prioridadBadge(r.prioridad)}</TableCell>
                      <TableCell className="text-sm max-w-xs">{r.accion}</TableCell>
-                     <TableCell className="text-center">
-                       {canGenerateReport ? (
-                         <Button
-                           variant="ghost"
-                           size="icon"
-                           disabled={generatingReportBase === r.base}
-                           title="Generar informe IA para esta base"
-                           onClick={async () => {
-                             setGeneratingReportBase(r.base);
-                             try {
-                               const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
-                                 body: { baseFilter: r.base },
-                               });
-                               if (error) {
-                                 // Intentar extraer el mensaje real devuelto por la función
-                                 let realMsg = error.message;
-                                 try {
-                                   const ctx: any = (error as any).context;
-                                   if (ctx?.json) {
-                                     realMsg = ctx.json.error || ctx.json.warning || realMsg;
-                                   } else if (ctx?.body) {
-                                     const text = typeof ctx.body === 'string' ? ctx.body : await new Response(ctx.body).text();
-                                     try {
-                                       const parsed = JSON.parse(text);
-                                       realMsg = parsed.error || parsed.warning || text;
-                                     } catch {
-                                       realMsg = text || realMsg;
-                                     }
-                                   }
-                                 } catch { /* noop */ }
-                                 throw new Error(realMsg);
-                               }
-                               if (data?.informe) {
-                                 setReportContent(data.informe);
-                                 setReportBaseName(r.base);
-                                 setReportDialogOpen(true);
-                                 if (data.warning) {
-                                   toast.warning(data.warning);
-                                 }
-                               } else {
-                                 throw new Error(data?.error || 'No se recibió el informe');
-                               }
-                             } catch (err: any) {
-                               console.error('Error generating report:', err);
-                               toast.error(err.message || 'Error al generar el informe');
-                             } finally {
-                               setGeneratingReportBase(null);
+                     {propuesta.length > 1 && (
+                       <TableCell className="text-center">
+                         {canGenerateReport ? (
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             disabled={generatingReportBase === r.base}
+                             title="Generar informe IA para esta base"
+                             onClick={() => handleGenerarInforme(r.base)}
+                           >
+                             {generatingReportBase === r.base
+                               ? <Loader2 className="w-4 h-4 animate-spin" />
+                               : <FileBarChart className="w-4 h-4" />
                              }
-                           }}
-                         >
-                           {generatingReportBase === r.base
-                             ? <Loader2 className="w-4 h-4 animate-spin" />
-                             : <FileBarChart className="w-4 h-4" />
-                           }
-                         </Button>
-                       ) : (
-                         <span className="text-xs text-muted-foreground">—</span>
-                       )}
-                     </TableCell>
+                           </Button>
+                         ) : (
+                           <span className="text-xs text-muted-foreground">—</span>
+                         )}
+                       </TableCell>
+                     )}
+
                    </TableRow>
                 ))}
               </TableBody>
