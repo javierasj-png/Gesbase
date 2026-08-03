@@ -362,8 +362,22 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
                       />
                     </td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {f.resultado === 'no_conforme' ? (
+                        f.comunicada ? (
+                          <Badge variant="default" className="text-[10px]">
+                            Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[10px]">No</Badge>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
+
               </tbody>
             </table>
           </div>
