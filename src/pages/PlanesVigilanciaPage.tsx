@@ -56,7 +56,7 @@ const ESTADO_CLASS: Record<string, string> = {
 
 export default function PlanesVigilanciaPage() {
   usePageMeta({
-    title: 'Planes de Vigilancia — Gestión de Base',
+    title: 'Planes Específicos — Gestión de Base',
     description: 'Planes específicos de vigilancia y campañas o sondeos: creación, seguimiento y archivo.',
     path: '/planes-vigilancia',
   });
@@ -170,7 +170,7 @@ export default function PlanesVigilanciaPage() {
           <div>
             <h1 className="text-2xl font-semibold flex items-center gap-2">
               <ShieldCheck className="w-6 h-6 text-primary" />
-              Planes de Vigilancia
+              Planes Específicos
             </h1>
             <p className="text-sm text-muted-foreground">
               Planes específicos nominales y campañas o sondeos muestrales sobre la base.
