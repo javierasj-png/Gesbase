@@ -263,8 +263,25 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         type="date"
                         className="h-7 w-[130px] text-xs"
                         value={f.fecha_real || ''}
-                        onChange={(e) => setFila(f.id, { fecha_real: e.target.value || null })}
+                        onChange={(e) => {
+                          const v = e.target.value || null;
+                          const dentro = !!v && v >= plan.fecha_inicio && v <= plan.fecha_fin;
+                          setFila(f.id, {
+                            fecha_real: v,
+                            ...(dentro ? { estado: 'realizada' as Fila['estado'] } : {}),
+                          });
+                          if (v && !dentro) {
+                            toast({
+                              variant: 'destructive',
+                              title: 'Fecha fuera del periodo del plan',
+                              description: 'No computará como realizada. Amplía el periodo del plan si procede.',
+                            });
+                          }
+                        }}
                       />
+                      {f.fecha_real && (f.fecha_real < plan.fecha_inicio || f.fecha_real > plan.fecha_fin) && (
+                        <span className="text-[10px] text-destructive">Fuera de periodo</span>
+                      )}
                     </td>
                     <td className="px-2 py-1">
                       <Select
