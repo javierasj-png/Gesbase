@@ -380,12 +380,28 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
       {propuesta && propuesta.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
-            </CardTitle>
-            <CardDescription>
-              Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" /> Propuesta de Auditoría — {format(new Date(), 'dd/MM/yyyy')}
+                </CardTitle>
+                <CardDescription>
+                  Estado actual y recomendaciones basadas en el histórico de visitas y auditorías
+                </CardDescription>
+              </div>
+              {canGenerateReport && propuesta.length === 1 && (
+                <Button
+                  variant="default"
+                  disabled={generatingReportBase === propuesta[0].base}
+                  onClick={() => handleGenerarInforme(propuesta[0].base)}
+                >
+                  {generatingReportBase === propuesta[0].base
+                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    : <FileBarChart className="w-4 h-4 mr-2" />}
+                  {generatingReportBase === propuesta[0].base ? 'Generando...' : 'Generar Informe'}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -397,7 +413,8 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
                   <TableHead className="text-center">NC detectadas</TableHead>
                   <TableHead>Prioridad</TableHead>
                    <TableHead>Recomendación</TableHead>
-                   <TableHead className="text-center">Informe</TableHead>
+                   {propuesta.length > 1 && <TableHead className="text-center">Informe</TableHead>}
+
                  </TableRow>
                </TableHeader>
               <TableBody>
