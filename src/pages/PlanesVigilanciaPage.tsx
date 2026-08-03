@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Loader2, Archive, Trash2, ShieldCheck, Megaphone, UserCheck, Pencil } from 'lucide-react';
+import { Plus, Search, Loader2, Archive, Trash2, ShieldCheck, Megaphone, UserCheck, Pencil, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
