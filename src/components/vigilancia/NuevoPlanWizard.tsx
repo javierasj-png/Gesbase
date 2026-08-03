@@ -361,7 +361,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
             })}
             {(seleccionTipos['otros'] || 0) > 0 && (
               <div className="space-y-1.5 pt-1">
-                <Label>Descripción de «Otros»</Label>
+                <Label>Descripción de «Otro»</Label>
                 <Input value={tipoLibre} onChange={(e) => setTipoLibre(e.target.value)} placeholder="Ej. uniformidad" />
               </div>
             )}
