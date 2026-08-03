@@ -126,6 +126,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
   const elegirCategoria = (c: CategoriaPlan) => {
     setCategoria(c);
     setModo(c === 'especifico' ? 'concretos' : 'porcentaje');
+    setSeleccionTipos({});
   };
 
   const sortear = () => {
