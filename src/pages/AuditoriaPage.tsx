@@ -408,28 +408,6 @@ export default function AuditoriaPage() {
               Genera informes de cumplimiento SGS y controla el registro de partes
             </p>
           </div>
-          {selectedTab === 'cumplimiento' && (
-            <div className="flex gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                disabled={generatingPDF || accessibleBases.length === 0}
-                onClick={async () => {
-                  setGeneratingPDF(true);
-                  try {
-                    await generateAuditoriaPDF({ bases: accessibleBases, baseFilter });
-                  } catch (e) {
-                    console.error('Error generating audit PDF:', e);
-                  } finally {
-                    setGeneratingPDF(false);
-                  }
-                }}
-              >
-                {generatingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-                {generatingPDF ? 'Generando...' : 'Exportar PDF'}
-              </Button>
-            </div>
-          )}
 
         </div>
 
