@@ -45,6 +45,12 @@ export interface AccionPlanVigilancia {
   resultado: 'conforme' | 'no_conforme' | null;
   observaciones: string | null;
   actuacion_plan_anual_id?: string | null;
+  comunicada?: boolean;
+  comunicada_at?: string | null;
+  comunicada_por?: string | null;
+  comunicacion_destinatario?: string | null;
+  comunicacion_asunto?: string | null;
+
 }
 
 export interface PlanVigilanciaConProgreso extends PlanVigilancia {
