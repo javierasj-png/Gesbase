@@ -43,6 +43,7 @@ export interface AccionPlanVigilancia {
   estado: 'pendiente' | 'realizada' | 'no_realizada';
   resultado: 'conforme' | 'no_conforme' | null;
   observaciones: string | null;
+  actuacion_plan_anual_id?: string | null;
 }
 
 export interface PlanVigilanciaConProgreso extends PlanVigilancia {
