@@ -90,6 +90,21 @@ export default function PlanesVigilanciaPage() {
   const [editInicio, setEditInicio] = useState('');
   const [editFin, setEditFin] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [memoriaId, setMemoriaId] = useState<string | null>(null);
+
+  const descargarMemoria = async (plan: PlanVigilanciaConProgreso) => {
+    setMemoriaId(plan.id);
+    try {
+      await generatePlanVigilanciaMemoriaPDF(plan.id);
+      toast({ title: 'Memoria generada' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error al generar la memoria', description: e.message });
+    } finally {
+      setMemoriaId(null);
+    }
+  };
+
+
 
   const abrirEdicion = (plan: PlanVigilanciaConProgreso) => {
     setEditar(plan);
