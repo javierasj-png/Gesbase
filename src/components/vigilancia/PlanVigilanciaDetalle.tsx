@@ -139,6 +139,32 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   const setFila = (id: string, patch: Partial<Fila>) =>
     setFilas((s) => s.map((f) => (f.id === id ? { ...f, ...patch } : f)));
 
+  const toggleComunicada = async (f: Fila) => {
+    const nueva = !f.comunicada;
+    const patch = nueva
+      ? { comunicada: true, comunicada_at: new Date().toISOString(), comunicada_por: user?.id ?? null }
+      : { comunicada: false, comunicada_at: null, comunicada_por: null };
+    setFila(f.id, patch as Partial<Fila>);
+    const { error } = await supabase
+      .from('planes_vigilancia_acciones')
+      .update(patch as any)
+      .eq('id', f.id);
+    if (error) {
+      setFila(f.id, {
+        comunicada: f.comunicada,
+        comunicada_at: f.comunicada_at,
+        comunicada_por: f.comunicada_por,
+      } as Partial<Fila>);
+      toast({ title: 'Error', description: 'No se pudo actualizar la comunicación.', variant: 'destructive' });
+      return;
+    }
+    toast({
+      title: nueva ? 'Marcada como comunicada' : 'Comunicación desmarcada',
+    });
+    onChanged();
+  };
+
+
   const guardar = async (nuevoEstado?: 'propuesta' | 'validado') => {
     if (!plan) return;
     setSaving(true);
@@ -358,17 +384,24 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap">
                       {f.resultado === 'no_conforme' ? (
-                        f.comunicada ? (
-                          <Badge variant="default" className="text-[10px]">
-                            Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-[10px]">No</Badge>
-                        )
+                        <button
+                          type="button"
+                          onClick={() => toggleComunicada(f)}
+                          title={f.comunicada ? 'Clic para desmarcar' : 'Clic para marcar como comunicada'}
+                        >
+                          {f.comunicada ? (
+                            <Badge variant="default" className="text-[10px] cursor-pointer">
+                              Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="text-[10px] cursor-pointer">No</Badge>
+                          )}
+                        </button>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
+
                     <td className="px-2 py-1">
                       <Input
                         className="h-7 text-xs min-w-[160px]"
