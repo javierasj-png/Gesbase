@@ -16,10 +16,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Sparkles } from 'lucide-react';
 
 export interface NoConformidadItem {
+  id?: string;
   maquinista: string;
   accion: string;
   fecha: string;
   observaciones?: string | null;
+  comunicada?: boolean;
+  comunicada_at?: string | null;
 }
 
 interface Props {
@@ -28,7 +31,9 @@ interface Props {
   planNombre: string;
   base: string;
   items: NoConformidadItem[];
+  onComunicado?: () => void;
 }
+
 
 export function ComunicacionNoConformidadesDialog({
   open,
