@@ -14,6 +14,7 @@ import {
   ClipboardList,
   FileBarChart,
   Menu,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -24,6 +25,7 @@ const navItems = [
   { path: '/certificaciones', label: 'Certificaciones', icon: Train },
   { path: '/pe-1603', label: 'PE 16.03', icon: FileCheck },
   { path: '/pe-1201', label: 'PE 12.01', icon: AlertTriangle },
+  { path: '/planes-vigilancia', label: 'Planes de Vigilancia', icon: ShieldCheck },
   { path: '/partes', label: 'Control de Partes', icon: ClipboardList },
   { path: '/auditoria', label: 'Auditoría', icon: FileBarChart },
 ];

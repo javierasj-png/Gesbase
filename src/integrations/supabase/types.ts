@@ -872,6 +872,149 @@ export type Database = {
           },
         ]
       }
+      planes_vigilancia: {
+        Row: {
+          archived_at: string | null
+          base: string
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          distribucion: string
+          estado: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          modo_alcance: string
+          nombre: string
+          porcentaje: number | null
+          responsable: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          base: string
+          categoria: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          distribucion?: string
+          estado?: string
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          modo_alcance?: string
+          nombre: string
+          porcentaje?: number | null
+          responsable?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          base?: string
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          distribucion?: string
+          estado?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          modo_alcance?: string
+          nombre?: string
+          porcentaje?: number | null
+          responsable?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      planes_vigilancia_acciones: {
+        Row: {
+          actuacion_plan_anual_id: string | null
+          created_at: string
+          created_by: string | null
+          estado: string
+          fecha_prevista: string
+          fecha_real: string | null
+          id: string
+          maquinista_id: string
+          observaciones: string | null
+          plan_id: string
+          resultado: string | null
+          tipo_accion: string
+          tipo_accion_libre: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          actuacion_plan_anual_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_prevista: string
+          fecha_real?: string | null
+          id?: string
+          maquinista_id: string
+          observaciones?: string | null
+          plan_id: string
+          resultado?: string | null
+          tipo_accion: string
+          tipo_accion_libre?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          actuacion_plan_anual_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_prevista?: string
+          fecha_real?: string | null
+          id?: string
+          maquinista_id?: string
+          observaciones?: string | null
+          plan_id?: string
+          resultado?: string | null
+          tipo_accion?: string
+          tipo_accion_libre?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planes_vigilancia_acciones_actuacion_plan_anual_id_fkey"
+            columns: ["actuacion_plan_anual_id"]
+            isOneToOne: false
+            referencedRelation: "actuaciones_plan_anual"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planes_vigilancia_acciones_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planes_vigilancia_acciones_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_vigilancia"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planes_vigilancia_acciones_tipo_accion_fkey"
+            columns: ["tipo_accion"]
+            isOneToOne: false
+            referencedRelation: "tipos_accion_vigilancia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           apellidos: string | null
@@ -968,6 +1111,39 @@ export type Database = {
           observaciones?: string | null
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      tipos_accion_vigilancia: {
+        Row: {
+          activo: boolean
+          created_at: string
+          descripcion: string | null
+          id: string
+          nombre: string
+          orden: number
+          tipo_plan_anual: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id: string
+          nombre: string
+          orden?: number
+          tipo_plan_anual?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          tipo_plan_anual?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

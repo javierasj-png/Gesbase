@@ -17,6 +17,7 @@ import PE1201Page from "./pages/PE1201Page";
 import AdminPage from "./pages/AdminPage";
 import PartesPage from "./pages/PartesPage";
 import AuditoriaPage from "./pages/AuditoriaPage";
+import PlanesVigilanciaPage from "./pages/PlanesVigilanciaPage";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -61,6 +62,11 @@ const App = () => (
             <Route path="/pe-1201" element={
               <ProtectedRoute>
                 <PE1201Page />
+              </ProtectedRoute>
+            } />
+            <Route path="/planes-vigilancia" element={
+              <ProtectedRoute>
+                <PlanesVigilanciaPage />
               </ProtectedRoute>
             } />
             <Route path="/partes" element={
