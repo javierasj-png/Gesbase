@@ -82,7 +82,10 @@ function getAlertaDescription(alerta: Alerta): string {
       return segTipoLabel[alerta.tipo_actuacion] || alerta.tipo_actuacion;
     case 'licencia':
       return `Licencia de conducción — caduca ${format(alerta.fecha_caducidad, 'dd/MM/yyyy')}`;
+    case 'plan_especifico':
+      return `${alerta.plan_nombre}: ${alerta.accion}`;
   }
+
 }
 
 function getDiasText(alerta: Alerta): string {
