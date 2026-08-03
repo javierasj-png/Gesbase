@@ -47,7 +47,9 @@ import {
 } from '@/hooks/usePlanesVigilancia';
 import { NuevoPlanWizard } from '@/components/vigilancia/NuevoPlanWizard';
 import { PlanVigilanciaDetalle } from '@/components/vigilancia/PlanVigilanciaDetalle';
+import { generatePlanVigilanciaMemoriaPDF } from '@/utils/generatePlanVigilanciaMemoriaPDF';
 import { format, parseISO } from 'date-fns';
+
 
 const ESTADO_LABEL: Record<string, string> = {
   propuesta: 'Propuesta',
