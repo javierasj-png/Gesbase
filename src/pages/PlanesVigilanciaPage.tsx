@@ -312,22 +312,39 @@ export default function PlanesVigilanciaPage() {
                   </div>
 
                   <div className="flex gap-1 pt-1">
-                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
-                      Gestionar
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    {p.estado !== 'archivado' && (
+                    {p.estado === 'archivado' ? (
                       <Button
-                        variant="outline"
                         size="sm"
-                        className="h-7 px-2"
-                        onClick={() => setConfirmar({ plan: p, accion: 'archivar' })}
+                        className="h-7 px-2 text-xs"
+                        disabled={memoriaId === p.id}
+                        onClick={() => descargarMemoria(p)}
                       >
-                        <Archive className="w-3.5 h-3.5" />
+                        {memoriaId === p.id ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        Memoria PDF
                       </Button>
+                    ) : (
+                      <>
+                        <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
+                          Gestionar
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => abrirEdicion(p)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => setConfirmar({ plan: p, accion: 'archivar' })}
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
                     )}
+
                     {(
                       <Button
                         variant="outline"
