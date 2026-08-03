@@ -184,12 +184,10 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
             {plan.distribucion === 'aleatoria' ? <Shuffle className="w-4 h-4 mr-1" /> : <CalendarRange className="w-4 h-4 mr-1" />}
             Generar propuesta de fechas
           </Button>
-          <Button size="sm" variant="outline" onClick={() => guardar('propuesta')} disabled={saving}>
-            <Save className="w-4 h-4 mr-1" /> Guardar propuesta
-          </Button>
           <Button size="sm" onClick={() => guardar('validado')} disabled={saving}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Validar plan
           </Button>
+
           {noConformidades.length > 0 && (
             <Button size="sm" variant="outline" onClick={() => setComunicacionOpen(true)}>
               <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) · opcional
