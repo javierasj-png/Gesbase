@@ -274,6 +274,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
       case 'licencia':
         navigate(`/maquinistas/${alerta.maquinista_id}`);
         break;
+      case 'plan_especifico':
+        navigate('/planes-vigilancia');
+        break;
     }
   };
 
@@ -284,6 +287,7 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
         : a.tipo === 'pe1201' ? a.hito
         : a.tipo === 'seg_especial' ? (segTipoLabel[a.tipo_actuacion] || a.tipo_actuacion)
+        : a.tipo === 'plan_especifico' ? `${a.plan_nombre}: ${a.accion}`
         : `Licencia — caduca ${format(a.fecha_caducidad, 'dd/MM/yyyy')}`;
       const dias = a.dias_restantes === null ? 'Sin registro'
         : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
@@ -292,7 +296,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         : a.tipo === 'pe1603' ? 'PE 16.03'
         : a.tipo === 'pe1201' ? 'PE 12.01'
         : a.tipo === 'seg_especial' ? 'Seg. Especial'
+        : a.tipo === 'plan_especifico' ? 'Plan Específico'
         : 'Licencia';
+
       return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
     });
     const csv = '\uFEFF' + [header, ...rows].join('\n');
