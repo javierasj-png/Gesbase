@@ -36,6 +36,7 @@ import {
   type PlanVigilanciaConProgreso,
 } from '@/hooks/usePlanesVigilancia';
 import { NuevoPlanWizard } from '@/components/vigilancia/NuevoPlanWizard';
+import { PlanVigilanciaDetalle } from '@/components/vigilancia/PlanVigilanciaDetalle';
 import { format, parseISO } from 'date-fns';
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -73,6 +74,7 @@ export default function PlanesVigilanciaPage() {
   const [tipoFilter, setTipoFilter] = useState('all');
   const [anioFilter, setAnioFilter] = useState('all');
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [detalle, setDetalle] = useState<PlanVigilanciaConProgreso | null>(null);
   const [confirmar, setConfirmar] = useState<{ plan: PlanVigilanciaConProgreso; accion: 'archivar' | 'eliminar' } | null>(null);
 
   const anios = useMemo(() => {
@@ -270,8 +272,8 @@ export default function PlanesVigilanciaPage() {
                     </Badge>
                   </div>
 
-                  <div>
-                    <p className="font-medium text-sm">{p.nombre}</p>
+                  <div className="cursor-pointer" onClick={() => setDetalle(p)}>
+                    <p className="font-medium text-sm hover:underline">{p.nombre}</p>
                     <p className="text-xs text-muted-foreground">{p.base}</p>
                   </div>
 
@@ -296,6 +298,9 @@ export default function PlanesVigilanciaPage() {
                   </div>
 
                   <div className="flex gap-1 pt-1">
+                    <Button size="sm" className="h-7 px-2 text-xs" onClick={() => setDetalle(p)}>
+                      Gestionar
+                    </Button>
                     <Button variant="outline" size="sm" className="h-7 px-2" onClick={() => duplicar(p)}>
                       <Copy className="w-3.5 h-3.5" />
                     </Button>
@@ -332,6 +337,13 @@ export default function PlanesVigilanciaPage() {
         onOpenChange={setWizardOpen}
         bases={getAccessibleBases}
         onCreated={refetch}
+      />
+
+      <PlanVigilanciaDetalle
+        plan={detalle}
+        open={!!detalle}
+        onOpenChange={(o) => !o && setDetalle(null)}
+        onChanged={refetch}
       />
 
       <AlertDialog open={!!confirmar} onOpenChange={(o) => !o && setConfirmar(null)}>
