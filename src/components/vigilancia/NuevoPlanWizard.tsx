@@ -126,6 +126,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
   const elegirCategoria = (c: CategoriaPlan) => {
     setCategoria(c);
     setModo(c === 'especifico' ? 'concretos' : 'porcentaje');
+    setSeleccionTipos({});
   };
 
   const sortear = () => {
@@ -152,6 +153,14 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
       `${m.apellidos} ${m.nombre} ${m.matricula}`.toLowerCase().includes(q)
     );
   }, [maquinistas, busqueda]);
+
+  const tiposDisponibles = useMemo(
+    () =>
+      tipos.filter(
+        (t) => !t.categoria_plan || t.categoria_plan === 'ambos' || t.categoria_plan === categoria
+      ),
+    [tipos, categoria]
+  );
 
   const tiposElegidos = Object.entries(seleccionTipos).filter(([, n]) => n > 0);
 
@@ -328,7 +337,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
             <p className="text-sm text-muted-foreground">
               Selecciona los tipos de acción y el número de repeticiones por maquinista.
             </p>
-            {tipos.map((t) => {
+            {tiposDisponibles.map((t) => {
               const val = seleccionTipos[t.id] || 0;
               return (
                 <div key={t.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">

@@ -1117,6 +1117,7 @@ export type Database = {
       tipos_accion_vigilancia: {
         Row: {
           activo: boolean
+          categoria_plan: string
           created_at: string
           descripcion: string | null
           id: string
@@ -1127,6 +1128,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          categoria_plan?: string
           created_at?: string
           descripcion?: string | null
           id: string
@@ -1137,6 +1139,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          categoria_plan?: string
           created_at?: string
           descripcion?: string | null
           id?: string
