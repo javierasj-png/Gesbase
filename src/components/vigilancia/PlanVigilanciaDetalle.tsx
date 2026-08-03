@@ -195,14 +195,20 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
       filas
         .filter((f) => f.resultado === 'no_conforme')
         .map((f) => ({
+          id: f.id,
           maquinista: f.maquinistaNombre,
           accion: f.tipo_accion_libre || nombreTipo(f.tipo_accion),
           fecha: f.fecha_real || f.fecha_prevista,
           observaciones: f.observaciones,
+          comunicada: !!f.comunicada,
+          comunicada_at: f.comunicada_at ?? null,
         })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filas, tipos]
   );
+
+  const pendientesComunicar = noConformidades.filter((n) => !n.comunicada).length;
+
 
   if (!plan) return null;
 
@@ -236,7 +242,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
 
           {noConformidades.length > 0 && (
             <Button size="sm" variant="outline" onClick={() => setComunicacionOpen(true)}>
-              <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) · opcional
+              <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) ·{' '}
+              {pendientesComunicar === 0 ? 'comunicadas' : `${pendientesComunicar} sin comunicar`}
             </Button>
           )}
         </div>
@@ -247,7 +254,12 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           planNombre={plan.nombre}
           base={plan.base}
           items={noConformidades}
+          onComunicado={() => {
+            cargar();
+            onChanged();
+          }}
         />
+
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
@@ -265,6 +277,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                   <th className="px-2 py-1.5 font-medium">Fecha real</th>
                   <th className="px-2 py-1.5 font-medium">Resultado</th>
                   <th className="px-2 py-1.5 font-medium">Observaciones</th>
+                  <th className="px-2 py-1.5 font-medium">Comunicada</th>
+
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -348,8 +362,22 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
                       />
                     </td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {f.resultado === 'no_conforme' ? (
+                        f.comunicada ? (
+                          <Badge variant="default" className="text-[10px]">
+                            Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[10px]">No</Badge>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
+
               </tbody>
             </table>
           </div>

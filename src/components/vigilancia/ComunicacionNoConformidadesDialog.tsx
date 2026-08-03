@@ -16,10 +16,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Sparkles } from 'lucide-react';
 
 export interface NoConformidadItem {
+  id?: string;
   maquinista: string;
   accion: string;
   fecha: string;
   observaciones?: string | null;
+  comunicada?: boolean;
+  comunicada_at?: string | null;
 }
 
 interface Props {
@@ -28,7 +31,9 @@ interface Props {
   planNombre: string;
   base: string;
   items: NoConformidadItem[];
+  onComunicado?: () => void;
 }
+
 
 export function ComunicacionNoConformidadesDialog({
   open,
@@ -36,12 +41,15 @@ export function ComunicacionNoConformidadesDialog({
   planNombre,
   base,
   items,
+  onComunicado,
 }: Props) {
   const { toast } = useToast();
   const [destinatario, setDestinatario] = useState('');
   const [asunto, setAsunto] = useState('');
   const [cuerpo, setCuerpo] = useState('');
   const [generando, setGenerando] = useState(false);
+  const [registrando, setRegistrando] = useState(false);
+
 
   const detalle = items
     .map(
@@ -84,12 +92,40 @@ export function ComunicacionNoConformidadesDialog({
     }
   };
 
-  const abrirMailto = () => {
+  const registrarComunicacion = async () => {
+    const ids = items.map((i) => i.id).filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    setRegistrando(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('planes_vigilancia_acciones')
+        .update({
+          comunicada: true,
+          comunicada_at: new Date().toISOString(),
+          comunicada_por: userData?.user?.id ?? null,
+          comunicacion_destinatario: destinatario || null,
+          comunicacion_asunto: asunto || null,
+        } as any)
+        .in('id', ids);
+      if (error) throw error;
+      toast({ title: 'Comunicación registrada', description: 'Queda guardada como trazabilidad en el plan.' });
+      onComunicado?.();
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Error', description: e?.message });
+    } finally {
+      setRegistrando(false);
+    }
+  };
+
+  const abrirMailto = async () => {
     const url = `mailto:${encodeURIComponent(destinatario)}?subject=${encodeURIComponent(
       asunto
     )}&body=${encodeURIComponent(cuerpo)}`;
     window.open(url, '_blank');
+    await registrarComunicacion();
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,14 +168,25 @@ export function ComunicacionNoConformidadesDialog({
           </div>
         </div>
 
+        {items.some((i) => i.comunicada) && (
+          <p className="text-[11px] text-muted-foreground">
+            {items.filter((i) => i.comunicada).length} de {items.length} ya constan como comunicadas.
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
+          <Button variant="outline" onClick={registrarComunicacion} disabled={registrando}>
+            {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+            Marcar como comunicadas
+          </Button>
           <Button onClick={abrirMailto} disabled={!destinatario.trim()}>
-            <Mail className="w-4 h-4 mr-1" /> Abrir correo
+            <Mail className="w-4 h-4 mr-1" /> Abrir correo y registrar
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
