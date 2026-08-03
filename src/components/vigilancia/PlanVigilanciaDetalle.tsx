@@ -87,6 +87,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
       .order('fecha_prevista');
     const list: Fila[] = ((data as any[]) || []).map((a) => ({
       ...(a as AccionPlanVigilancia),
+      estado: estadoAuto(a, plan),
       maquinistaNombre: a.maquinistas
         ? `${a.maquinistas.apellidos}, ${a.maquinistas.nombre}`
         : '—',
@@ -97,6 +98,21 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
     );
     setFilas(list);
     setLoading(false);
+
+    // Persistir los estados que hayan cambiado automáticamente
+    const cambios = ((data as any[]) || []).filter((a) => estadoAuto(a, plan) !== a.estado);
+    if (cambios.length > 0) {
+      await Promise.all(
+        cambios.map((a) =>
+          supabase
+            .from('planes_vigilancia_acciones')
+            .update({ estado: estadoAuto(a, plan) } as any)
+            .eq('id', a.id)
+        )
+      );
+      onChanged();
+    }
+
   }, [plan]);
 
   useEffect(() => {
