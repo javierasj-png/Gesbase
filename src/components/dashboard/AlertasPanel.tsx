@@ -16,6 +16,8 @@ import {
   Download,
   Eye,
   IdCard,
+  ShieldCheck,
+
 } from 'lucide-react';
 import { useDashboardAlertas, Alerta, GrupoAlerta } from '@/hooks/useDashboardAlertas';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -38,7 +40,10 @@ function getAlertaIcon(alerta: Alerta) {
       return <Eye className="w-4 h-4" />;
     case 'licencia':
       return <IdCard className="w-4 h-4" />;
+    case 'plan_especifico':
+      return <ShieldCheck className="w-4 h-4" />;
   }
+
 }
 
 function getAlertaLabel(alerta: Alerta): string {
@@ -53,7 +58,10 @@ function getAlertaLabel(alerta: Alerta): string {
       return 'Seg. Especial';
     case 'licencia':
       return 'Licencia';
+    case 'plan_especifico':
+      return 'Plan Específico';
   }
+
 }
 
 const segTipoLabel: Record<string, string> = {
@@ -74,7 +82,10 @@ function getAlertaDescription(alerta: Alerta): string {
       return segTipoLabel[alerta.tipo_actuacion] || alerta.tipo_actuacion;
     case 'licencia':
       return `Licencia de conducción — caduca ${format(alerta.fecha_caducidad, 'dd/MM/yyyy')}`;
+    case 'plan_especifico':
+      return `${alerta.plan_nombre}: ${alerta.accion}`;
   }
+
 }
 
 function getDiasText(alerta: Alerta): string {
@@ -263,6 +274,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
       case 'licencia':
         navigate(`/maquinistas/${alerta.maquinista_id}`);
         break;
+      case 'plan_especifico':
+        navigate('/planes-vigilancia');
+        break;
     }
   };
 
@@ -273,6 +287,7 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         : a.tipo === 'pe1603' ? `${a.tipo_actuacion}: ${a.etiqueta}`
         : a.tipo === 'pe1201' ? a.hito
         : a.tipo === 'seg_especial' ? (segTipoLabel[a.tipo_actuacion] || a.tipo_actuacion)
+        : a.tipo === 'plan_especifico' ? `${a.plan_nombre}: ${a.accion}`
         : `Licencia — caduca ${format(a.fecha_caducidad, 'dd/MM/yyyy')}`;
       const dias = a.dias_restantes === null ? 'Sin registro'
         : a.dias_restantes < 0 ? `${Math.abs(a.dias_restantes)}d vencido`
@@ -281,7 +296,9 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         : a.tipo === 'pe1603' ? 'PE 16.03'
         : a.tipo === 'pe1201' ? 'PE 12.01'
         : a.tipo === 'seg_especial' ? 'Seg. Especial'
+        : a.tipo === 'plan_especifico' ? 'Plan Específico'
         : 'Licencia';
+
       return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
     });
     const csv = '\uFEFF' + [header, ...rows].join('\n');
