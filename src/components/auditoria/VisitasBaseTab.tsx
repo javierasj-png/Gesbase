@@ -52,6 +52,47 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
 
   const effectiveBaseFilter = baseFilter !== 'all' ? baseFilter : undefined;
 
+  const handleGenerarInforme = async (base: string) => {
+    setGeneratingReportBase(base);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-propuesta-auditoria', {
+        body: { baseFilter: base },
+      });
+      if (error) {
+        let realMsg = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx?.json) {
+            realMsg = ctx.json.error || ctx.json.warning || realMsg;
+          } else if (ctx?.body) {
+            const text = typeof ctx.body === 'string' ? ctx.body : await new Response(ctx.body).text();
+            try {
+              const parsed = JSON.parse(text);
+              realMsg = parsed.error || parsed.warning || text;
+            } catch {
+              realMsg = text || realMsg;
+            }
+          }
+        } catch { /* noop */ }
+        throw new Error(realMsg);
+      }
+      if (data?.informe) {
+        setReportContent(data.informe);
+        setReportBaseName(base);
+        setReportDialogOpen(true);
+        if (data.warning) toast.warning(data.warning);
+      } else {
+        throw new Error(data?.error || 'No se recibió el informe');
+      }
+    } catch (err: any) {
+      console.error('Error generating report:', err);
+      toast.error(err.message || 'Error al generar el informe');
+    } finally {
+      setGeneratingReportBase(null);
+    }
+  };
+
+
   const { data: visitas, isLoading } = useQuery({
     queryKey: ['visitas-base', effectiveBaseFilter],
     queryFn: async () => {
