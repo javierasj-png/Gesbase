@@ -26,6 +26,7 @@ import {
   type PlanVigilanciaConProgreso,
 } from '@/hooks/usePlanesVigilancia';
 import { CalendarRange, CheckCircle2, Loader2, Mail, Save, Shuffle } from 'lucide-react';
+
 import { ComunicacionNoConformidadesDialog } from './ComunicacionNoConformidadesDialog';
 
 interface Props {
@@ -184,12 +185,18 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
             {plan.distribucion === 'aleatoria' ? <Shuffle className="w-4 h-4 mr-1" /> : <CalendarRange className="w-4 h-4 mr-1" />}
             Generar propuesta de fechas
           </Button>
-          <Button size="sm" variant="outline" onClick={() => guardar('propuesta')} disabled={saving}>
-            <Save className="w-4 h-4 mr-1" /> Guardar propuesta
-          </Button>
-          <Button size="sm" onClick={() => guardar('validado')} disabled={saving}>
-            <CheckCircle2 className="w-4 h-4 mr-1" /> Validar plan
-          </Button>
+          {plan.estado === 'propuesta' ? (
+            <Button size="sm" onClick={() => guardar('validado')} disabled={saving}>
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Validar plan
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => guardar()} disabled={saving}>
+              <Save className="w-4 h-4 mr-1" /> Guardar cambios
+            </Button>
+          )}
+
+
+
           {noConformidades.length > 0 && (
             <Button size="sm" variant="outline" onClick={() => setComunicacionOpen(true)}>
               <Mail className="w-4 h-4 mr-1" /> Comunicación ({noConformidades.length}) · opcional

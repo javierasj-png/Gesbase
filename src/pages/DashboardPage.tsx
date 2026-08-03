@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { KPICard } from '@/components/KPICard';
 import { AlertasPanel } from '@/components/dashboard/AlertasPanel';
+import { PlanesEspecificosResumen } from '@/components/dashboard/PlanesEspecificosResumen';
+
 import { 
   Select, 
   SelectContent, 
@@ -433,8 +435,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Planes Específicos de Vigilancia */}
+        <PlanesEspecificosResumen baseFilter={effectiveBaseFilter} />
+
         {/* Panel de Alertas */}
         <AlertasPanel baseFilter={effectiveBaseFilter} maxItems={15} />
+
       </div>
     </AppLayout>
   );
