@@ -282,17 +282,27 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <Select
-                        value={f.estado}
-                        onValueChange={(v) => setFila(f.id, { estado: v as Fila['estado'] })}
-                      >
-                        <SelectTrigger className="h-7 w-[125px] text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pendiente">Pendiente</SelectItem>
-                          <SelectItem value="realizada">Realizada</SelectItem>
-                          <SelectItem value="no_realizada">No realizada</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {(() => {
+                        const est = estadoAuto(f, plan);
+                        return (
+                          <Badge
+                            variant={
+                              est === 'realizada'
+                                ? 'default'
+                                : est === 'no_realizada'
+                                ? 'destructive'
+                                : 'secondary'
+                            }
+                            className="text-[10px]"
+                          >
+                            {est === 'realizada'
+                              ? 'Realizada'
+                              : est === 'no_realizada'
+                              ? 'No realizada'
+                              : 'Pendiente'}
+                          </Badge>
+                        );
+                      })()}
                     </td>
                     <td className="px-2 py-1">
                       <Input
@@ -302,10 +312,8 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         onChange={(e) => {
                           const v = e.target.value || null;
                           const dentro = !!v && v >= plan.fecha_inicio && v <= plan.fecha_fin;
-                          setFila(f.id, {
-                            fecha_real: v,
-                            ...(dentro ? { estado: 'realizada' as Fila['estado'] } : {}),
-                          });
+                          setFila(f.id, { fecha_real: v });
+
                           if (v && !dentro) {
                             toast({
                               variant: 'destructive',
