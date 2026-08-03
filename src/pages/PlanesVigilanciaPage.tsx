@@ -87,21 +87,34 @@ export default function PlanesVigilanciaPage() {
   const [editar, setEditar] = useState<PlanVigilanciaConProgreso | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
+  const [editInicio, setEditInicio] = useState('');
+  const [editFin, setEditFin] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const abrirEdicion = (plan: PlanVigilanciaConProgreso) => {
     setEditar(plan);
     setEditNombre(plan.nombre);
     setEditDescripcion(plan.descripcion || '');
+    setEditInicio(plan.fecha_inicio);
+    setEditFin(plan.fecha_fin);
   };
 
   const guardarEdicion = async () => {
     if (!editar || !editNombre.trim()) return;
+    if (!editInicio || !editFin || editFin < editInicio) {
+      toast({ variant: 'destructive', title: 'Periodo no válido', description: 'La fecha de fin debe ser posterior al inicio.' });
+      return;
+    }
     setGuardandoEdicion(true);
     try {
       const { error } = await supabase
         .from('planes_vigilancia')
-        .update({ nombre: editNombre.trim(), descripcion: editDescripcion.trim() || null })
+        .update({
+          nombre: editNombre.trim(),
+          descripcion: editDescripcion.trim() || null,
+          fecha_inicio: editInicio,
+          fecha_fin: editFin,
+        } as any)
         .eq('id', editar.id);
       if (error) throw error;
       toast({ title: 'Plan actualizado' });
@@ -337,7 +350,7 @@ export default function PlanesVigilanciaPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar plan</DialogTitle>
-            <DialogDescription>Modifica el nombre o la descripción del plan.</DialogDescription>
+            <DialogDescription>Modifica el nombre, la descripción o el periodo del plan.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -347,6 +360,16 @@ export default function PlanesVigilanciaPage() {
             <div className="space-y-1.5">
               <Label>Descripción</Label>
               <Textarea rows={3} value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Inicio del periodo</Label>
+                <Input type="date" value={editInicio} onChange={(e) => setEditInicio(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fin del periodo</Label>
+                <Input type="date" value={editFin} onChange={(e) => setEditFin(e.target.value)} />
+              </div>
             </div>
           </div>
           <DialogFooter>
