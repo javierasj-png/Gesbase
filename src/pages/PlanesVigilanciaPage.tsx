@@ -192,6 +192,7 @@ export default function PlanesVigilanciaPage() {
         if (error) throw error;
         toast({ title: 'Plan archivado' });
       } else {
+        await supabase.from('planes_vigilancia_acciones').delete().eq('plan_id', plan.id);
         const { error } = await supabase.from('planes_vigilancia').delete().eq('id', plan.id);
         if (error) throw error;
         toast({ title: 'Plan eliminado' });
@@ -374,6 +375,31 @@ export default function PlanesVigilanciaPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!editar} onOpenChange={(v) => !v && setEditar(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar plan</DialogTitle>
+            <DialogDescription>Modifica el nombre o la descripción del plan.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Nombre</Label>
+              <Input value={editNombre} onChange={(e) => setEditNombre(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descripción</Label>
+              <Textarea rows={3} value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditar(null)}>Cancelar</Button>
+            <Button onClick={guardarEdicion} disabled={guardandoEdicion || !editNombre.trim()}>
+              {guardandoEdicion && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <NuevoPlanWizard
         open={wizardOpen}
