@@ -384,19 +384,13 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                     </td>
                     <td className="px-2 py-1 whitespace-nowrap">
                       {f.resultado === 'no_conforme' ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleComunicada(f)}
-                          title={f.comunicada ? 'Clic para desmarcar' : 'Clic para marcar como comunicada'}
-                        >
-                          {f.comunicada ? (
-                            <Badge variant="default" className="text-[10px] cursor-pointer">
-                              Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive" className="text-[10px] cursor-pointer">No</Badge>
-                          )}
-                        </button>
+                        f.comunicada ? (
+                          <Badge variant="default" className="text-[10px]">
+                            Sí{f.comunicada_at ? ` · ${f.comunicada_at.slice(0, 10)}` : ''}
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[10px]">No</Badge>
+                        )
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
