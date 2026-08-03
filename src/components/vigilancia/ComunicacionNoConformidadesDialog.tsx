@@ -190,16 +190,20 @@ export function ComunicacionNoConformidadesDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
-          {items.some((i) => i.comunicada) && (
-            <Button variant="outline" onClick={() => registrarComunicacion(false)} disabled={registrando}>
-              {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-              Desmarcar como comunicadas
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => registrarComunicacion(true)} disabled={registrando}>
-            {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-            Marcar como comunicadas
-          </Button>
+          {(() => {
+            const todasComunicadas = items.length > 0 && items.every((i) => i.comunicada);
+            return (
+              <Button
+                variant="outline"
+                onClick={() => registrarComunicacion(!todasComunicadas)}
+                disabled={registrando || items.length === 0}
+              >
+                {registrando ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                {todasComunicadas ? "Desmarcar como comunicadas" : "Marcar como comunicadas"}
+              </Button>
+            );
+          })()}
+
           <Button onClick={abrirMailto} disabled={!destinatario.trim()}>
             <Mail className="w-4 h-4 mr-1" /> Abrir correo y registrar
           </Button>
