@@ -33,10 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile, roles and base assignments
-  const fetchUserAccess = async (userId: string): Promise<UserWithAccess | null> => {
+  const fetchUserAccess = async (userId: string, authUser?: User | null): Promise<UserWithAccess | null> => {
     try {
       // Fetch profile - profiles.user_id = auth.users.id
-      const { data: profileData, error: profileError } = await supabase
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
@@ -44,8 +44,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
-        // Don't return null - user might not have profile yet
       }
+
+      // Self-heal: create the profile if it is missing (no DB trigger guarantees it)
+      if (!profileData && authUser) {
+        const meta = (authUser.user_metadata || {}) as any;
+        const { data: created, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: userId,
+            email: authUser.email || '',
+            nombre: meta.nombre || (authUser.email || '').split('@')[0],
+            apellidos: meta.apellidos || null,
+          } as any)
+          .select()
+          .maybeSingle();
+
+        if (createError) {
+          console.error('Error creating missing profile:', createError);
+        } else {
+          profileData = created;
+        }
+      }
+
 
       // Fetch roles
       const { data: rolesData, error: rolesError } = await supabase
@@ -106,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           // Use setTimeout to avoid potential deadlocks with Supabase client
           setTimeout(async () => {
-            const access = await fetchUserAccess(session.user.id);
+            const access = await fetchUserAccess(session.user.id, session.user);
             setUserAccess(access);
             setUserStatus((access as any)?.status || 'pending');
             setIsLoading(false);
@@ -124,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchUserAccess(session.user.id).then(access => {
+        fetchUserAccess(session.user.id, session.user).then(access => {
           setUserAccess(access);
           setUserStatus((access as any)?.status || 'pending');
           setIsLoading(false);
