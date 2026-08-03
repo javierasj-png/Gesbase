@@ -525,7 +525,7 @@ export function useDashboardAlertas(baseFilter?: string) {
                 maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
                 maquinista_base: maq.base,
                 accion: a.tipo_accion_libre || tipoMap.get(a.tipo_accion) || a.tipo_accion,
-                estado: esNoRealizada ? 'No realizada' : grupo === 'vencidas' ? 'Vencida' : 'Pendiente',
+                estado: esNoRealizada || grupo === 'vencidas' ? 'Vencida' : 'Pendiente',
                 dias_restantes: differenceInDays(fechaObj, today),
                 fecha_objetivo: fechaObj,
                 grupo,
