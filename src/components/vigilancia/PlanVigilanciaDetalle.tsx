@@ -57,7 +57,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   const [saving, setSaving] = useState(false);
 
   const nombreTipo = (id: string) => tipos.find((t) => t.id === id)?.nombre ?? id;
-  const tipoAnual = (id: string) => tipos.find((t) => t.id === id)?.tipo_plan_anual ?? null;
 
   const cargar = useCallback(async () => {
     if (!plan) return;
@@ -145,54 +144,10 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
     }
   };
 
-  const volcarAPlanAnual = async () => {
-    if (!plan) return;
-    setSaving(true);
-    try {
-      const pendientes = filas.filter(
-        (f) => f.estado === 'realizada' && f.fecha_real && !f.actuacion_plan_anual_id && tipoAnual(f.tipo_accion)
-      );
-      if (pendientes.length === 0) {
-        toast({ title: 'Nada que volcar', description: 'No hay acciones realizadas pendientes de volcado.' });
-        return;
-      }
-      let volcadas = 0;
-      for (const f of pendientes) {
-        const { data, error } = await supabase
-          .from('actuaciones_plan_anual')
-          .insert({
-            maquinista_id: f.maquinista_id,
-            tipo: tipoAnual(f.tipo_accion)!,
-            fecha_real: f.fecha_real!,
-            anio: parseInt(f.fecha_real!.slice(0, 4), 10),
-            resultado: f.resultado,
-            observaciones: `Plan específico: ${plan.nombre}${f.observaciones ? ` — ${f.observaciones}` : ''}`,
-            registrado_por: user?.id ?? null,
-          } as any)
-          .select('id')
-          .single();
-        if (error) throw error;
-        await supabase
-          .from('planes_vigilancia_acciones')
-          .update({ actuacion_plan_anual_id: data!.id } as any)
-          .eq('id', f.id);
-        volcadas++;
-      }
-      toast({ title: 'Volcado completado', description: `${volcadas} actuaciones añadidas al plan anual.` });
-      onChanged();
-      await cargar();
-    } catch (e) {
-      console.error(e);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo volcar al plan anual.' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const resumen = useMemo(() => {
     const realizadas = filas.filter((f) => f.estado === 'realizada').length;
-    const volcadas = filas.filter((f) => f.actuacion_plan_anual_id).length;
-    return { total: filas.length, realizadas, volcadas };
+    const pendientes = filas.filter((f) => f.estado === 'pendiente').length;
+    return { total: filas.length, realizadas, pendientes };
   }, [filas]);
 
   if (!plan) return null;
@@ -204,7 +159,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           <DialogTitle className="flex items-center gap-2">{plan.nombre}</DialogTitle>
           <DialogDescription>
             {plan.base} · {plan.fecha_inicio} – {plan.fecha_fin} · distribución {plan.distribucion} ·{' '}
-            {resumen.realizadas}/{resumen.total} realizadas · {resumen.volcadas} volcadas al plan anual
+            {resumen.realizadas}/{resumen.total} realizadas · {resumen.pendientes} pendientes
           </DialogDescription>
         </DialogHeader>
 
@@ -218,9 +173,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
           </Button>
           <Button size="sm" onClick={() => guardar('validado')} disabled={saving}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Validar plan
-          </Button>
-          <Button size="sm" variant="secondary" onClick={volcarAPlanAnual} disabled={saving}>
-            Volcar realizadas al plan anual
           </Button>
         </div>
 
@@ -240,7 +192,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                   <th className="px-2 py-1.5 font-medium">Fecha real</th>
                   <th className="px-2 py-1.5 font-medium">Resultado</th>
                   <th className="px-2 py-1.5 font-medium">Observaciones</th>
-                  <th className="px-2 py-1.5 font-medium">Anual</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -298,15 +249,6 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
                         value={f.observaciones || ''}
                         onChange={(e) => setFila(f.id, { observaciones: e.target.value || null })}
                       />
-                    </td>
-                    <td className="px-2 py-1">
-                      {f.actuacion_plan_anual_id ? (
-                        <Badge variant="outline" className="bg-emerald-100 text-emerald-900 border-emerald-300">Volcada</Badge>
-                      ) : tipoAnual(f.tipo_accion) ? (
-                        <span className="text-muted-foreground">{tipoAnual(f.tipo_accion)}</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
                     </td>
                   </tr>
                 ))}
