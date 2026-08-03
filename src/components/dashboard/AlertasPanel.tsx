@@ -58,7 +58,10 @@ function getAlertaLabel(alerta: Alerta): string {
       return 'Seg. Especial';
     case 'licencia':
       return 'Licencia';
+    case 'plan_especifico':
+      return 'Plan Específico';
   }
+
 }
 
 const segTipoLabel: Record<string, string> = {
