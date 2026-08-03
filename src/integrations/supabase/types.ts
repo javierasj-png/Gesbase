@@ -935,6 +935,11 @@ export type Database = {
       planes_vigilancia_acciones: {
         Row: {
           actuacion_plan_anual_id: string | null
+          comunicacion_asunto: string | null
+          comunicacion_destinatario: string | null
+          comunicada: boolean
+          comunicada_at: string | null
+          comunicada_por: string | null
           created_at: string
           created_by: string | null
           estado: string
@@ -952,6 +957,11 @@ export type Database = {
         }
         Insert: {
           actuacion_plan_anual_id?: string | null
+          comunicacion_asunto?: string | null
+          comunicacion_destinatario?: string | null
+          comunicada?: boolean
+          comunicada_at?: string | null
+          comunicada_por?: string | null
           created_at?: string
           created_by?: string | null
           estado?: string
@@ -969,6 +979,11 @@ export type Database = {
         }
         Update: {
           actuacion_plan_anual_id?: string | null
+          comunicacion_asunto?: string | null
+          comunicacion_destinatario?: string | null
+          comunicada?: boolean
+          comunicada_at?: string | null
+          comunicada_por?: string | null
           created_at?: string
           created_by?: string | null
           estado?: string
