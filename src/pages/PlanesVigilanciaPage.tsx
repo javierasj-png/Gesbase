@@ -289,9 +289,17 @@ export default function PlanesVigilanciaPage() {
                       )}
                       {p.categoria === 'especifico' ? 'Plan específico' : 'Campaña / sondeo'}
                     </Badge>
-                    <Badge variant="outline" className={ESTADO_CLASS[p.estado]}>
-                      {ESTADO_LABEL[p.estado]}
-                    </Badge>
+                    {(() => {
+                      const estadoVisual =
+                        p.estado !== 'archivado' && p.totalAcciones > 0 && p.progreso >= 100
+                          ? 'completado'
+                          : p.estado;
+                      return (
+                        <Badge variant="outline" className={ESTADO_CLASS[estadoVisual]}>
+                          {ESTADO_LABEL[estadoVisual]}
+                        </Badge>
+                      );
+                    })()}
                   </div>
 
                   <div className="cursor-pointer" onClick={() => setDetalle(p)}>
