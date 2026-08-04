@@ -247,15 +247,6 @@ export default function PlanesVigilanciaPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
-            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los tipos</SelectItem>
-              {tipos.map((t) => (
-                <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={anioFilter} onValueChange={setAnioFilter}>
             <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
