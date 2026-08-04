@@ -194,6 +194,28 @@ export function ChatBubble() {
         }
       }
     }
+
+    // El asistente marca con [SIN_RESPUESTA] lo que no sabe: se registra para
+    // que alguien lo responda y el chatbot lo aprenda.
+    if (assistantSoFar.includes('[SIN_RESPUESTA]')) {
+      const limpio = assistantSoFar.replace(/\[SIN_RESPUESTA\]/g, '').trim();
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === prev.length - 1 && m.role === 'assistant'
+            ? {
+                ...m,
+                content: `${limpio}\n\n_He registrado tu pregunta en **Conocimiento IA** para que el equipo la resuelva._`,
+              }
+            : m,
+        ),
+      );
+      const ultimaPregunta = [...allMessages].reverse().find(m => m.role === 'user')?.content ?? '';
+      try {
+        await registrarPreguntaSinRespuesta(ultimaPregunta, limpio);
+      } catch (e) {
+        console.error('No se pudo registrar la pregunta sin respuesta', e);
+      }
+    }
   }, []);
 
   const handleSend = async () => {
