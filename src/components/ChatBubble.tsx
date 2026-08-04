@@ -290,6 +290,14 @@ export function ChatBubble() {
               <Bot className="w-5 h-5" />
               <span className="font-semibold text-sm">Asistente GesBase</span>
             </div>
+            <div className="flex items-center gap-1">
+            <Link
+              to="/conocimiento"
+              onClick={() => setOpen(false)}
+              className="text-[11px] underline underline-offset-2 opacity-80 hover:opacity-100 mr-1"
+            >
+              Conocimiento
+            </Link>
             <Button
               variant="ghost"
               size="icon"
