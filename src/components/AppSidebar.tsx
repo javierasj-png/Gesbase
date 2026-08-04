@@ -15,6 +15,7 @@ import {
   FileBarChart,
   Menu,
   ShieldCheck,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/planes-vigilancia', label: 'Planes Específicos', icon: ShieldCheck },
   { path: '/partes', label: 'Control de Partes', icon: ClipboardList },
   { path: '/auditoria', label: 'Auditoría', icon: FileBarChart },
+  { path: '/conocimiento', label: 'Conocimiento IA', icon: BookOpen },
 ];
 
 const adminItems = [

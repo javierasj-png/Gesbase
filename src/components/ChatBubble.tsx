@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
+import { registrarPreguntaSinRespuesta } from '@/hooks/useChatbotConocimiento';
+import { Link } from 'react-router-dom';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -192,6 +194,28 @@ export function ChatBubble() {
         }
       }
     }
+
+    // El asistente marca con [SIN_RESPUESTA] lo que no sabe: se registra para
+    // que alguien lo responda y el chatbot lo aprenda.
+    if (assistantSoFar.includes('[SIN_RESPUESTA]')) {
+      const limpio = assistantSoFar.replace(/\[SIN_RESPUESTA\]/g, '').trim();
+      setMessages(prev =>
+        prev.map((m, i) =>
+          i === prev.length - 1 && m.role === 'assistant'
+            ? {
+                ...m,
+                content: `${limpio}\n\n_He registrado tu pregunta en **Conocimiento IA** para que el equipo la resuelva._`,
+              }
+            : m,
+        ),
+      );
+      const ultimaPregunta = [...allMessages].reverse().find(m => m.role === 'user')?.content ?? '';
+      try {
+        await registrarPreguntaSinRespuesta(ultimaPregunta, limpio);
+      } catch (e) {
+        console.error('No se pudo registrar la pregunta sin respuesta', e);
+      }
+    }
   }, []);
 
   const handleSend = async () => {
@@ -266,6 +290,14 @@ export function ChatBubble() {
               <Bot className="w-5 h-5" />
               <span className="font-semibold text-sm">Asistente GesBase</span>
             </div>
+            <div className="flex items-center gap-1">
+            <Link
+              to="/conocimiento"
+              onClick={() => setOpen(false)}
+              className="text-[11px] underline underline-offset-2 opacity-80 hover:opacity-100 mr-1"
+            >
+              Conocimiento
+            </Link>
             <Button
               variant="ghost"
               size="icon"
@@ -274,7 +306,9 @@ export function ChatBubble() {
             >
               <X className="w-4 h-4" />
             </Button>
+            </div>
           </div>
+
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">

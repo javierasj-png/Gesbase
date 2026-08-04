@@ -308,6 +308,78 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_conocimiento: {
+        Row: {
+          activo: boolean
+          categoria: string
+          contenido: string
+          created_at: string
+          created_by: string | null
+          id: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          categoria?: string
+          contenido: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string
+          contenido?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_preguntas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: string
+          id: string
+          pregunta: string
+          respondida_por: string | null
+          respuesta: string | null
+          respuesta_ia: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          id?: string
+          pregunta: string
+          respondida_por?: string | null
+          respuesta?: string | null
+          respuesta_ia?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          id?: string
+          pregunta?: string
+          respondida_por?: string | null
+          respuesta?: string | null
+          respuesta_ia?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       criterios_plan_anual: {
         Row: {
           acompanamientos_con_1201: number
