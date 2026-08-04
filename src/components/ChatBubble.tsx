@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
+import { registrarPreguntaSinRespuesta } from '@/hooks/useChatbotConocimiento';
+import { Link } from 'react-router-dom';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
