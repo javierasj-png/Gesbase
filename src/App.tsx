@@ -18,6 +18,7 @@ import AdminPage from "./pages/AdminPage";
 import PartesPage from "./pages/PartesPage";
 import AuditoriaPage from "./pages/AuditoriaPage";
 import PlanesVigilanciaPage from "./pages/PlanesVigilanciaPage";
+import ConocimientoPage from "./pages/ConocimientoPage";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
