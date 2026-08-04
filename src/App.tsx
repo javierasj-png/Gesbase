@@ -80,6 +80,11 @@ const App = () => (
                 <AuditoriaPage />
               </ProtectedRoute>
             } />
+            <Route path="/conocimiento" element={
+              <ProtectedRoute>
+                <ConocimientoPage />
+              </ProtectedRoute>
+            } />
             <Route path="/admin" element={
               <ProtectedRoute requireAdmin>
                 <AdminPage />
