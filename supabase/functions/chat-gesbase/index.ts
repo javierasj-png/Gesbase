@@ -250,7 +250,7 @@ serve(async (req) => {
       .slice(-MAX_TURNS);
 
     const requestMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: [SYSTEM_PROMPT, await buildKnowledgeBlock()].filter(Boolean).join("\n\n") },
       ...safeMessages,
     ];
 
