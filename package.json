@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:backend": "node scripts/verify-backend.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
