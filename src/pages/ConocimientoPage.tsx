@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { canAccessConocimiento } from '@/lib/conocimientoAccess';
 import { AppLayout } from '@/components/AppLayout';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { Button } from '@/components/ui/button';
@@ -41,6 +44,7 @@ export default function ConocimientoPage() {
     description: 'Documenta nuevas funcionalidades para que el asistente de GesBase las aprenda y resuelve preguntas pendientes.',
     path: '/conocimiento',
   });
+  const { user } = useAuth();
   const { toast } = useToast();
   const {
     articulos,
@@ -59,6 +63,8 @@ export default function ConocimientoPage() {
   const [editing, setEditing] = useState<ConocimientoItem | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+
+  if (!canAccessConocimiento(user?.email)) return <Navigate to="/dashboard" replace />;
 
   const pendientes = preguntas.filter((p) => p.estado === 'pendiente');
   const resueltas = preguntas.filter((p) => p.estado === 'respondida');
