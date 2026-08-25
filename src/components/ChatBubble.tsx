@@ -204,7 +204,7 @@ export function ChatBubble() {
           i === prev.length - 1 && m.role === 'assistant'
             ? {
                 ...m,
-                content: `${limpio}\n\n_He registrado tu pregunta en **Conocimiento IA** para que el equipo la resuelva._`,
+                content: limpio,
               }
             : m,
         ),
@@ -291,13 +291,6 @@ export function ChatBubble() {
               <span className="font-semibold text-sm">Asistente GesBase</span>
             </div>
             <div className="flex items-center gap-1">
-            <Link
-              to="/conocimiento"
-              onClick={() => setOpen(false)}
-              className="text-[11px] underline underline-offset-2 opacity-80 hover:opacity-100 mr-1"
-            >
-              Conocimiento
-            </Link>
             <Button
               variant="ghost"
               size="icon"

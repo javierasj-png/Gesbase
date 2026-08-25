@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { canAccessConocimiento } from '@/lib/conocimientoAccess';
 
 const navItems = [
   { path: '/dashboard', label: 'Cuadro de Mando', icon: LayoutDashboard },
@@ -41,7 +42,10 @@ const adminItems = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
-  const { userAccess, signOut, isAdmin, isGestor } = useAuth();
+  const { userAccess, signOut, isAdmin, isGestor, user } = useAuth();
+  const items = canAccessConocimiento(user?.email)
+    ? [...navItems, ...conocimientoItem]
+    : navItems;
 
   const displayName = userAccess?.profile
     ? `${userAccess.profile.nombre || ''} ${userAccess.profile.apellidos || ''}`.trim() || userAccess.profile.email
@@ -69,7 +73,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <p className="text-xs uppercase tracking-wider text-sidebar-foreground/50 px-3 py-2">
           Principal
         </p>
-        {navItems.map((item) => {
+        {items.map((item) => {
           const isActive = location.pathname === item.path ||
             (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
           return (
