@@ -59,6 +59,7 @@ export interface MaquinistaResumen1201 {
   matricula: string;
   nombre_apellidos: string;
   base: string;
+  activo?: boolean;
 }
 
 export interface ExpedienteConPlan1201 {
@@ -128,6 +129,7 @@ export function useExpedientes1201() {
           matricula: maq.matricula,
           nombre_apellidos: `${maq.nombre} ${maq.apellidos}`,
           base: maq.base,
+          activo: maq.activo,
         } : null;
 
         const planExpediente = (planesData || []).filter(p => p.expediente_id === exp.id) as Plan1201DB[];
@@ -165,10 +167,13 @@ export function useExpedientes1201() {
         };
       });
 
+      // Excluir de la planificación a los maquinistas inactivos
+      const activosOnly = expedientesConPlan.filter(e => e.maquinista?.activo !== false);
+
       // Filter by bases if not admin
       const filteredExpedientes = isAdmin 
-        ? expedientesConPlan 
-        : expedientesConPlan.filter(e => 
+        ? activosOnly 
+        : activosOnly.filter(e => 
             e.maquinista && assignedBases.includes(e.maquinista.base as typeof assignedBases[number])
           );
 

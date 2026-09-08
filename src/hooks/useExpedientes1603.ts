@@ -59,6 +59,7 @@ export interface MaquinistaResumen {
   matricula: string;
   nombre_apellidos: string;
   base: string;
+  activo?: boolean;
 }
 
 export interface ExpedienteConPlan {
@@ -128,6 +129,7 @@ export function useExpedientes1603() {
           matricula: maq.matricula,
           nombre_apellidos: `${maq.nombre} ${maq.apellidos}`,
           base: maq.base,
+          activo: maq.activo,
         } : null;
 
         const planExpediente = (planesData || []).filter(p => p.expediente_id === exp.id);
