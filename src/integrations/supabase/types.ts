@@ -605,6 +605,53 @@ export type Database = {
           },
         ]
       }
+      maquinista_inactividades: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: string
+          maquinista_id: string
+          motivo: string
+          observaciones: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: string
+          maquinista_id: string
+          motivo?: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: string
+          maquinista_id?: string
+          motivo?: string
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinista_inactividades_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maquinistas: {
         Row: {
           activo: boolean | null
@@ -769,6 +816,7 @@ export type Database = {
           expediente_id: string
           fecha_objetivo: string | null
           id: string
+          justificado_inactividad: boolean
           obligatorio: boolean | null
           tipo: string
         }
@@ -782,6 +830,7 @@ export type Database = {
           expediente_id: string
           fecha_objetivo?: string | null
           id?: string
+          justificado_inactividad?: boolean
           obligatorio?: boolean | null
           tipo: string
         }
@@ -795,6 +844,7 @@ export type Database = {
           expediente_id?: string
           fecha_objetivo?: string | null
           id?: string
+          justificado_inactividad?: boolean
           obligatorio?: boolean | null
           tipo?: string
         }
@@ -826,6 +876,7 @@ export type Database = {
           fin_ventana: string | null
           id: string
           inicio_ventana: string | null
+          justificado_inactividad: boolean
           justificado_traslado: boolean | null
           mes: number
           orden: number | null
@@ -842,6 +893,7 @@ export type Database = {
           fin_ventana?: string | null
           id?: string
           inicio_ventana?: string | null
+          justificado_inactividad?: boolean
           justificado_traslado?: boolean | null
           mes: number
           orden?: number | null
@@ -858,6 +910,7 @@ export type Database = {
           fin_ventana?: string | null
           id?: string
           inicio_ventana?: string | null
+          justificado_inactividad?: boolean
           justificado_traslado?: boolean | null
           mes?: number
           orden?: number | null
@@ -897,6 +950,7 @@ export type Database = {
           fecha_real: string | null
           id: string
           indice_prever: number | null
+          justificado_inactividad: boolean
           observaciones: string | null
           registrado_por: string | null
           resultado: string | null
@@ -912,6 +966,7 @@ export type Database = {
           fecha_real?: string | null
           id?: string
           indice_prever?: number | null
+          justificado_inactividad?: boolean
           observaciones?: string | null
           registrado_por?: string | null
           resultado?: string | null
@@ -927,6 +982,7 @@ export type Database = {
           fecha_real?: string | null
           id?: string
           indice_prever?: number | null
+          justificado_inactividad?: boolean
           observaciones?: string | null
           registrado_por?: string | null
           resultado?: string | null
@@ -1018,6 +1074,7 @@ export type Database = {
           fecha_prevista: string
           fecha_real: string | null
           id: string
+          justificado_inactividad: boolean
           maquinista_id: string
           observaciones: string | null
           plan_id: string
@@ -1040,6 +1097,7 @@ export type Database = {
           fecha_prevista: string
           fecha_real?: string | null
           id?: string
+          justificado_inactividad?: boolean
           maquinista_id: string
           observaciones?: string | null
           plan_id: string
@@ -1062,6 +1120,7 @@ export type Database = {
           fecha_prevista?: string
           fecha_real?: string | null
           id?: string
+          justificado_inactividad?: boolean
           maquinista_id?: string
           observaciones?: string | null
           plan_id?: string

@@ -248,7 +248,8 @@ export function useDashboardAlertas(baseFilter?: string) {
         const { data: maquinistas1603 } = await supabase
           .from('maquinistas')
           .select('id, nombre, apellidos, base')
-          .in('id', maqIds1603);
+          .in('id', maqIds1603)
+          .eq('activo', true);
 
         const maqMap1603 = new Map(maquinistas1603?.map(m => [m.id, m]) || []);
 
@@ -260,7 +261,8 @@ export function useDashboardAlertas(baseFilter?: string) {
           .in('expediente_id', expIds)
           .is('actuacion_id', null)
           .neq('estado', 'no_procede')
-          .or('justificado_traslado.is.null,justificado_traslado.eq.false');
+          .or('justificado_traslado.is.null,justificado_traslado.eq.false')
+          .or('justificado_inactividad.is.null,justificado_inactividad.eq.false');
 
         if (planItems) {
           for (const item of planItems) {
@@ -316,7 +318,8 @@ export function useDashboardAlertas(baseFilter?: string) {
         const { data: maquinistas1201 } = await supabase
           .from('maquinistas')
           .select('id, nombre, apellidos, base')
-          .in('id', maqIds1201);
+          .in('id', maqIds1201)
+          .eq('activo', true);
 
         const maqMap1201 = new Map(maquinistas1201?.map(m => [m.id, m]) || []);
 
@@ -326,7 +329,8 @@ export function useDashboardAlertas(baseFilter?: string) {
           .select('id, expediente_id, tipo, etiqueta, dia_desde_origen, fecha_objetivo, estado, actuacion_id, obligatorio')
           .in('expediente_id', expIds1201)
           .is('actuacion_id', null)
-          .neq('estado', 'no_procede');
+          .neq('estado', 'no_procede')
+          .or('justificado_inactividad.is.null,justificado_inactividad.eq.false');
 
         if (planItems1201) {
           for (const item of planItems1201) {
@@ -379,7 +383,8 @@ export function useDashboardAlertas(baseFilter?: string) {
         const { data: maqsSeg } = await supabase
           .from('maquinistas')
           .select('id, nombre, apellidos, base')
-          .in('id', maqIdsSeg);
+          .in('id', maqIdsSeg)
+          .eq('activo', true);
         const maqMapSeg = new Map(maqsSeg?.map(m => [m.id, m]) || []);
 
         const segIds = segs.map(s => s.id);
@@ -387,7 +392,8 @@ export function useDashboardAlertas(baseFilter?: string) {
           .from('plan_seguimiento_especial')
           .select('id, seguimiento_id, tipo, fecha_objetivo, estado')
           .in('seguimiento_id', segIds)
-          .neq('estado', 'cumplida');
+          .neq('estado', 'cumplida')
+          .or('justificado_inactividad.is.null,justificado_inactividad.eq.false');
 
         if (accs) {
           for (const a of accs) {
@@ -486,6 +492,7 @@ export function useDashboardAlertas(baseFilter?: string) {
           const { data: accionesPV } = await supabase
             .from('planes_vigilancia_acciones')
             .select('id, plan_id, maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista, estado')
+            .or('justificado_inactividad.is.null,justificado_inactividad.eq.false')
             .in('plan_id', planesVal.map((p) => p.id))
             .in('estado', ['pendiente', 'no_realizada']);
 
@@ -500,7 +507,8 @@ export function useDashboardAlertas(baseFilter?: string) {
             const { data: maqsPV } = await supabase
               .from('maquinistas')
               .select('id, nombre, apellidos, base')
-              .in('id', maqIdsPV);
+              .in('id', maqIdsPV)
+          .eq('activo', true);
             const maqMapPV = new Map((maqsPV || []).map((m) => [m.id, m]));
 
             for (const a of accionesPV) {

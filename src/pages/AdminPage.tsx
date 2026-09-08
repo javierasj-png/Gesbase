@@ -48,6 +48,7 @@ import { MaquinistaFormModal } from '@/components/admin/MaquinistaFormModal';
 import { MaquinistaCertificacionesModal } from '@/components/admin/MaquinistaCertificacionesModal';
 import { PlantillasSGS } from '@/components/admin/PlantillasSGS';
 import { CriteriosPlanAnualAdmin } from '@/components/admin/CriteriosPlanAnualAdmin';
+import { CambioEstadoMaquinistaDialog } from '@/components/maquinista/CambioEstadoMaquinistaDialog';
 import { useMaquinistas, MaquinistaConNombre, MaquinistaInput } from '@/hooks/useMaquinistas';
 import { useCertificaciones, CertificacionDB, CertificacionInput } from '@/hooks/useCertificaciones';
 import { useAuth } from '@/contexts/AuthContext';
@@ -171,8 +172,10 @@ export default function AdminPage() {
     }
   };
 
-  const handleToggleMaquinistaActivo = async (maquinista: MaquinistaConNombre) => {
-    await toggleActivo(maquinista.id, maquinista.activo);
+  const [estadoMaquinista, setEstadoMaquinista] = useState<MaquinistaConNombre | null>(null);
+
+  const handleToggleMaquinistaActivo = (maquinista: MaquinistaConNombre) => {
+    setEstadoMaquinista(maquinista);
   };
 
   const handleDeleteMaquinista = async (maquinista: MaquinistaConNombre) => {
