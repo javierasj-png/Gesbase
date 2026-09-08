@@ -204,10 +204,13 @@ export function useExpedientes1603() {
         };
       });
 
+      // Excluir de la planificación a los maquinistas inactivos
+      const activosOnly = expedientesConPlan.filter(e => e.maquinista?.activo !== false);
+
       // Filtrar por bases si no es admin
       const filteredExpedientes = (isAdmin 
-        ? expedientesConPlan 
-        : expedientesConPlan.filter(e => 
+        ? activosOnly 
+        : activosOnly.filter(e => 
             e.maquinista && assignedBases.includes(e.maquinista.base as typeof assignedBases[number])
           )
       ).sort((a, b) => {
