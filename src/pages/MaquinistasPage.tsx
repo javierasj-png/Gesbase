@@ -59,7 +59,7 @@ export default function MaquinistasPage() {
   usePageMeta({ title: 'Maquinistas — Gestión de Base', description: 'Censo y gestión de maquinistas por base de conducción de Renfe Viajeros.', path: '/maquinistas' });
   const [searchTerm, setSearchTerm] = useState('');
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('activo');
   
   const { maquinistas, loading } = useMaquinistas();
   const { expedientes } = useExpedientes1603();

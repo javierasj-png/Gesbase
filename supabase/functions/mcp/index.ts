@@ -231,7 +231,7 @@ var list_expedientes_1201_default = defineTool5({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "fiexmmkokvmpguzevcnb";
+var projectRef = "foyohyrymysstawslxeg";
 var mcp_default = defineMcp({
   name: "gesbase-mcp",
   title: "GesBase \u2014 Renfe SGS",
