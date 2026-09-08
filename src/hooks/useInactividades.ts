@@ -108,10 +108,9 @@ export function useInactividades(maquinistaId?: string) {
     }
 
     if (periodo) {
-      await supabase
-        .from('maquinista_inactividades' as never)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ fecha_fin: hasta } as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('maquinista_inactividades' as never) as any)
+        .update({ fecha_fin: hasta })
         .eq('id', periodo.id);
     }
 
