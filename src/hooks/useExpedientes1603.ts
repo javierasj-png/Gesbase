@@ -35,6 +35,7 @@ export interface Plan1603DB {
   fin_ventana: string | null;
   estado: EstadoBloque1603;
   justificado_traslado: boolean;
+  justificado_inactividad?: boolean;
   traslado_id: string | null;
   created_at: string;
 }
@@ -107,7 +108,7 @@ export function useExpedientes1603() {
       const maquinistaIds = [...new Set(expedientesData.map(e => e.maquinista_id))];
       const { data: maquinistasData } = await supabase
         .from('maquinistas')
-        .select('id, matricula, nombre, apellidos, base')
+        .select('id, matricula, nombre, apellidos, base, activo')
         .in('id', maquinistaIds);
 
       // Fetch planes
@@ -143,7 +144,7 @@ export function useExpedientes1603() {
         const planConEstado = planExpediente.map(bloque => {
           let estadoCalculado = 'pendiente';
           
-          if (bloque.justificado_traslado) {
+          if (bloque.justificado_traslado || (bloque as { justificado_inactividad?: boolean }).justificado_inactividad) {
             estadoCalculado = 'justificada';
           } else if (bloque.actuacion_id) {
             estadoCalculado = 'realizado';

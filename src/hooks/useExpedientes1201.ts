@@ -109,7 +109,7 @@ export function useExpedientes1201() {
       const maquinistaIds = [...new Set(expedientesData.map(e => e.maquinista_id))];
       const { data: maquinistasData } = await supabase
         .from('maquinistas')
-        .select('id, matricula, nombre, apellidos, base')
+        .select('id, matricula, nombre, apellidos, base, activo')
         .in('id', maquinistaIds);
 
       // Fetch planes

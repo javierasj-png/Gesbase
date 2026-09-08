@@ -492,6 +492,7 @@ export function useDashboardAlertas(baseFilter?: string) {
           const { data: accionesPV } = await supabase
             .from('planes_vigilancia_acciones')
             .select('id, plan_id, maquinista_id, tipo_accion, tipo_accion_libre, fecha_prevista, estado')
+            .or('justificado_inactividad.is.null,justificado_inactividad.eq.false')
             .in('plan_id', planesVal.map((p) => p.id))
             .in('estado', ['pendiente', 'no_realizada']);
 
