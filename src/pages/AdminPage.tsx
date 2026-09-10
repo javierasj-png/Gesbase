@@ -623,6 +623,19 @@ export default function AdminPage() {
           onSave={handleSaveMaquinista}
         />
 
+        {/* Cambio de estado activo/inactivo con registro de periodo */}
+        <CambioEstadoMaquinistaDialog
+          open={!!estadoMaquinista}
+          onOpenChange={(open) => { if (!open) setEstadoMaquinista(null); }}
+          maquinista={estadoMaquinista ? {
+            id: estadoMaquinista.id,
+            nombre_apellidos: estadoMaquinista.nombre_apellidos,
+            activo: estadoMaquinista.activo,
+          } : null}
+          onDone={() => { setEstadoMaquinista(null); refetchMaquinistas(); }}
+        />
+
+
         {/* Modal de certificaciones de maquinista */}
         <MaquinistaCertificacionesModal
           maquinistaId={maquinistaCertsModal?.id || null}
