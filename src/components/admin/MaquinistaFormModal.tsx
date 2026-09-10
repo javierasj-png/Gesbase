@@ -202,6 +202,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
             <Switch
               id="activo"
               checked={formData.activo}
+              disabled={!!maquinista}
               onCheckedChange={(checked) => setFormData({ ...formData, activo: checked })}
             />
           </div>

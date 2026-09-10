@@ -93,6 +93,7 @@ interface PlanBloque1201 {
   estado: EstadoBloque1201;
   obligatorio: boolean;
   comentario_vencida?: string | null;
+  justificado_inactividad?: boolean | null;
 }
 
 interface Actuacion1201 {
@@ -233,6 +234,8 @@ export function MaquinistaPE1201Tab({
   const getBlockState = (bloque: PlanBloque1201): 'pendiente' | 'vencida' | 'cumplida' | 'no_procede' => {
     if (bloque.estado === 'no_procede') return 'no_procede';
     if (bloque.actuacion_id) return 'cumplida';
+    // Justificado automáticamente por inactividad del maquinista
+    if (bloque.justificado_inactividad) return 'no_procede';
     
     if (!bloque.fecha_objetivo) return 'pendiente';
     
