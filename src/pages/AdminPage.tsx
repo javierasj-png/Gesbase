@@ -59,7 +59,7 @@ export default function AdminPage() {
   const { isAdmin, isGestor } = useAuth();
   usePageMeta({ title: 'Administración — Gestión de Base', description: 'Configuración de usuarios, bases, certificaciones y plantillas SGS.', path: '/admin' });
   // Hook para maquinistas con Supabase
-  const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, toggleActivo, refetch: refetchMaquinistas } = useMaquinistas();
+  const { maquinistas, loading: loadingMaquinistas, createMaquinista, updateMaquinista, deleteMaquinista, refetch: refetchMaquinistas } = useMaquinistas();
   const [editingMaquinista, setEditingMaquinista] = useState<MaquinistaConNombre | null>(null);
   const [isNewMaquinista, setIsNewMaquinista] = useState(false);
 
