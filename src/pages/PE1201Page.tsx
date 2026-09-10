@@ -569,7 +569,6 @@ export default function PE1201Page() {
                 Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>
-          </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
