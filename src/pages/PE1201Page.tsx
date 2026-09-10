@@ -546,6 +546,32 @@ export default function PE1201Page() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmación de eliminación */}
+        <AlertDialog open={!!expedienteAEliminar} onOpenChange={(open) => !open && setExpedienteAEliminar(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar expediente PE 12.01?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará el expediente <strong>{expedienteAEliminar?.idSuceso}</strong> de{' '}
+                <strong>{expedienteAEliminar?.nombre}</strong>, junto con su planificación y las acciones
+                registradas. Esta acción no se puede deshacer; úsala solo para fichas creadas por error o duplicadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={eliminando}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleEliminarExpediente(); }}
+                disabled={eliminando}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {eliminando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
