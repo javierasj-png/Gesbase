@@ -24,6 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Search, 
   Plus, 
@@ -33,7 +43,9 @@ import {
   Clock,
   CheckCircle2,
   FileWarning,
-  Loader2
+  Loader2,
+  Trash2,
+  Copy
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +70,34 @@ export default function PE1201Page() {
   // Modal state
   const [nuevoOpen, setNuevoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expedienteAEliminar, setExpedienteAEliminar] = useState<{ id: string; idSuceso: string; nombre: string } | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const handleEliminarExpediente = async () => {
+    if (!expedienteAEliminar) return;
+    setEliminando(true);
+    try {
+      const { error } = await supabase
+        .from('expedientes_1201')
+        .delete()
+        .eq('id', expedienteAEliminar.id);
+      if (error) throw error;
+      toast({
+        title: 'Expediente eliminado',
+        description: `Se ha eliminado el expediente ${expedienteAEliminar.idSuceso} y todas sus acciones asociadas.`,
+      });
+      setExpedienteAEliminar(null);
+      refetch();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: (err as { message?: string })?.message || 'No se pudo eliminar el expediente',
+        variant: 'destructive',
+      });
+    } finally {
+      setEliminando(false);
+    }
+  };
   
   // Form state
   const [selectedMaquinistaId, setSelectedMaquinistaId] = useState('');
@@ -174,6 +214,13 @@ export default function PE1201Page() {
     const matchesEstado = estadoFilter === 'all' || item.expediente.estado === estadoFilter;
     return matchesSearch && matchesBase && matchesEstado;
   });
+
+  // Detección de expedientes duplicados (mismo maquinista con más de una ficha)
+  const duplicadosPorMaquinista = expedientes.reduce<Record<string, number>>((acc, item) => {
+    const key = item.expediente.maquinista_id;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
 
   // KPIs según filtro de base (independiente de búsqueda/estado)
   const baseScoped = expedientes.filter(item =>
@@ -313,6 +360,12 @@ export default function PE1201Page() {
                           <Badge variant="outline" className="font-mono text-xs">
                             {expediente.id_suceso}
                           </Badge>
+                          {duplicadosPorMaquinista[expediente.maquinista_id] > 1 && (
+                            <Badge variant="destructive" className="text-xs gap-1">
+                              <Copy className="w-3 h-3" />
+                              Posible duplicado
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
@@ -355,6 +408,24 @@ export default function PE1201Page() {
                       </div>
                       
                       <StatusBadge estado={expediente.estado === 'abierto' ? 'Abierta' : 'Cerrada'} />
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          title="Eliminar expediente"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpedienteAEliminar({
+                              id: expediente.id,
+                              idSuceso: expediente.id_suceso,
+                              nombre: maquinista?.nombre_apellidos || 'Sin asignar',
+                            });
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </div>
                   </div>
@@ -475,6 +546,31 @@ export default function PE1201Page() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirmación de eliminación */}
+        <AlertDialog open={!!expedienteAEliminar} onOpenChange={(open) => !open && setExpedienteAEliminar(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar expediente PE 12.01?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará el expediente <strong>{expedienteAEliminar?.idSuceso}</strong> de{' '}
+                <strong>{expedienteAEliminar?.nombre}</strong>, junto con su planificación y las acciones
+                registradas. Esta acción no se puede deshacer; úsala solo para fichas creadas por error o duplicadas.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={eliminando}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => { e.preventDefault(); handleEliminarExpediente(); }}
+                disabled={eliminando}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {eliminando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
