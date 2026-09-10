@@ -70,6 +70,34 @@ export default function PE1201Page() {
   // Modal state
   const [nuevoOpen, setNuevoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expedienteAEliminar, setExpedienteAEliminar] = useState<{ id: string; idSuceso: string; nombre: string } | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const handleEliminarExpediente = async () => {
+    if (!expedienteAEliminar) return;
+    setEliminando(true);
+    try {
+      const { error } = await supabase
+        .from('expedientes_1201')
+        .delete()
+        .eq('id', expedienteAEliminar.id);
+      if (error) throw error;
+      toast({
+        title: 'Expediente eliminado',
+        description: `Se ha eliminado el expediente ${expedienteAEliminar.idSuceso} y todas sus acciones asociadas.`,
+      });
+      setExpedienteAEliminar(null);
+      refetch();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: (err as { message?: string })?.message || 'No se pudo eliminar el expediente',
+        variant: 'destructive',
+      });
+    } finally {
+      setEliminando(false);
+    }
+  };
   
   // Form state
   const [selectedMaquinistaId, setSelectedMaquinistaId] = useState('');
