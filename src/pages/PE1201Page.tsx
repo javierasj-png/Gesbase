@@ -360,6 +360,12 @@ export default function PE1201Page() {
                           <Badge variant="outline" className="font-mono text-xs">
                             {expediente.id_suceso}
                           </Badge>
+                          {duplicadosPorMaquinista[expediente.maquinista_id] > 1 && (
+                            <Badge variant="destructive" className="text-xs gap-1">
+                              <Copy className="w-3 h-3" />
+                              Posible duplicado
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           <span className="font-mono">{maquinista?.matricula}</span> • {maquinista?.base}
