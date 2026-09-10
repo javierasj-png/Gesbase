@@ -54,12 +54,14 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 // Estado automático: realizada si hay fecha real (dentro de periodo) y resultado;
 // no realizada si el periodo del plan ya terminó y sigue pendiente.
 const estadoAuto = (
-  f: { fecha_real?: string | null; resultado?: string | null },
+  f: { fecha_real?: string | null; resultado?: string | null; justificado_inactividad?: boolean | null },
   plan: { fecha_inicio: string; fecha_fin: string }
 ): 'pendiente' | 'realizada' | 'no_realizada' => {
   const dentro =
     !!f.fecha_real && f.fecha_real >= plan.fecha_inicio && f.fecha_real <= plan.fecha_fin;
   if (dentro && f.resultado) return 'realizada';
+  // Justificada automáticamente por inactividad del maquinista: no cuenta como incumplimiento
+  if (f.justificado_inactividad) return 'pendiente';
   if (hoyISO() > plan.fecha_fin) return 'no_realizada';
   return 'pendiente';
 };
