@@ -408,6 +408,24 @@ export default function PE1201Page() {
                       </div>
                       
                       <StatusBadge estado={expediente.estado === 'abierto' ? 'Abierta' : 'Cerrada'} />
+                      {isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          title="Eliminar expediente"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpedienteAEliminar({
+                              id: expediente.id,
+                              idSuceso: expediente.id_suceso,
+                              nombre: maquinista?.nombre_apellidos || 'Sin asignar',
+                            });
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </div>
                   </div>
