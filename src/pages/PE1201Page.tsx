@@ -215,6 +215,13 @@ export default function PE1201Page() {
     return matchesSearch && matchesBase && matchesEstado;
   });
 
+  // Detección de expedientes duplicados (mismo maquinista con más de una ficha)
+  const duplicadosPorMaquinista = expedientes.reduce<Record<string, number>>((acc, item) => {
+    const key = item.expediente.maquinista_id;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
   // KPIs según filtro de base (independiente de búsqueda/estado)
   const baseScoped = expedientes.filter(item =>
     baseFilter === 'all' || item.maquinista?.base === baseFilter
