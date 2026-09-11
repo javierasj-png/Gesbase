@@ -1595,14 +1595,14 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Introduce la fecha de la actuación para detectar automáticamente el bloque.
+              Introduce la fecha (del tren o del control) para detectar automáticamente el bloque.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Fecha PRIMERO - detecta bloque automáticamente */}
             <div className="space-y-2">
-              <Label>Fecha de la actuación *</Label>
+              <Label>{fechaLabel(selectedTipo)} *</Label>
               <Input
                 type="date"
                 value={fechaActuacion}
@@ -1866,7 +1866,7 @@ export function MaquinistaPE1603Tab({
 
             {/* Fecha */}
             <div className="space-y-2">
-              <Label>Fecha de la actuación</Label>
+              <Label>{fechaLabel(selectedTipo)}</Label>
               <Input
                 type="date"
                 value={fechaActuacion}
