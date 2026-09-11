@@ -101,6 +101,13 @@ const tipoLabels: Record<TipoActuacion1603, string> = {
 
 const tiposActuacion: TipoActuacion1603[] = ['acompanamiento', 'registro', 'alcohol', 'drogas'];
 
+// Etiqueta de la fecha según el tipo de actuación
+const fechaLabel = (tipo?: TipoActuacion1603 | '' | null): string => {
+  if (tipo === 'alcohol' || tipo === 'drogas') return 'Fecha del control';
+  if (tipo === 'acompanamiento' || tipo === 'registro') return 'Fecha del tren';
+  return 'Fecha de la actuación';
+};
+
 export function MaquinistaPE1603Tab({ 
   maquinista, 
   expediente1603, 
@@ -1588,14 +1595,14 @@ export function MaquinistaPE1603Tab({
               Registrar Actuación
             </DialogTitle>
             <DialogDescription>
-              Introduce la fecha de la actuación para detectar automáticamente el bloque.
+              Introduce la fecha (del tren o del control) para detectar automáticamente el bloque.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Fecha PRIMERO - detecta bloque automáticamente */}
             <div className="space-y-2">
-              <Label>Fecha de la actuación *</Label>
+              <Label>{fechaLabel(selectedTipo)} *</Label>
               <Input
                 type="date"
                 value={fechaActuacion}
@@ -1859,7 +1866,7 @@ export function MaquinistaPE1603Tab({
 
             {/* Fecha */}
             <div className="space-y-2">
-              <Label>Fecha de la actuación</Label>
+              <Label>{fechaLabel(selectedTipo)}</Label>
               <Input
                 type="date"
                 value={fechaActuacion}
