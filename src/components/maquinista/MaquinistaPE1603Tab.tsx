@@ -102,7 +102,7 @@ const tipoLabels: Record<TipoActuacion1603, string> = {
 const tiposActuacion: TipoActuacion1603[] = ['acompanamiento', 'registro', 'alcohol', 'drogas'];
 
 // Etiqueta de la fecha según el tipo de actuación
-const fechaLabel = (tipo?: TipoActuacion1603 | null): string => {
+const fechaLabel = (tipo?: TipoActuacion1603 | '' | null): string => {
   if (tipo === 'alcohol' || tipo === 'drogas') return 'Fecha del control';
   if (tipo === 'acompanamiento' || tipo === 'registro') return 'Fecha del tren';
   return 'Fecha de la actuación';
