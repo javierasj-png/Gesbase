@@ -425,6 +425,215 @@ export type Database = {
         }
         Relationships: []
       }
+      doc_detalle_agente: {
+        Row: {
+          created_at: string
+          estado: string
+          fecha_vigor: string | null
+          id: string
+          maquinista_id: string | null
+          matricula: string
+          nombre: string | null
+          referencia: string
+          sondeo_id: string
+          tipo_documento: string | null
+          titulo: string | null
+        }
+        Insert: {
+          created_at?: string
+          estado: string
+          fecha_vigor?: string | null
+          id?: string
+          maquinista_id?: string | null
+          matricula: string
+          nombre?: string | null
+          referencia: string
+          sondeo_id: string
+          tipo_documento?: string | null
+          titulo?: string | null
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          fecha_vigor?: string | null
+          id?: string
+          maquinista_id?: string | null
+          matricula?: string
+          nombre?: string | null
+          referencia?: string
+          sondeo_id?: string
+          tipo_documento?: string | null
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_detalle_agente_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_detalle_agente_sondeo_id_fkey"
+            columns: ["sondeo_id"]
+            isOneToOne: false
+            referencedRelation: "doc_sondeos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doc_registros_agregados: {
+        Row: {
+          abiertos: number
+          created_at: string
+          fecha_vigor: string | null
+          id: string
+          incluidos: number
+          leidos: number
+          recibidos: number
+          referencia: string
+          sondeo_id: string
+          tipo_documento: string | null
+          titulo: string | null
+        }
+        Insert: {
+          abiertos?: number
+          created_at?: string
+          fecha_vigor?: string | null
+          id?: string
+          incluidos?: number
+          leidos?: number
+          recibidos?: number
+          referencia: string
+          sondeo_id: string
+          tipo_documento?: string | null
+          titulo?: string | null
+        }
+        Update: {
+          abiertos?: number
+          created_at?: string
+          fecha_vigor?: string | null
+          id?: string
+          incluidos?: number
+          leidos?: number
+          recibidos?: number
+          referencia?: string
+          sondeo_id?: string
+          tipo_documento?: string | null
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_registros_agregados_sondeo_id_fkey"
+            columns: ["sondeo_id"]
+            isOneToOne: false
+            referencedRelation: "doc_sondeos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doc_resumenes_maquinista: {
+        Row: {
+          abiertos: number | null
+          asignados: number
+          created_at: string
+          id: string
+          incluidos: number | null
+          leidos: number | null
+          leidos_total: number
+          maquinista_id: string | null
+          matricula: string
+          nombre: string | null
+          recibidos: number | null
+          sondeo_id: string
+        }
+        Insert: {
+          abiertos?: number | null
+          asignados: number
+          created_at?: string
+          id?: string
+          incluidos?: number | null
+          leidos?: number | null
+          leidos_total: number
+          maquinista_id?: string | null
+          matricula: string
+          nombre?: string | null
+          recibidos?: number | null
+          sondeo_id: string
+        }
+        Update: {
+          abiertos?: number | null
+          asignados?: number
+          created_at?: string
+          id?: string
+          incluidos?: number | null
+          leidos?: number | null
+          leidos_total?: number
+          maquinista_id?: string | null
+          matricula?: string
+          nombre?: string | null
+          recibidos?: number | null
+          sondeo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_resumenes_maquinista_maquinista_id_fkey"
+            columns: ["maquinista_id"]
+            isOneToOne: false
+            referencedRelation: "maquinistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_resumenes_maquinista_sondeo_id_fkey"
+            columns: ["sondeo_id"]
+            isOneToOne: false
+            referencedRelation: "doc_sondeos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doc_sondeos: {
+        Row: {
+          base_nombre: string
+          created_at: string
+          created_by: string | null
+          fecha_sondeo: string
+          hash_archivo: string | null
+          id: string
+          modo: string
+          nombre_archivo: string | null
+          observaciones: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_nombre: string
+          created_at?: string
+          created_by?: string | null
+          fecha_sondeo: string
+          hash_archivo?: string | null
+          id?: string
+          modo: string
+          nombre_archivo?: string | null
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_nombre?: string
+          created_at?: string
+          created_by?: string | null
+          fecha_sondeo?: string
+          hash_archivo?: string | null
+          id?: string
+          modo?: string
+          nombre_archivo?: string | null
+          observaciones?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       expedientes_1201: {
         Row: {
           cerrado_por: string | null
@@ -1443,6 +1652,7 @@ export type Database = {
       can_admin_base:
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+      doc_sondeo_base: { Args: { _sondeo_id: string }; Returns: string }
       gestor_can_manage_user: {
         Args: { _gestor_id: string; _user_id: string }
         Returns: boolean
