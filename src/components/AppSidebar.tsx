@@ -16,6 +16,7 @@ import {
   Menu,
   ShieldCheck,
   BookOpen,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/pe-1603', label: 'PE 16.03', icon: FileCheck },
   { path: '/pe-1201', label: 'PE 12.01', icon: AlertTriangle },
   { path: '/planes-vigilancia', label: 'Planes Específicos', icon: ShieldCheck },
+  { path: '/documentacion-reglamentaria', label: 'Documentación reglamentaria', icon: FileText },
   { path: '/partes', label: 'Control de Partes', icon: ClipboardList },
   { path: '/auditoria', label: 'Auditoría', icon: FileBarChart },
 ];

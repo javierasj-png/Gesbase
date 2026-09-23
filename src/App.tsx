@@ -19,6 +19,7 @@ import PartesPage from "./pages/PartesPage";
 import AuditoriaPage from "./pages/AuditoriaPage";
 import PlanesVigilanciaPage from "./pages/PlanesVigilanciaPage";
 import ConocimientoPage from "./pages/ConocimientoPage";
+import DocumentacionReglamentariaPage from "./pages/DocumentacionReglamentariaPage";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -78,6 +79,11 @@ const App = () => (
             <Route path="/auditoria" element={
               <ProtectedRoute>
                 <AuditoriaPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/documentacion-reglamentaria" element={
+              <ProtectedRoute>
+                <DocumentacionReglamentariaPage />
               </ProtectedRoute>
             } />
             <Route path="/conocimiento" element={
