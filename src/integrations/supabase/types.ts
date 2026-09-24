@@ -1652,6 +1652,17 @@ export type Database = {
       can_admin_base:
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
         | { Args: { _base_nombre: string; _user_id: string }; Returns: boolean }
+      doc_importar_sondeo: {
+        Args: {
+          _base: string
+          _fecha: string
+          _filas: Json
+          _modo: string
+          _nombre_archivo: string
+          _reemplazar?: boolean
+        }
+        Returns: Json
+      }
       doc_sondeo_base: { Args: { _sondeo_id: string }; Returns: string }
       gestor_can_manage_user: {
         Args: { _gestor_id: string; _user_id: string }
