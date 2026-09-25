@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { readDocFile } from '@/lib/docReglamentaria/readFile';
+import { ConsultaSondeos } from '@/components/docReglamentaria/ConsultaSondeos';
 import { MODO_LABEL, norm, isValidDate, totalRegistros, type ResultadoLectura } from '@/lib/docReglamentaria/parser';
 
 interface Preview {
@@ -45,6 +46,7 @@ export default function DocumentacionReglamentariaPage() {
   const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Confirmacion | null>(null);
+  const [recarga, setRecarga] = useState(0);
   const { toast } = useToast();
 
   const guardar = async (it: Preview, reemplazar = false) => {
@@ -66,6 +68,7 @@ export default function DocumentacionReglamentariaPage() {
     const msg = r.estado === 'ya_importado' ? 'Este contenido ya estaba importado.'
       : r.estado === 'reemplazado' ? `Sondeo sustituido (${r.registros} registros).` : `Sondeo guardado (${r.registros} registros).`;
     update(it.id, { guardado: msg });
+    setRecarga(x => x + 1);
     toast({ title: msg });
   };
 
@@ -102,6 +105,8 @@ export default function DocumentacionReglamentariaPage() {
             </Button>
           </div>
         </div>
+
+        <ConsultaSondeos recarga={recarga} />
 
         {items.length === 0 ? (
           <Card>
