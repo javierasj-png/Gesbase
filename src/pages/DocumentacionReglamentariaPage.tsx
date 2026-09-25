@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Upload, X, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, Upload, X, AlertCircle, Loader2, Save, CheckCircle2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { readDocFile } from '@/lib/docReglamentaria/readFile';
 import { MODO_LABEL, norm, isValidDate, totalRegistros, type ResultadoLectura } from '@/lib/docReglamentaria/parser';
@@ -16,6 +19,17 @@ interface Preview {
   res: ResultadoLectura;
   fecha: string;
   base: string; // base de Gesbase elegida
+  guardado?: string;
+}
+
+interface Confirmacion { id: string; archivo: string; fechaImport: string; actuales: number; nuevos: number }
+
+/** Filas sin número de línea, para que la huella dependa solo del contenido. */
+function filasDe(res: ResultadoLectura) {
+  const strip = <T extends { linea: number }>(a: T[]) => a.map(({ linea: _l, ...r }) => r);
+  if (res.modo === 'agregado') return strip(res.agregados);
+  if (res.modo === 'resumen_maquinista') return strip(res.resumenes);
+  return strip(res.detalle);
 }
 
 function matchBase(origen: string, bases: string[]): string {
@@ -29,6 +43,31 @@ export default function DocumentacionReglamentariaPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Preview[]>([]);
   const [reading, setReading] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Confirmacion | null>(null);
+  const { toast } = useToast();
+
+  const guardar = async (it: Preview, reemplazar = false) => {
+    setSaving(it.id);
+    const { data, error } = await supabase.rpc('doc_importar_sondeo' as never, {
+      _fecha: it.fecha, _base: it.base, _modo: it.res.modo, _nombre_archivo: it.nombre,
+      _filas: filasDe(it.res), _reemplazar: reemplazar,
+    } as never);
+    setSaving(null);
+    if (error) {
+      toast({ title: 'No se ha guardado', description: error.message, variant: 'destructive' });
+      return;
+    }
+    const r = data as unknown as { estado: string; archivo?: string; fecha_importacion?: string; registros_actuales?: number; registros_nuevos?: number; registros?: number };
+    if (r.estado === 'requiere_confirmacion') {
+      setConfirm({ id: it.id, archivo: r.archivo || '—', fechaImport: r.fecha_importacion || '', actuales: r.registros_actuales ?? 0, nuevos: r.registros_nuevos ?? 0 });
+      return;
+    }
+    const msg = r.estado === 'ya_importado' ? 'Este contenido ya estaba importado.'
+      : r.estado === 'reemplazado' ? `Sondeo sustituido (${r.registros} registros).` : `Sondeo guardado (${r.registros} registros).`;
+    update(it.id, { guardado: msg });
+    toast({ title: msg });
+  };
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -70,13 +109,13 @@ export default function DocumentacionReglamentariaPage() {
               <FileText className="w-10 h-10 mx-auto text-muted-foreground" />
               <p className="font-medium">Selecciona archivos para ver una vista previa</p>
               <p className="text-sm text-muted-foreground">
-                Formatos admitidos: «Seguimiento docs. area…», «Seguimiento maqs. area…» y detalle individual. Nada se guarda todavía.
+                Formatos admitidos: «Seguimiento docs. area…», «Seguimiento maqs. area…» y detalle individual.
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">Vista previa: los datos no se guardan.</p>
+            <p className="text-xs text-muted-foreground">Revisa la vista previa y pulsa «Guardar sondeo» en cada archivo.</p>
             {items.map(it => {
               const n = totalRegistros(it.res);
               const fechaOk = isValidDate(it.fecha);
@@ -118,6 +157,16 @@ export default function DocumentacionReglamentariaPage() {
                       </div>
                     </div>
 
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Button size="sm" className="gap-2" onClick={() => guardar(it)}
+                        disabled={!!saving || !it.res.modo || it.res.errores.length > 0 || !fechaOk || !it.base || n === 0}>
+                        {saving === it.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Guardar sondeo
+                      </Button>
+                      {it.res.errores.length > 0 && <span className="text-xs text-muted-foreground">Corrige los errores del archivo para poder guardarlo.</span>}
+                      {it.guardado && <span className="text-sm flex items-center gap-1 text-primary"><CheckCircle2 className="w-4 h-4" />{it.guardado}</span>}
+                    </div>
+
                     {it.res.errores.length > 0 && (
                       <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm max-h-40 overflow-y-auto">
                         {it.res.errores.slice(0, 50).map((e, i) => (
@@ -152,6 +201,31 @@ export default function DocumentacionReglamentariaPage() {
           </div>
         )}
       </div>
+      <AlertDialog open={!!confirm} onOpenChange={o => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ya existe un sondeo distinto</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>Para esta fecha, base y formato ya hay datos guardados con otro contenido. Se sustituirá:</p>
+                <ul className="list-disc pl-5">
+                  <li>Archivo anterior: <b>{confirm?.archivo}</b>{confirm?.fechaImport && ` (importado el ${new Date(confirm.fechaImport).toLocaleString('es-ES')})`}</li>
+                  <li>Registros actuales: <b>{confirm?.actuales}</b> → nuevos: <b>{confirm?.nuevos}</b></li>
+                </ul>
+                <p>No se modifican otras fechas ni otras partes de la aplicación.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              const it = items.find(i => i.id === confirm?.id);
+              setConfirm(null);
+              if (it) guardar(it, true);
+            }}>Sustituir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
