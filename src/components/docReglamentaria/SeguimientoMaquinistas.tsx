@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { fmtPct } from '@/lib/docReglamentaria/resumen';
+import { justificacionPara, type Actuacion } from '@/lib/docReglamentaria/justificaciones';
 import { construirSeguimiento, cifras, type FilaMaquinista, type MaqMaestro } from '@/lib/docReglamentaria/maquinistas';
 
 interface S { id: string; base_nombre: string; modo: string }
@@ -23,7 +24,7 @@ async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | n
   return out;
 }
 
-export function SeguimientoMaquinistas({ sondeos }: { sondeos: S[] }) {
+export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '' }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string }) {
   const [filas, setFilas] = useState<FilaMaquinista[] | null>(null);
   const [ver, setVer] = useState<FilaMaquinista | null>(null);
   const key = sondeos.map(s => s.id).sort().join(',');
@@ -94,7 +95,7 @@ export function SeguimientoMaquinistas({ sondeos }: { sondeos: S[] }) {
                       <td className="p-2">{f.maestro?.base || f.baseSondeo}</td>
                       {c ? <>
                         <td className="p-2 text-center">{fmt(c.asignaciones)}</td><td className="p-2 text-center">{fmt(c.lecturas)}</td>
-                        <td className="p-2 text-center">{fmt(c.pendientes)}</td><td className="p-2 text-center">{fmtPct(c.porcentaje)}</td>
+                        <td className="p-2 text-center">{fmt(c.pendientes)}</td><td className="p-2 text-center">{(() => { const j = justificacionPara(acts, f.matricula, periodo, f.baseSondeo); return j && c.asignaciones ? <><Badge>No computa</Badge><br /><span className="text-muted-foreground">{fmtPct(c.porcentaje)} · {j.estado}</span></> : fmtPct(c.porcentaje); })()}</td>
                       </> : <td colSpan={4} className="p-2 text-center">
                         <span className="inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-destructive" />Discrepancia — revisar:</span>{' '}
                         Resumen {fmt(f.resumen!.lecturas)}/{fmt(f.resumen!.asignaciones)} · Detalle {fmt(f.detalle!.lecturas)}/{fmt(f.detalle!.asignaciones)}
