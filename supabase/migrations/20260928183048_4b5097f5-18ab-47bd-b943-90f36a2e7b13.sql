@@ -1,0 +1,5 @@
+ALTER TABLE public.doc_actuaciones DROP CONSTRAINT doc_actuaciones_estado_check;
+ALTER TABLE public.doc_actuaciones ADD CONSTRAINT doc_actuaciones_estado_check CHECK (estado = ANY (ARRAY['He hablado con el agente','Aviso enviado','Mando intermedio (MMII)','Baja IT','Vacaciones','Anomalía comunicada','Incidencia técnica','Pendiente de seguimiento','Otra situación','Estado de la base comunicado']));
+ALTER TABLE public.doc_actuaciones DROP CONSTRAINT doc_act_aviso;
+ALTER TABLE public.doc_actuaciones ADD CONSTRAINT doc_act_aviso CHECK (estado <> ALL (ARRAY['Aviso enviado','Anomalía comunicada','Estado de la base comunicado']) OR fecha_comunicacion IS NOT NULL);
+ALTER TABLE public.doc_actuaciones ADD CONSTRAINT doc_act_com_base CHECK (estado <> 'Estado de la base comunicado' OR (matricula IS NULL AND NOT no_computa));

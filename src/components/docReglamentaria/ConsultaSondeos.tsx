@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ComunicacionDialog } from './ComunicacionDialog';
+import { asuntoBase, comentarioBase, mensajeBase, ESTADO_BASE_COMUNICADO } from '@/lib/docReglamentaria/comunicaciones';
 import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { MODO_LABEL, norm, type ModoSondeo } from '@/lib/docReglamentaria/parser';
@@ -35,6 +38,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const [base, setBase] = useState('all');
   const [modo, setModo] = useState<ModoSondeo | ''>('');
   const [busca, setBusca] = useState('');
+  const [msgBase, setMsgBase] = useState(false);
   const [loading, setLoading] = useState(true);
   const [docs, setDocs] = useState<DocFila[]>([]);
   const [ind, setInd] = useState<Indicadores | null>(null);
@@ -182,10 +186,30 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               </div>
             )}
             <div className="flex gap-2 flex-wrap">{delDia.filter(s => s.modo === modo).map(s => <Badge key={s.id} variant="outline">{s.base_nombre}</Badge>)}</div>
+            <div className="flex items-center justify-end gap-2 border-t pt-3">
+              {base === 'all' || q || modo === 'resumen_maquinista'
+                ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
+                : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}
+            </div>
           </>}
       </CardContent>
     </Card>
-    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} />
+    {msgBase && (() => {
+      const n = ajuste ? ajuste.n : orig;
+      const datos = { base, fecha, leidos: n[3], total: n[0] + n[1] + n[2] + n[3], docs: docs.map(d => ({ referencia: d.referencia, titulo: d.titulo, pendientes: d.incluidos + d.recibidos + d.abiertos })) };
+      return <ComunicacionDialog open onClose={() => setMsgBase(false)} titulo={`Preparar resumen de la base · ${base}`} ambito="esta base de conducción"
+        email="" asunto={asuntoBase(fecha)} cuerpo={mensajeBase(datos)}
+        anteriores={acts.filter(a => a.estado === ESTADO_BASE_COMUNICADO && a.base_nombre === base)}
+        registrar={async r => {
+          const { error } = await (supabase.from('doc_actuaciones' as never) as any).insert({
+            base_nombre: base, matricula: null, nombre: null, responsable: r.responsable, estado: ESTADO_BASE_COMUNICADO,
+            fecha_actuacion: r.fecha, fecha_comunicacion: r.fecha, canal: r.canal, periodo: fecha, no_computa: false, comentario: comentarioBase(datos, r.destinatario),
+          });
+          if (error) return 'No se pudo registrar: ' + error.message;
+          setRecActs(x => x + 1); return null;
+        }} />;
+    })()}
+    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} onChange={() => setRecActs(x => x + 1)} />
     <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} />
     <CompararSondeos sondeos={sondeos} basesDisponibles={[...new Set(sondeos.map(s => s.base_nombre))].sort()} />
     </div>
