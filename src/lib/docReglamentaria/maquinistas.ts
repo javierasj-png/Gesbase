@@ -1,7 +1,7 @@
 /** Seguimiento por maquinista. Vinculación SOLO por matrícula exacta (texto). Nunca por nombre. */
-export interface ResumenRow { matricula: string; nombre: string | null; asignados: number; leidos_total: number; base: string }
-export interface DetalleRow { matricula: string; nombre: string | null; referencia: string; titulo: string | null; estado: string; base: string }
-export interface MaqMaestro { id: string; matricula: string; nombre: string; apellidos: string; base: string }
+export interface ResumenRow { matricula: string; nombre: string | null; asignados: number; leidos_total: number; base: string; email?: string | null }
+export interface DetalleRow { matricula: string; nombre: string | null; referencia: string; titulo: string | null; estado: string; base: string; email?: string | null }
+export interface MaqMaestro { id: string; matricula: string; nombre: string; apellidos: string; base: string; email?: string | null }
 export interface Totales { asignaciones: number; lecturas: number }
 
 export interface FilaMaquinista {

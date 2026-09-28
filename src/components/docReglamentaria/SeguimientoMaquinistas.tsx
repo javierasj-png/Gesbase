@@ -24,9 +24,10 @@ async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | n
   return out;
 }
 
-export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '' }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string }) {
+export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onChange }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string; onChange?: () => void }) {
   const [filas, setFilas] = useState<FilaMaquinista[] | null>(null);
   const [ver, setVer] = useState<FilaMaquinista | null>(null);
+  const [msg, setMsg] = useState<FilaMaquinista | null>(null);
   const key = sondeos.map(s => s.id).sort().join(',');
 
   useEffect(() => {
@@ -104,6 +105,9 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '' }: { s
                         ? <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setVer(f)} disabled={!f.pendientesDetalle.length}>{f.pendientesDetalle.length ? `${f.pendientesDetalle.length} pendiente(s)` : 'Todo leído'}</Button>
                         : <span className="text-muted-foreground">No se dispone del detalle</span>}</td>
                       <td className="p-2 text-center">{f.maestro ? <Link to={`/maquinistas/${f.maestro.id}`} className="text-primary underline">Ver ficha</Link> : '—'}</td>
+                      <td className="p-2 text-center">{c
+                        ? <Button size="sm" variant="outline" className="h-6 text-xs gap-1" onClick={() => setMsg(f)}><Mail className="w-3 h-3" />Preparar{!f.maestro?.email && <span className="text-muted-foreground">(sin correo)</span>}</Button>
+                        : <span className="text-muted-foreground">Revisar antes</span>}</td>
                     </tr>);
                 })}</tbody>
               </table>
@@ -121,6 +125,25 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '' }: { s
           </div>
         </DialogContent>
       </Dialog>
+      {msg && (() => {
+        const c = cifras(msg)!;
+        const nombre = msg.maestro ? `${msg.maestro.nombre} ${msg.maestro.apellidos}` : msg.nombreArchivo || msg.matricula;
+        return <ComunicacionDialog open onClose={() => setMsg(null)}
+          titulo={`Preparar mensaje al agente · ${nombre} (${msg.matricula})`} ambito="este agente"
+          email={msg.maestro?.email || ''} asunto={asuntoAgente(msg.matricula, periodo)}
+          cuerpo={mensajeAgente({ nombre, fecha: periodo, leidos: c.lecturas, total: c.asignaciones, pendientes: msg.detalle ? msg.pendientesDetalle : null })}
+          anteriores={acts.filter(a => a.estado === 'Aviso enviado' && (a.matricula || '').trim() === msg.matricula && a.base_nombre === msg.baseSondeo)}
+          registrar={async r => {
+            const { error } = await (supabase.from('doc_actuaciones' as never) as any).insert({
+              base_nombre: msg.baseSondeo, matricula: msg.matricula, nombre: msg.nombreArchivo || nombre, responsable: r.responsable,
+              fecha_actuacion: r.fecha, fecha_comunicacion: r.fecha, canal: r.canal, estado: 'Aviso enviado', periodo, no_computa: false,
+              comentario: `Comunicación de lectura (sondeo ${periodo.split('-').reverse().join('/')}): ${c.lecturas}/${c.asignaciones} leídos.${r.destinatario ? ' Destinatario: ' + r.destinatario + '.' : ''}`,
+            });
+            if (error?.code === '23505') return 'Este agente ya tiene una actuación registrada para este sondeo. Edítala en «Actuaciones» para añadir la comunicación.';
+            if (error) return 'No se pudo registrar: ' + error.message;
+            onChange?.(); return null;
+          }} />;
+      })()}
     </Card>
   );
 }
