@@ -334,6 +334,28 @@ export function UserManagement() {
     }
   };
 
+  const [pwUser, setPwUser] = useState<UserWithDetails | null>(null);
+  const [pwValue, setPwValue] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const handleSetPassword = async () => {
+    if (!pwUser) return;
+    if (pwValue.length < 8) {
+      toast({ variant: 'destructive', title: 'Mínimo 8 caracteres' });
+      return;
+    }
+    setPwSaving(true);
+    const { data, error } = await supabase.functions.invoke('admin-set-password', {
+      body: { user_id: pwUser.user_id, password: pwValue },
+    });
+    setPwSaving(false);
+    if (error || (data as any)?.error) {
+      toast({ variant: 'destructive', title: 'Error', description: (data as any)?.error || 'No se pudo cambiar la contraseña' });
+      return;
+    }
+    toast({ title: 'Contraseña cambiada', description: `Comunica la nueva contraseña a ${pwUser.email}` });
+    setPwUser(null);
+  };
+
   // ── Reset password (admin) ──
   const handleResetPassword = async (user: UserWithDetails) => {
     setSaving(user.user_id);
@@ -426,7 +448,7 @@ export function UserManagement() {
                 className="h-7 w-7"
                 title="Restablecer contraseña"
                 disabled={saving === user.user_id}
-                onClick={() => handleResetPassword(user)}
+                onClick={() => { setPwUser(user); setPwValue(''); }}
               >
                 {saving === user.user_id ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -618,6 +640,30 @@ export function UserManagement() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Set Password Dialog */}
+      <Dialog open={!!pwUser} onOpenChange={(open) => !open && setPwUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cambiar contraseña</DialogTitle>
+            <DialogDescription>{pwUser?.email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-pw">Nueva contraseña (mínimo 8 caracteres)</Label>
+            <Input id="new-pw" type="text" value={pwValue} onChange={e => setPwValue(e.target.value)} autoComplete="off" />
+            <p className="text-xs text-muted-foreground">Se aplica al momento. Comunícasela al usuario; podrá cambiarla después.</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => pwUser && handleResetPassword(pwUser)} disabled={saving === pwUser?.user_id}>
+              Enviar enlace por correo
+            </Button>
+            <Button onClick={handleSetPassword} disabled={pwSaving}>
+              {pwSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Guardar contraseña
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
