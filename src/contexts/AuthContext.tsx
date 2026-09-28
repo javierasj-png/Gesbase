@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, type Context } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, Base, UserProfile, UserWithAccess } from '@/types';
@@ -25,7 +25,7 @@ interface AuthContextType {
 
 // Mantener el mismo contexto entre recargas en caliente para evitar pantallas en blanco
 const g = globalThis as any;
-const AuthContext: React.Context<AuthContextType | undefined> =
+const AuthContext: Context<AuthContextType | undefined> =
   g.__gesbaseAuthContext ?? (g.__gesbaseAuthContext = createContext<AuthContextType | undefined>(undefined));
 
 export function AuthProvider({ children }: { children: ReactNode }) {
