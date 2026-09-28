@@ -86,6 +86,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
 
   // Actuaciones (separadas de las lecturas)
   const [acts, setActs] = useState<Actuacion[]>([]);
+  const [nuevaAct, setNuevaAct] = useState<{ base: string; matricula: string; nombre: string; n: number } | null>(null);
   const [recActs, setRecActs] = useState(0);
   useEffect(() => { (async () => {
     const r = await todas<Actuacion>((a, b) => (supabase.from('doc_actuaciones' as never) as any).select('*').order('fecha_actuacion', { ascending: false }).range(a, b));
@@ -209,8 +210,9 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
           setRecActs(x => x + 1); return null;
         }} />;
     })()}
-    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} onChange={() => setRecActs(x => x + 1)} />
-    <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} />
+    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} onChange={() => setRecActs(x => x + 1)}
+      onRegistrar={fm => setNuevaAct(p => ({ base: fm.baseSondeo, matricula: fm.matricula, nombre: fm.maestro ? `${fm.maestro.nombre ?? ''} ${fm.maestro.apellidos ?? ''}`.trim() : fm.nombreArchivo, n: (p?.n ?? 0) + 1 }))} />
+    <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} nueva={nuevaAct} />
     <CompararSondeos sondeos={sondeos} basesDisponibles={[...new Set(sondeos.map(s => s.base_nombre))].sort()} />
     </div>
   );

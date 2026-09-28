@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, AlertTriangle, Mail } from 'lucide-react';
+import { Loader2, AlertTriangle, Mail, Plus } from 'lucide-react';
 import { ComunicacionDialog } from './ComunicacionDialog';
 import { asuntoAgente, mensajeAgente } from '@/lib/docReglamentaria/comunicaciones';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,7 @@ async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | n
   return out;
 }
 
-export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onChange }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string; onChange?: () => void }) {
+export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onChange, onRegistrar }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string; onChange?: () => void; onRegistrar?: (f: FilaMaquinista) => void }) {
   const [filas, setFilas] = useState<FilaMaquinista[] | null>(null);
   const [ver, setVer] = useState<FilaMaquinista | null>(null);
   const [msg, setMsg] = useState<FilaMaquinista | null>(null);
@@ -107,9 +107,12 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
                         ? <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setVer(f)} disabled={!f.pendientesDetalle.length}>{f.pendientesDetalle.length ? `${f.pendientesDetalle.length} pendiente(s)` : 'Todo leído'}</Button>
                         : <span className="text-muted-foreground">No se dispone del detalle</span>}</td>
                       <td className="p-2 text-center">{f.maestro ? <Link to={`/maquinistas/${f.maestro.id}`} className="text-primary underline">Ver ficha</Link> : '—'}</td>
-                      <td className="p-2 text-center">{c
+                      <td className="p-2 text-center"><div className="flex flex-col items-center gap-1">{c
                         ? <Button size="sm" variant="outline" className="h-6 text-xs gap-1" onClick={() => setMsg(f)}><Mail className="w-3 h-3" />Preparar{!f.maestro?.email && <span className="text-muted-foreground">(sin correo)</span>}</Button>
-                        : <span className="text-muted-foreground">Revisar antes</span>}</td>
+                        : <span className="text-muted-foreground">Revisar antes</span>}
+                        {onRegistrar && (() => { const ya = acts.some(a => a.base_nombre === f.baseSondeo && a.matricula === f.matricula && a.periodo === periodo); return (
+                          <Button size="sm" variant={ya ? 'secondary' : 'default'} className="h-6 text-xs gap-1" onClick={() => onRegistrar(f)}><Plus className="w-3 h-3" />{ya ? 'Ver actuación' : 'Registrar actuación'}</Button>); })()}
+                      </div></td>
                     </tr>);
                 })}</tbody>
               </table>
