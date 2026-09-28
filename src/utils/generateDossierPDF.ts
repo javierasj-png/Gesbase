@@ -829,6 +829,68 @@ export async function generateDossierPDF(maquinistaId: string) {
     y += 8;
   }
 
+  // ═══════════════════════════════════════
+  // SECCIÓN 6: DOCUMENTACIÓN REGLAMENTARIA
+  // ═══════════════════════════════════════
+  {
+    const LABEL_DOC = `Documentación reglamentaria — ${maq.nombre} ${maq.apellidos}`;
+    const sb = supabase as any;
+    const [{ data: resu }, { data: deta }, { data: acts }] = await Promise.all([
+      sb.from('doc_resumenes_maquinista').select('asignados,leidos_total,doc_sondeos!inner(fecha_sondeo,base_nombre)').eq('matricula', maq.matricula),
+      sb.from('doc_detalle_agente').select('estado,sondeo_id,doc_sondeos!inner(fecha_sondeo,base_nombre)').eq('matricula', maq.matricula),
+      sb.from('doc_actuaciones').select('fecha_actuacion,estado,responsable,vigencia_hasta,no_computa,comentario').eq('matricula', maq.matricula).order('fecha_actuacion', { ascending: false }),
+    ]);
+    // Porcentaje por sondeo: resumen individual si existe; si no, detalle agente-documento. Nunca se suman ambos.
+    const porFecha = new Map<string, { fecha: string; base: string; asig: number; leid: number; fuente: string }>();
+    for (const r of (resu || []) as any[]) {
+      const k = `${r.doc_sondeos.fecha_sondeo}|${r.doc_sondeos.base_nombre}`;
+      const e = porFecha.get(k) || { fecha: r.doc_sondeos.fecha_sondeo, base: r.doc_sondeos.base_nombre, asig: 0, leid: 0, fuente: 'Resumen' };
+      e.asig += r.asignados; e.leid += r.leidos_total; porFecha.set(k, e);
+    }
+    const det = new Map<string, { fecha: string; base: string; asig: number; leid: number; fuente: string }>();
+    for (const r of (deta || []) as any[]) {
+      const k = `${r.doc_sondeos.fecha_sondeo}|${r.doc_sondeos.base_nombre}`;
+      if (porFecha.has(k)) continue;
+      const e = det.get(k) || { fecha: r.doc_sondeos.fecha_sondeo, base: r.doc_sondeos.base_nombre, asig: 0, leid: 0, fuente: 'Detalle' };
+      e.asig += 1; if (r.estado === 'leido') e.leid += 1; det.set(k, e);
+    }
+    const filas = [...porFecha.values(), ...det.values()].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const actList = (acts || []) as any[];
+    if (filas.length || actList.length) {
+      doc.addPage();
+      addPageHeader(doc, LABEL_DOC);
+      let yd = PAGE_HEADER_H + 8;
+      doc.setFontSize(12); doc.setTextColor(...MAGENTA);
+      doc.text('6. Documentación reglamentaria', 14, yd); yd += 4;
+      if (filas.length) {
+        const u = filas[0];
+        doc.setFontSize(8); doc.setTextColor(...DARK);
+        doc.text(`Último sondeo (${format(parseISO(u.fecha), 'dd/MM/yyyy')}): ${u.asig ? ((u.leid / u.asig) * 100).toFixed(1).replace('.', ',') + ' %' : '—'} de lectura (${u.leid}/${u.asig}).`, 14, yd + 4);
+        autoTable(doc, {
+          startY: yd + 7,
+          head: [['Fecha sondeo', 'Base', 'Asignados', 'Leídos', 'Pendientes', '% lectura', 'Fuente']],
+          body: filas.map(f => [format(parseISO(f.fecha), 'dd/MM/yyyy'), f.base, f.asig, f.leid, f.asig - f.leid, f.asig ? ((f.leid / f.asig) * 100).toFixed(1).replace('.', ',') + ' %' : '—', f.fuente]),
+          theme: 'grid',
+          headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+          styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+        });
+        yd = tableEndY(doc, yd) + 6;
+      }
+      if (actList.length) {
+        doc.setFontSize(9); doc.setTextColor(...MAGENTA);
+        doc.text('Actuaciones derivadas', 14, yd); 
+        autoTable(doc, {
+          startY: yd + 2,
+          head: [['Fecha', 'Estado', 'Responsable', 'Vigencia', 'No computa', 'Comentario']],
+          body: actList.map(a => [a.fecha_actuacion ? format(parseISO(a.fecha_actuacion), 'dd/MM/yyyy') : '-', a.estado, a.responsable || '-', a.vigencia_hasta ? format(parseISO(a.vigencia_hasta), 'dd/MM/yyyy') : '-', a.no_computa ? 'Sí' : 'No', a.comentario || '-']),
+          theme: 'grid',
+          headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
+          styles: { fontSize: 7, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.3 },
+        });
+      }
+    }
+  }
+
   // ── Footers on all pages ──
   addFooters(doc);
 
