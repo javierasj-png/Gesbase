@@ -339,7 +339,7 @@ export function UserManagement() {
     setSaving(user.user_id);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${/lovableproject\.com|id-preview--/.test(window.location.hostname) ? 'https://gesbase.lovable.app' : window.location.origin}/reset-password`,
       });
       if (error) throw error;
       toast({

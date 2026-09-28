@@ -124,6 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
 
+        // Enlace de recuperación de contraseña: llevar siempre a la pantalla de nueva contraseña
+        if (event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
+          window.location.replace('/reset-password');
+          return;
+        }
+
         if (session?.user) {
           // Use setTimeout to avoid potential deadlocks with Supabase client
           setTimeout(async () => {
