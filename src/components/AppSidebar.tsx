@@ -28,9 +28,9 @@ const navItems = [
   { path: '/certificaciones', label: 'Certificaciones', icon: Train },
   { path: '/pe-1603', label: 'PE 16.03', icon: FileCheck },
   { path: '/pe-1201', label: 'PE 12.01', icon: AlertTriangle },
-  { path: '/planes-vigilancia', label: 'Planes Específicos', icon: ShieldCheck },
   { path: '/documentacion-reglamentaria', label: 'Documentación reglamentaria', icon: FileText },
   { path: '/partes', label: 'Control de Partes', icon: ClipboardList },
+  { path: '/planes-vigilancia', label: 'Planes Específicos', icon: ShieldCheck },
   { path: '/auditoria', label: 'Auditoría', icon: FileBarChart },
 ];
 
