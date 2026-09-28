@@ -10,6 +10,8 @@ import { MODO_LABEL, norm, type ModoSondeo } from '@/lib/docReglamentaria/parser
 import { agruparPorDocumento, docsDesdeDetalle, fmtPct, indicadoresDesdeDocs, indicadoresDesdeResumenes, totalDe, type DocFila, type Indicadores } from '@/lib/docReglamentaria/resumen';
 import { SeguimientoMaquinistas } from './SeguimientoMaquinistas';
 import { CompararSondeos } from './CompararSondeos';
+import { ActuacionesPanel } from './ActuacionesPanel';
+import { ajustar, justificacionPara, type Actuacion, type ResumenDesglose } from '@/lib/docReglamentaria/justificaciones';
 
 interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
 const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
@@ -78,6 +80,32 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const visibles = q ? docs.filter(r => norm(r.referencia).includes(q) || norm(r.titulo || '').includes(q)) : docs;
   const indVisible = q && modo !== 'resumen_maquinista' ? indicadoresDesdeDocs(visibles) : ind;
 
+  // Actuaciones (separadas de las lecturas)
+  const [acts, setActs] = useState<Actuacion[]>([]);
+  const [recActs, setRecActs] = useState(0);
+  useEffect(() => { (async () => {
+    const r = await todas<Actuacion>((a, b) => (supabase.from('doc_actuaciones' as never) as any).select('*').order('fecha_actuacion', { ascending: false }).range(a, b));
+    setActs(r);
+  })(); }, [recActs, recarga]);
+
+  // Resúmenes con desglose del mismo día/base, para el ajuste «no computa» (solo vista agregada sin búsqueda, como el tablero)
+  const [resDesglose, setResDesglose] = useState<ResumenDesglose[] | null>(null);
+  useEffect(() => {
+    const rs = delDia.filter(s => s.modo === 'resumen_maquinista');
+    if (!rs.length) { setResDesglose(null); return; }
+    const baseDe = new Map(rs.map(s => [s.id, s.base_nombre]));
+    (async () => {
+      const r = await todas<any>((a, b) => supabase.from('doc_resumenes_maquinista').select('sondeo_id,matricula,nombre,incluidos,recibidos,abiertos,leidos').in('sondeo_id', rs.map(s => s.id)).range(a, b));
+      setResDesglose(r.map(x => ({ ...x, base: baseDe.get(x.sondeo_id) || '' })));
+    })();
+  }, [delDia]);
+  const ajusteAplica = modo === 'agregado' && !q && docs.length > 0;
+  const orig = docs.reduce<[number, number, number, number]>((s, r) => [s[0] + r.incluidos, s[1] + r.recibidos, s[2] + r.abiertos, s[3] + r.leidos], [0, 0, 0, 0]);
+  const ajuste = ajusteAplica && resDesglose ? ajustar(orig, resDesglose, acts, fecha) : null;
+  const justificadosSinResumen = ajusteAplica && !resDesglose
+    ? [...new Set(acts.filter(a => (base === 'all' || a.base_nombre === base) && delDia.some(s => s.base_nombre === a.base_nombre) && a.matricula && justificacionPara([a], a.matricula, fecha)).map(a => a.matricula!))] : [];
+
+
   if (!loading && !sondeos.length) {
     return <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Sin datos: todavía no hay sondeos guardados en tus bases.</CardContent></Card>;
   }
@@ -114,6 +142,26 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               {kpi('Pendientes', fmt(indVisible.pendientes))}
               {kpi('Porcentaje de lectura', fmtPct(indVisible.porcentaje), indVisible.asignaciones ? `${fmt(indVisible.lecturas)} de ${fmt(indVisible.asignaciones)}` : 'Sin asignaciones')}
             </div>
+            {ajuste && (ajuste.excluidos.length > 0 || ajuste.sinDesglose.length > 0) && (() => {
+              const t = ajuste.n[0] + ajuste.n[1] + ajuste.n[2] + ajuste.n[3];
+              return (
+                <div className="rounded-md border p-3 space-y-2 text-sm">
+                  <p className="font-medium">Resultado ajustado («No computa»)</p>
+                  {ajuste.excluidos.length > 0 && <>
+                    <p className="text-xs text-muted-foreground">Recuentos originales arriba. Se restan {fmt(ajuste.asignacionesRestadas)} asignaciones de {ajuste.excluidos.length} maquinista(s) justificado(s) vigentes en este sondeo:</p>
+                    <div className="grid gap-3 md:grid-cols-4">
+                      {kpi('Asignaciones ajustadas', fmt(t))}
+                      {kpi('Lecturas ajustadas', fmt(ajuste.n[3]))}
+                      {kpi('Pendientes ajustados', fmt(t - ajuste.n[3]))}
+                      {kpi('Lectura ajustada', fmtPct(t ? ajuste.n[3] / t : null))}
+                    </div>
+                    <ul className="text-xs list-disc pl-5">{ajuste.excluidos.map(e => <li key={e.base + e.matricula}><span className="font-mono">{e.matricula}</span> {e.nombre || ''} ({e.base}) · {e.nota.estado} · {fmt(e.n.reduce((a, b) => a + b, 0))} asignaciones, {fmt(e.n[3])} leídas{e.nota.vigencia_hasta ? ` · revisión ${fechaEs(e.nota.vigencia_hasta)}` : ''}</li>)}</ul>
+                  </>}
+                  {ajuste.sinDesglose.length > 0 && <p className="text-xs text-destructive">No se restan {ajuste.sinDesglose.length} justificado(s) ({ajuste.sinDesglose.map(s => s.matricula).join(', ')}): su resumen no trae el desglose por estado y no se pueden atribuir sus asignaciones con fiabilidad.</p>}
+                </div>);
+            })()}
+            {justificadosSinResumen.length > 0 && <p className="text-xs text-destructive">Hay {justificadosSinResumen.length} justificación(es) «No computa» vigentes, pero no hay resumen por maquinista de esta fecha y base. Sin él no se sabe cuántas asignaciones les corresponden, así que no se resta nada.</p>}
+            {modo === 'agregado' && q && <p className="text-xs text-muted-foreground">Con búsqueda de documento se muestran todas las asignaciones, sin ajuste «No computa».</p>}
             {modo === 'resumen_maquinista' ? (
               <p className="text-sm text-muted-foreground">Este tipo de datos solo trae totales por maquinista; no incluye recuentos por documento.</p>
             ) : (
@@ -137,7 +185,8 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
           </>}
       </CardContent>
     </Card>
-    <SeguimientoMaquinistas sondeos={delDia} />
+    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} />
+    <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} />
     <CompararSondeos sondeos={sondeos} basesDisponibles={[...new Set(sondeos.map(s => s.base_nombre))].sort()} />
     </div>
   );
