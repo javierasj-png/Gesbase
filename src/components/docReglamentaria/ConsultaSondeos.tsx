@@ -43,18 +43,21 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const [docs, setDocs] = useState<DocFila[]>([]);
   const [ind, setInd] = useState<Indicadores | null>(null);
 
+  const [baseInicial, setBaseInicial] = useState(false);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('doc_sondeos').select('id,fecha_sondeo,base_nombre,modo').order('fecha_sondeo', { ascending: false });
       const s = (data || []) as Sondeo[];
       setSondeos(s);
-      setFecha(f => (f && s.some(x => x.fecha_sondeo === f) ? f : s[0]?.fecha_sondeo || ''));
-      setBase(b => (b !== 'all' && s.some(x => x.base_nombre === b) ? b : s[0]?.base_nombre || 'all'));
+      // Solo la primera vez: base del último sondeo. Después se respeta siempre la elección del usuario.
+      if (!baseInicial && s[0]) { setBase(s[0].base_nombre); setBaseInicial(true); }
       setLoading(false);
     })();
-  }, [recarga]);
+  }, [recarga]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fechas = useMemo(() => [...new Set(sondeos.map(s => s.fecha_sondeo))], [sondeos]);
+  const fechas = useMemo(() => [...new Set(sondeos.filter(s => base === 'all' || s.base_nombre === base).map(s => s.fecha_sondeo))], [sondeos, base]);
+  // Al cambiar de base, si la fecha no existe para esa base, se toma su último sondeo
+  useEffect(() => { if (!fechas.includes(fecha)) setFecha(fechas[0] || ''); }, [fechas, fecha]);
   const delDia = useMemo(() => sondeos.filter(s => s.fecha_sondeo === fecha && (base === 'all' || s.base_nombre === base)), [sondeos, fecha, base]);
   const modos = useMemo(() => (['agregado', 'resumen_maquinista', 'detalle_agente'] as ModoSondeo[]).filter(m => delDia.some(s => s.modo === m)), [delDia]);
   useEffect(() => { if (!modos.includes(modo as ModoSondeo)) setModo(modos[0] || ''); }, [modos, modo]);
