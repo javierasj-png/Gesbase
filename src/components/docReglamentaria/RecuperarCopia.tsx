@@ -182,7 +182,7 @@ export function RecuperarCopia({ onDone }: { onDone: () => void }) {
 
         <div className="overflow-x-auto border rounded-md max-h-64">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50 sticky top-0"><tr><th className="p-2 text-left">Sondeo</th><th className="p-2 text-left">Origen → Gesbase</th><th className="p-2 text-left">Tipo</th><th className="p-2">Registros</th><th className="p-2 text-left">Estado</th></tr></thead>
+            <thead className="bg-muted sticky top-0"><tr><th className="p-2 text-left">Sondeo</th><th className="p-2 text-left">Origen → Gesbase</th><th className="p-2 text-left">Tipo</th><th className="p-2">Registros</th><th className="p-2 text-left">Estado</th></tr></thead>
             <tbody>{copia.sondeos.map(s => <tr key={s.clave} className="border-t">
               <td className="p-2">{fechaEs(s.fecha)}</td><td className="p-2">{s.origen} → {mapa[s.origen] || <span className="text-destructive">sin base</span>}</td>
               <td className="p-2">{MODO_LABEL[s.modo]}</td><td className="p-2 text-center">{s.filas.length}</td>
@@ -191,7 +191,7 @@ export function RecuperarCopia({ onDone }: { onDone: () => void }) {
         </div>
         {copia.actuaciones.length > 0 && <div className="overflow-x-auto border rounded-md max-h-64">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50 sticky top-0"><tr><th className="p-2 text-left">Fecha</th><th className="p-2 text-left">Origen</th><th className="p-2 text-left">Agente</th><th className="p-2 text-left">Estado</th><th className="p-2">No computa</th><th className="p-2 text-left">Validación</th></tr></thead>
+            <thead className="bg-muted sticky top-0"><tr><th className="p-2 text-left">Fecha</th><th className="p-2 text-left">Origen</th><th className="p-2 text-left">Agente</th><th className="p-2 text-left">Estado</th><th className="p-2">No computa</th><th className="p-2 text-left">Validación</th></tr></thead>
             <tbody>{copia.actuaciones.map((a, i) => <tr key={a.idOrigen || i} className="border-t">
               <td className="p-2">{fechaEs(a.fecha_actuacion)}</td><td className="p-2">{a.origen}</td><td className="p-2">{a.matricula ? `${a.matricula} ${a.nombre || ''}` : 'Toda la base'}</td>
               <td className="p-2">{a.estado}</td><td className="p-2 text-center">{a.no_computa ? 'Sí' : ''}</td>

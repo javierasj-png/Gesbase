@@ -72,7 +72,7 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
         {!visibles.length ? <p className="text-sm text-muted-foreground text-center py-4">No hay actuaciones registradas.</p> : (
           <div className="overflow-x-auto border rounded-md max-h-[420px]">
             <table className="w-full text-xs">
-              <thead className="bg-muted/50 sticky top-0"><tr>
+              <thead className="bg-muted sticky top-0"><tr>
                 <th className="p-2 text-left">Fecha</th><th className="p-2 text-left">Base / agente</th><th className="p-2 text-left">Estado</th><th className="p-2 text-left">Comentario</th>
                 <th className="p-2 text-left">Responsable</th><th className="p-2">Revisión hasta</th><th className="p-2">En sondeo {fechaEs(periodo)}</th><th className="p-2 text-left">Registro</th><th className="p-2"></th>
               </tr></thead>
