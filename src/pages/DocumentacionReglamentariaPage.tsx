@@ -13,6 +13,7 @@ import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { readDocFile } from '@/lib/docReglamentaria/readFile';
 import { ConsultaSondeos } from '@/components/docReglamentaria/ConsultaSondeos';
 import { RecuperarCopia } from '@/components/docReglamentaria/RecuperarCopia';
+import { SondeosGuardados } from '@/components/docReglamentaria/SondeosGuardados';
 import { MODO_LABEL, norm, isValidDate, totalRegistros, type ResultadoLectura } from '@/lib/docReglamentaria/parser';
 
 interface Preview {
@@ -109,6 +110,7 @@ export default function DocumentacionReglamentariaPage() {
 
         <ConsultaSondeos recarga={recarga} />
         <RecuperarCopia onDone={() => setRecarga(x => x + 1)} />
+        <SondeosGuardados recarga={recarga} onChange={() => setRecarga(x => x + 1)} />
 
         {items.length === 0 ? (
           <Card>
