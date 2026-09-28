@@ -9,6 +9,7 @@ import { ComunicacionDialog } from './ComunicacionDialog';
 import { asuntoBase, comentarioBase, mensajeBase, ESTADO_BASE_COMUNICADO } from '@/lib/docReglamentaria/comunicaciones';
 import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 import { MODO_LABEL, norm, type ModoSondeo } from '@/lib/docReglamentaria/parser';
 import { agruparPorDocumento, docsDesdeDetalle, fmtPct, indicadoresDesdeDocs, indicadoresDesdeResumenes, totalDe, type DocFila, type Indicadores } from '@/lib/docReglamentaria/resumen';
 import { SeguimientoMaquinistas } from './SeguimientoMaquinistas';
@@ -33,9 +34,9 @@ async function todas<T>(q: (from: number, to: number) => PromiseLike<{ data: T[]
 
 export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const { getAccessibleBases } = useBaseFilter();
+  const [base, setBase] = useGlobalBaseFilter();
   const [sondeos, setSondeos] = useState<Sondeo[]>([]);
   const [fecha, setFecha] = useState('');
-  const [base, setBase] = useState('all');
   const [modo, setModo] = useState<ModoSondeo | ''>('');
   const [busca, setBusca] = useState('');
   const [msgBase, setMsgBase] = useState(false);
@@ -43,17 +44,14 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const [docs, setDocs] = useState<DocFila[]>([]);
   const [ind, setInd] = useState<Indicadores | null>(null);
 
-  const [baseInicial, setBaseInicial] = useState(false);
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('doc_sondeos').select('id,fecha_sondeo,base_nombre,modo').order('fecha_sondeo', { ascending: false });
       const s = (data || []) as Sondeo[];
       setSondeos(s);
-      // Solo la primera vez: base del último sondeo. Después se respeta siempre la elección del usuario.
-      if (!baseInicial && s[0]) { setBase(s[0].base_nombre); setBaseInicial(true); }
       setLoading(false);
     })();
-  }, [recarga]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recarga]);
 
   const fechas = useMemo(() => [...new Set(sondeos.filter(s => base === 'all' || s.base_nombre === base).map(s => s.fecha_sondeo))], [sondeos, base]);
   // Al cambiar de base, si la fecha no existe para esa base, se toma su último sondeo
