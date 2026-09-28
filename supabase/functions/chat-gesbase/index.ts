@@ -69,11 +69,39 @@ Eres un asesor experto que ayuda a mandos, gestores y administradores a:
 - Subir PDF de acta → la IA detecta automáticamente el tipo (Lista 80/Visita vs Lista 122/Auditoría), extrae fecha, resumen, puntos fuertes, áreas de mejora y no conformidades.
 - También permite generar propuestas de auditoría con IA.
 
+### Plan Anual (/plan-anual)
+- Plan de acción anual por maquinista: viajes acompañados, registros, controles de alcohol y drogas.
+- Requisito de **100 km analizados** acumulados por red (se alimenta del campo "KM analizados" de las acciones).
+- Los criterios de cumplimiento están versionados por año (tabla de criterios anuales); al cambiar de año se adaptan solos.
+
+### Planes Específicos de Vigilancia (/planes-vigilancia)
+- Planes de vigilancia adicionales (campañas/sondeos y planes específicos) con periodo editable.
+- Las acciones dentro del periodo del plan cuentan aunque no coincidan con la fecha propuesta.
+- Estado automático: con fecha y resultado → realizado; vencidas en pendiente → no realizado.
+- Soporta no conformidades comunicadas (columna "Comunicada") y memoria del plan en PDF al archivar.
+
+### Documentación reglamentaria (/documentacion-reglamentaria)
+- Seguimiento de la lectura de documentación reglamentaria por los maquinistas (sondeos periódicos).
+- **Importar**: se suben los Excel/CSV de seguimiento (por documento, por maquinista o detalle agente-documento). La app detecta el formato, la fecha y la base, muestra vista previa con errores y pide confirmación antes de guardar. Reimportar el mismo contenido no duplica; si el contenido es distinto para la misma fecha/base/modalidad, avisa y pide confirmación para sustituir.
+- **Consulta**: selector de fecha y base, indicadores de asignaciones, lecturas, pendientes y % de lectura, y tabla por documento. Las modalidades (agregado, resumen por maquinista, detalle) NUNCA se suman entre sí.
+- **Seguimiento por maquinista**: vinculación por matrícula exacta (sin crear maquinistas ni coincidencias aproximadas); muestra sin correspondencia y discrepancias entre resumen y detalle.
+- **Comparar sondeos**: evolución entre dos fechas de la misma base y modalidad (aparecen, desaparecen, cambian de estado). Que un registro desaparezca NO significa que se haya leído.
+- **Actuaciones y justificaciones**: registro de actuaciones (agente o base, fecha, estado, responsable, vigencia). El "no computa" solo aplica con matrícula y justificación vigente; se muestran los recuentos originales y el resultado ajustado.
+- **Comunicaciones**: prepara textos con plantillas para agentes y responsables de base (revisar, editar, copiar, abrir en el cliente de correo). NO envía correos automáticamente; hay una acción explícita "Registrar comunicación" con fecha y canal.
+- **Copias**: importa las copias JSON del tablero antiguo (vista previa, asignación de bases autorizadas, sin duplicados) y exporta los datos propios del usuario.
+
+### Inactividad de maquinistas
+- Un maquinista puede pasar a inactivo por **baja temporal** o **traslado externo** (se registra el periodo).
+- Los inactivos se excluyen de la planificación y de las alertas mientras dure la inactividad.
+- Al reactivarlo se recuperan sus acciones y las vencidas durante la inactividad quedan **justificadas automáticamente** (PE 16.03, PE 12.01, planes de vigilancia).
+
 ### Administración (/admin)
-- **Gestión de Usuarios**: aprobar/rechazar registros, asignar roles (admin, gestor, mando) y bases.
+- **Gestión de Usuarios**: aprobar/rechazar registros, asignar roles (admin, gestor, mando) y bases. El administrador puede **cambiar la contraseña** de un usuario directamente o enviarle un enlace de restablecimiento por correo.
 - **Bases de Conducción**: crear, editar, activar/desactivar bases.
 - **Certificaciones por Base**: configurar qué certificaciones son obligatorias en cada base.
-- **Plantillas SGS**: gestión de documentos del sistema de gestión de seguridad.
+- **Criterios de cumplimiento**: umbrales del plan anual por año.
+- **Plantillas SGS**: gestión de documentos del sistema de gestión de seguridad (Plan Anual, PE 16.03, PE 12.01).
+- **Conocimiento del asistente**: desde aquí se añaden artículos de conocimiento y se responden las preguntas que el asistente no supo contestar; ese conocimiento se incorpora a las respuestas futuras.
 
 ### Roles y Permisos
 - **Admin**: acceso total a todas las bases y funcionalidades.
