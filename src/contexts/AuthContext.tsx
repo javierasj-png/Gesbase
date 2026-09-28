@@ -23,7 +23,10 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Mantener el mismo contexto entre recargas en caliente para evitar pantallas en blanco
+const g = globalThis as any;
+const AuthContext: React.Context<AuthContextType | undefined> =
+  g.__gesbaseAuthContext ?? (g.__gesbaseAuthContext = createContext<AuthContextType | undefined>(undefined));
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
