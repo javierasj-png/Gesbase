@@ -425,6 +425,69 @@ export type Database = {
         }
         Relationships: []
       }
+      doc_actuaciones: {
+        Row: {
+          base_nombre: string
+          canal: string | null
+          comentario: string | null
+          created_at: string
+          created_by: string | null
+          estado: string
+          fecha_actuacion: string
+          fecha_comunicacion: string | null
+          id: string
+          matricula: string | null
+          no_computa: boolean
+          nombre: string | null
+          periodo: string
+          referencia: string | null
+          responsable: string
+          updated_at: string
+          updated_by: string | null
+          vigencia_hasta: string | null
+        }
+        Insert: {
+          base_nombre: string
+          canal?: string | null
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado: string
+          fecha_actuacion: string
+          fecha_comunicacion?: string | null
+          id?: string
+          matricula?: string | null
+          no_computa?: boolean
+          nombre?: string | null
+          periodo: string
+          referencia?: string | null
+          responsable: string
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_hasta?: string | null
+        }
+        Update: {
+          base_nombre?: string
+          canal?: string | null
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: string
+          fecha_actuacion?: string
+          fecha_comunicacion?: string | null
+          id?: string
+          matricula?: string | null
+          no_computa?: boolean
+          nombre?: string | null
+          periodo?: string
+          referencia?: string | null
+          responsable?: string
+          updated_at?: string
+          updated_by?: string | null
+          vigencia_hasta?: string | null
+        }
+        Relationships: []
+      }
       doc_detalle_agente: {
         Row: {
           created_at: string
