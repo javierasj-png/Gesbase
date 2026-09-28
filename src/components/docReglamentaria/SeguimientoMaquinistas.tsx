@@ -84,7 +84,7 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
             </div>
             <div className="overflow-x-auto border rounded-md max-h-[520px]">
               <table className="w-full text-xs">
-                <thead className="bg-muted/50 sticky top-0"><tr>
+                <thead className="bg-muted sticky top-0"><tr>
                   <th className="p-2 text-left">Nombre</th><th className="p-2 text-left">Matrícula</th><th className="p-2 text-left">Base</th>
                   <th className="p-2">Asignaciones</th><th className="p-2">Lecturas</th><th className="p-2">Pendientes</th><th className="p-2">Lectura</th>
                   <th className="p-2">Detalle</th><th className="p-2">Ficha</th>
@@ -124,7 +124,7 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
           <DialogHeader><DialogTitle>Documentos pendientes · {ver?.maestro ? `${ver.maestro.apellidos}, ${ver.maestro.nombre}` : ver?.nombreArchivo} ({ver?.matricula})</DialogTitle></DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto border rounded-md">
             <table className="w-full text-xs">
-              <thead className="bg-muted/50 sticky top-0"><tr><th className="p-2 text-left">Referencia</th><th className="p-2 text-left">Título</th><th className="p-2">Estado</th></tr></thead>
+              <thead className="bg-muted sticky top-0"><tr><th className="p-2 text-left">Referencia</th><th className="p-2 text-left">Título</th><th className="p-2">Estado</th></tr></thead>
               <tbody>{ver?.pendientesDetalle.map(p => <tr key={p.referencia} className="border-t"><td className="p-2 font-mono">{p.referencia}</td><td className="p-2">{p.titulo || '—'}</td><td className="p-2 text-center capitalize">{p.estado}</td></tr>)}</tbody>
             </table>
           </div>

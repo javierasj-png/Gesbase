@@ -172,7 +172,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
             ) : (
               <div className="overflow-x-auto border rounded-md max-h-[480px]">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/50 sticky top-0"><tr>
+                  <thead className="bg-muted sticky top-0"><tr>
                     <th className="p-2 text-left">Referencia</th><th className="p-2 text-left">Título</th>
                     <th className="p-2">Incluido</th><th className="p-2">Recibido</th><th className="p-2">Abierto</th><th className="p-2">Leído</th><th className="p-2">Lectura</th>
                   </tr></thead>
