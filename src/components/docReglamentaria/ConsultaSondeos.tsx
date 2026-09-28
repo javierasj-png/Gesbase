@@ -49,6 +49,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
       const s = (data || []) as Sondeo[];
       setSondeos(s);
       setFecha(f => (f && s.some(x => x.fecha_sondeo === f) ? f : s[0]?.fecha_sondeo || ''));
+      setBase(b => (b !== 'all' && s.some(x => x.base_nombre === b) ? b : s[0]?.base_nombre || 'all'));
       setLoading(false);
     })();
   }, [recarga]);
