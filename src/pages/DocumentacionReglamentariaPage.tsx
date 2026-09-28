@@ -109,20 +109,9 @@ export default function DocumentacionReglamentariaPage() {
         </div>
 
         <ConsultaSondeos recarga={recarga} />
-        <RecuperarCopia onDone={() => setRecarga(x => x + 1)} />
         <SondeosGuardados recarga={recarga} onChange={() => setRecarga(x => x + 1)} />
 
-        {items.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center space-y-3">
-              <FileText className="w-10 h-10 mx-auto text-muted-foreground" />
-              <p className="font-medium">Selecciona archivos para ver una vista previa</p>
-              <p className="text-sm text-muted-foreground">
-                Formatos admitidos: «Seguimiento docs. area…», «Seguimiento maqs. area…» y detalle individual.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
+        {items.length > 0 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">Revisa la vista previa y pulsa «Guardar sondeo» en cada archivo.</p>
             {items.map(it => {
