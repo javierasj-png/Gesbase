@@ -7,12 +7,14 @@ import { Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 import { MODO_LABEL, isValidDate } from '@/lib/docReglamentaria/parser';
 
 interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: string; nombre_archivo: string | null; created_at: string }
 
 export function SondeosGuardados({ recarga, onChange }: { recarga: number; onChange: () => void }) {
   const { toast } = useToast();
+  const [base] = useGlobalBaseFilter();
   const [rows, setRows] = useState<Sondeo[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
@@ -59,13 +61,14 @@ export function SondeosGuardados({ recarga, onChange }: { recarga: number; onCha
   };
 
   const fmt = (d: string) => d.split('-').reverse().join('/');
+  const visibles = base === 'all' ? rows : rows.filter(s => s.base_nombre === base);
 
   return (
     <Card>
       <CardHeader className="pb-3"><CardTitle className="text-base">Archivos guardados</CardTitle></CardHeader>
       <CardContent>
-        {loading ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /> : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Todavía no hay sondeos guardados.</p>
+        {loading ? <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /> : visibles.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{rows.length ? `No hay sondeos guardados de ${base}.` : 'Todavía no hay sondeos guardados.'}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -73,7 +76,7 @@ export function SondeosGuardados({ recarga, onChange }: { recarga: number; onCha
                 <th className="py-2 pr-2">Fecha sondeo</th><th className="pr-2">Base</th><th className="pr-2">Formato</th><th className="pr-2">Archivo</th><th className="text-right">Acciones</th>
               </tr></thead>
               <tbody>
-                {rows.map(s => (
+                {visibles.map(s => (
                   <tr key={s.id} className="border-b last:border-0">
                     <td className="py-2 pr-2 whitespace-nowrap">
                       {editId === s.id ? (
