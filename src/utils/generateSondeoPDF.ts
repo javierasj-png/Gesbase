@@ -2,7 +2,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { supabase } from '@/integrations/supabase/client';
 import { MODO_LABEL, type ModoSondeo } from '@/lib/docReglamentaria/parser';
-import { totalDe, type DocFila, type Indicadores } from '@/lib/docReglamentaria/resumen';
+import {
+  totalDe, agruparPorDocumento, docsDesdeDetalle, indicadoresDesdeDocs, indicadoresDesdeResumenes,
+  type DocFila, type Indicadores,
+} from '@/lib/docReglamentaria/resumen';
 
 const MAGENTA: [number, number, number] = [130, 0, 94];
 const LILA: [number, number, number] = [200, 160, 190];
@@ -45,13 +48,20 @@ async function lecturaMaquinistas(s: Sondeo): Promise<Lect[]> {
   return [];
 }
 
-async function indicadoresSondeo(s: Sondeo): Promise<Indicadores> {
-  let a = 0, l = 0;
-  if (s.modo === 'agregado') {
-    const r = await todas<any>((x, y) => supabase.from('doc_registros_agregados').select('incluidos,recibidos,abiertos,leidos').eq('sondeo_id', s.id).range(x, y));
-    for (const d of r) { a += totalDe(d); l += d.leidos; }
-  } else for (const x of await lecturaMaquinistas(s)) { a += x.asignados; l += x.leidos; }
-  return { asignaciones: a, lecturas: l, pendientes: a - l, porcentaje: a ? l / a : null };
+/** Datos de un tipo de sondeo de un día: recuento por documento (si lo hay) e indicadores. */
+async function datosModo(sondeosDelModo: Sondeo[], modo: ModoSondeo): Promise<{ docs: DocFila[]; ind: Indicadores | null }> {
+  const ids = sondeosDelModo.map(s => s.id);
+  if (modo === 'agregado') {
+    const rows = await todas<DocFila>((a, b) => supabase.from('doc_registros_agregados').select('referencia,titulo,incluidos,recibidos,abiertos,leidos').in('sondeo_id', ids).range(a, b));
+    return { docs: agruparPorDocumento(rows), ind: indicadoresDesdeDocs(rows) };
+  }
+  if (modo === 'detalle_agente') {
+    const rows = await todas<{ referencia: string; titulo: string | null; estado: string }>((a, b) => supabase.from('doc_detalle_agente').select('referencia,titulo,estado').in('sondeo_id', ids).range(a, b));
+    const docs = docsDesdeDetalle(rows);
+    return { docs, ind: indicadoresDesdeDocs(docs) };
+  }
+  const rows = await todas<{ asignados: number; leidos_total: number }>((a, b) => supabase.from('doc_resumenes_maquinista').select('asignados,leidos_total').in('sondeo_id', ids).range(a, b));
+  return { docs: [], ind: indicadoresDesdeResumenes(rows) };
 }
 
 /** Elige, por base, el sondeo con dato individual de una fecha (prefiere resumen por maquinista). */
@@ -65,11 +75,15 @@ function individualPorBase(lista: Sondeo[]) {
   return m;
 }
 
-export async function generateSondeoPDF(opts: {
-  sondeos: Sondeo[]; base: string; fecha: string; modo: ModoSondeo; docs: DocFila[]; ind: Indicadores;
-}) {
-  const { sondeos, base, fecha, modo, docs, ind } = opts;
+export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string; fecha: string }) {
+  const { sondeos, base, fecha } = opts;
   const bases = base === 'all' ? [...new Set(sondeos.filter(s => s.fecha_sondeo === fecha).map(s => s.base_nombre))].sort() : [base];
+  const delDia = sondeos.filter(s => s.fecha_sondeo === fecha && bases.includes(s.base_nombre));
+  // Tipos de datos cargados ese día (se detectan solos, no dependen del selector de la pantalla)
+  const modosDia = (['agregado', 'resumen_maquinista', 'detalle_agente'] as ModoSondeo[]).filter(m => delDia.some(s => s.modo === m));
+  const datos = new Map<ModoSondeo, { docs: DocFila[]; ind: Indicadores | null }>();
+  for (const m of modosDia) datos.set(m, await datosModo(delDia.filter(s => s.modo === m), m));
+
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
   let y = 0;
@@ -79,16 +93,19 @@ export async function generateSondeoPDF(opts: {
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
   doc.text('Informe de sondeo · Documentación reglamentaria', M, 10);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  doc.text(`Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${MODO_LABEL[modo]}`, M, 16);
+  doc.text(`Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${modosDia.map(m => MODO_LABEL[m]).join(' + ') || 'Sin datos'}`, M, 16);
   doc.text(`Generado ${new Date().toLocaleString('es-ES')}`, W - M, 16, { align: 'right' });
   y = 28;
 
-  // KPIs
+  // KPIs del tipo principal (agregado si existe; si no, el primero cargado)
+  const principal = modosDia.includes('agregado') ? 'agregado' : modosDia[0];
+  const ind = principal ? datos.get(principal)?.ind ?? null : null;
+  const docsPrincipal = modosDia.map(m => datos.get(m)?.docs ?? []).find(d => d.length) ?? [];
   const kw = (W - 2 * M - 9) / 4;
   const kpis: [string, string, string][] = [
-    ['Lectura (leídos)', pct(ind.porcentaje), `${fmt(ind.lecturas)} de ${fmt(ind.asignaciones)} asignaciones`],
-    ['Pendientes de lectura', fmt(ind.pendientes), `${pct(ind.asignaciones ? ind.pendientes / ind.asignaciones : null)} de las asignaciones`],
-    ['Documentos distintos', docs.length ? fmt(docs.length) : '—', docs.length ? 'en este sondeo' : 'sin recuento por documento'],
+    ['Lectura (leídos)', pct(ind?.porcentaje ?? null), ind ? `${fmt(ind.lecturas)} de ${fmt(ind.asignaciones)} asignaciones` : 'sin datos'],
+    ['Pendientes de lectura', ind ? fmt(ind.pendientes) : '—', pct(ind && ind.asignaciones ? ind.pendientes / ind.asignaciones : null) + ' de las asignaciones'],
+    ['Documentos distintos', docsPrincipal.length ? fmt(docsPrincipal.length) : '—', docsPrincipal.length ? 'en este sondeo' : 'sin recuento por documento'],
     ['Bases', fmt(bases.length), bases.length === 1 ? bases[0] : 'bases de conducción'],
   ];
   kpis.forEach(([t, v, s], i) => {
@@ -107,12 +124,14 @@ export async function generateSondeoPDF(opts: {
   };
   const nota = (t: string) => { doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...GRIS); const l = doc.splitTextToSize(t, W - 2 * M); doc.text(l, M, y); y += l.length * 3 + 2; };
 
-  // Distribución y estados (solo con recuento por estado)
-  if (docs.length) {
+  // Distribución y estados, por cada tipo con recuento por documento cargado ese día
+  const modosConDocs = modosDia.filter(m => (datos.get(m)?.docs.length ?? 0) > 0);
+  for (const m of modosConDocs) {
+    const docs = datos.get(m)!.docs;
     const t = docs.reduce((s, r) => [s[0] + r.incluidos, s[1] + r.recibidos, s[2] + r.abiertos, s[3] + r.leidos], [0, 0, 0, 0]);
     const tot = t[0] + t[1] + t[2] + t[3];
     const half = (W - 2 * M - 6) / 2;
-    titulo('Avance de la distribución'); const y0 = y;
+    titulo(modosConDocs.length > 1 ? `Avance de la distribución · ${MODO_LABEL[m]}` : 'Avance de la distribución'); const y0 = y;
     const barras: [string, number][] = [['Recibidos, abiertos o leídos', t[1] + t[2] + t[3]], ['Abiertos o leídos', t[2] + t[3]], ['Leídos', t[3]]];
     barras.forEach(([l, v]) => {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK); doc.text(l, M, y + 3);
@@ -139,7 +158,7 @@ export async function generateSondeoPDF(opts: {
   }
 
   // Maquinistas con menor lectura + reincidencia
-  const actuales = individualPorBase(sondeos.filter(s => s.fecha_sondeo === fecha && bases.includes(s.base_nombre)));
+  const actuales = individualPorBase(delDia);
   const lect: Lect[] = [];
   const previos = new Map<string, Lect>(); const fechasPrev: string[] = [];
   for (const [b, s] of actuales) {
@@ -181,9 +200,10 @@ export async function generateSondeoPDF(opts: {
     }
   }
 
-  // Documentos con más pendientes
-  if (docs.length) {
-    titulo('Documentos con más pendientes');
+  // Documentos con más pendientes, por cada tipo con recuento por documento
+  for (const m of modosConDocs) {
+    const docs = datos.get(m)!.docs;
+    titulo(modosConDocs.length > 1 ? `Documentos con más pendientes · ${MODO_LABEL[m]}` : 'Documentos con más pendientes');
     const top = [...docs].map(d => ({ d, p: d.incluidos + d.recibidos + d.abiertos, t: totalDe(d) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p).slice(0, 20);
     autoTable(doc, {
       startY: y, margin: { left: M, right: M },
@@ -194,23 +214,27 @@ export async function generateSondeoPDF(opts: {
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // Evolución respecto al sondeo anterior de la misma base y tipo de datos
-  const filasEv: string[][] = []; let sa = 0, sl = 0, pa = 0, pl = 0;
-  for (const b of bases) {
-    const cur = sondeos.find(s => s.base_nombre === b && s.fecha_sondeo === fecha && s.modo === modo);
-    const prev = sondeos.filter(s => s.base_nombre === b && s.modo === modo && s.fecha_sondeo < fecha).sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo))[0];
-    if (!cur || !prev) continue;
-    const [ia, ib] = await Promise.all([indicadoresSondeo(prev), indicadoresSondeo(cur)]);
-    pa += ia.asignaciones; pl += ia.lecturas; sa += ib.asignaciones; sl += ib.lecturas;
-    filasEv.push([b, fechaEs(prev.fecha_sondeo), pct(ia.porcentaje), pct(ib.porcentaje), pp(ia.porcentaje, ib.porcentaje), fmt(ia.pendientes), fmt(ib.pendientes)]);
+  // Evolución respecto al sondeo anterior, por cada tipo de datos cargado ese día
+  const filasEv: string[][] = [];
+  for (const modo of modosDia) {
+    let sa = 0, sl = 0, pa = 0, pl = 0, n = 0;
+    for (const b of bases) {
+      const cur = delDia.find(s => s.base_nombre === b && s.modo === modo);
+      const prev = sondeos.filter(s => s.base_nombre === b && s.modo === modo && s.fecha_sondeo < fecha).sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo))[0];
+      if (!cur || !prev) continue;
+      const [ia, ib] = await Promise.all([datosModo([prev], modo), datosModo([cur], modo)]);
+      if (!ia.ind || !ib.ind) continue;
+      pa += ia.ind.asignaciones; pl += ia.ind.lecturas; sa += ib.ind.asignaciones; sl += ib.ind.lecturas; n++;
+      filasEv.push([MODO_LABEL[modo], b, fechaEs(prev.fecha_sondeo), pct(ia.ind.porcentaje), pct(ib.ind.porcentaje), pp(ia.ind.porcentaje, ib.ind.porcentaje), fmt(ia.ind.pendientes), fmt(ib.ind.pendientes)]);
+    }
+    if (n > 1) filasEv.push([MODO_LABEL[modo], 'Total', '', pct(pa ? pl / pa : null), pct(sa ? sl / sa : null), pp(pa ? pl / pa : null, sa ? sl / sa : null), fmt(pa - pl), fmt(sa - sl)]);
   }
   if (filasEv.length) {
     titulo('Evolución respecto al sondeo anterior');
-    nota(`Se compara con el sondeo anterior de la misma base y tipo de datos (${MODO_LABEL[modo]}).`);
-    if (filasEv.length > 1) filasEv.push(['Total', '', pct(pa ? pl / pa : null), pct(sa ? sl / sa : null), pp(pa ? pl / pa : null, sa ? sl / sa : null), fmt(pa - pl), fmt(sa - sl)]);
+    nota('Se compara cada tipo de datos con el sondeo anterior de la misma base y del mismo tipo.');
     autoTable(doc, {
       startY: y, margin: { left: M, right: M },
-      head: [['Base', 'Sondeo anterior', 'Lectura anterior', `Lectura ${fechaEs(fecha)}`, 'Variación', 'Pendientes antes', 'Pendientes ahora']],
+      head: [['Tipo de datos', 'Base', 'Sondeo anterior', 'Lectura anterior', `Lectura ${fechaEs(fecha)}`, 'Variación', 'Pendientes antes', 'Pendientes ahora']],
       body: filasEv, styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: MAGENTA, fontSize: 7 },
     });
   }
