@@ -193,9 +193,9 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
             )}
             <div className="flex gap-2 flex-wrap">{delDia.filter(s => s.modo === modo).map(s => <Badge key={s.id} variant="outline">{s.base_nombre}</Badge>)}</div>
             <div className="flex items-center justify-end gap-2 border-t pt-3">
-              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !modo} onClick={async () => {
+              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !delDia.length} onClick={async () => {
                 setPdfLoading(true);
-                try { await generateSondeoPDF({ sondeos, base, fecha, modo: modo as ModoSondeo, docs, ind: ind! }); }
+                try { await generateSondeoPDF({ sondeos, base, fecha }); }
                 catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
                 finally { setPdfLoading(false); }
               }}>{pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}Descargar informe PDF</Button>
