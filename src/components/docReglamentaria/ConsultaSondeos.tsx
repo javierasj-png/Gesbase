@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, FileDown } from 'lucide-react';
+import { generateSondeoPDF } from '@/utils/generateSondeoPDF';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ComunicacionDialog } from './ComunicacionDialog';
 import { asuntoBase, comentarioBase, mensajeBase, ESTADO_BASE_COMUNICADO } from '@/lib/docReglamentaria/comunicaciones';
@@ -40,6 +42,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const [modo, setModo] = useState<ModoSondeo | ''>('');
   const [busca, setBusca] = useState('');
   const [msgBase, setMsgBase] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [docs, setDocs] = useState<DocFila[]>([]);
   const [ind, setInd] = useState<Indicadores | null>(null);
@@ -190,6 +193,12 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
             )}
             <div className="flex gap-2 flex-wrap">{delDia.filter(s => s.modo === modo).map(s => <Badge key={s.id} variant="outline">{s.base_nombre}</Badge>)}</div>
             <div className="flex items-center justify-end gap-2 border-t pt-3">
+              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !modo} onClick={async () => {
+                setPdfLoading(true);
+                try { await generateSondeoPDF({ sondeos, base, fecha, modo: modo as ModoSondeo, docs, ind: ind! }); }
+                catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
+                finally { setPdfLoading(false); }
+              }}>{pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}Descargar informe PDF</Button>
               {base === 'all' || q || modo === 'resumen_maquinista'
                 ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
                 : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}

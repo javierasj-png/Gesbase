@@ -1,0 +1,221 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { supabase } from '@/integrations/supabase/client';
+import { MODO_LABEL, type ModoSondeo } from '@/lib/docReglamentaria/parser';
+import { totalDe, type DocFila, type Indicadores } from '@/lib/docReglamentaria/resumen';
+
+const MAGENTA: [number, number, number] = [130, 0, 94];
+const LILA: [number, number, number] = [200, 160, 190];
+const GRIS: [number, number, number] = [152, 153, 155];
+const CLARO: [number, number, number] = [235, 235, 238];
+const DARK: [number, number, number] = [30, 41, 59];
+const M = 14;
+/** Por debajo de este porcentaje un maquinista se considera con lectura baja (mismo umbral verde que la auditoría). */
+const UMBRAL = 0.9;
+
+interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
+interface Lect { matricula: string; nombre: string | null; base: string; asignados: number; leidos: number }
+
+const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
+const pct = (p: number | null) => p === null ? 'Sin datos' : `${(p * 100).toFixed(1).replace('.', ',')} %`;
+const fechaEs = (f: string) => f.split('-').reverse().join('/');
+const pp = (a: number | null, b: number | null) => a === null || b === null ? '—' : `${b - a >= 0 ? '+' : ''}${((b - a) * 100).toFixed(1).replace('.', ',')} p.p.`;
+
+async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let i = 0; ; i += 1000) { const { data, error } = await q(i, i + 999); if (error || !data) break; out.push(...data); if (data.length < 1000) break; }
+  return out;
+}
+
+/** Lectura por maquinista de un sondeo (solo modalidades con dato individual; nunca desde agregados). */
+async function lecturaMaquinistas(s: Sondeo): Promise<Lect[]> {
+  if (s.modo === 'resumen_maquinista') {
+    const r = await todas<any>((a, b) => supabase.from('doc_resumenes_maquinista').select('matricula,nombre,asignados,leidos_total').eq('sondeo_id', s.id).range(a, b));
+    return r.map(x => ({ matricula: x.matricula, nombre: x.nombre, base: s.base_nombre, asignados: x.asignados, leidos: x.leidos_total }));
+  }
+  if (s.modo === 'detalle_agente') {
+    const r = await todas<any>((a, b) => supabase.from('doc_detalle_agente').select('matricula,nombre,estado').eq('sondeo_id', s.id).range(a, b));
+    const m = new Map<string, Lect>();
+    for (const x of r) {
+      const p = m.get(x.matricula) || { matricula: x.matricula, nombre: x.nombre, base: s.base_nombre, asignados: 0, leidos: 0 };
+      p.asignados++; if (x.estado === 'leido') p.leidos++; m.set(x.matricula, p);
+    }
+    return [...m.values()];
+  }
+  return [];
+}
+
+async function indicadoresSondeo(s: Sondeo): Promise<Indicadores> {
+  let a = 0, l = 0;
+  if (s.modo === 'agregado') {
+    const r = await todas<any>((x, y) => supabase.from('doc_registros_agregados').select('incluidos,recibidos,abiertos,leidos').eq('sondeo_id', s.id).range(x, y));
+    for (const d of r) { a += totalDe(d); l += d.leidos; }
+  } else for (const x of await lecturaMaquinistas(s)) { a += x.asignados; l += x.leidos; }
+  return { asignaciones: a, lecturas: l, pendientes: a - l, porcentaje: a ? l / a : null };
+}
+
+/** Elige, por base, el sondeo con dato individual de una fecha (prefiere resumen por maquinista). */
+function individualPorBase(lista: Sondeo[]) {
+  const m = new Map<string, Sondeo>();
+  for (const s of lista) {
+    if (s.modo === 'agregado') continue;
+    const p = m.get(s.base_nombre);
+    if (!p || (p.modo === 'detalle_agente' && s.modo === 'resumen_maquinista')) m.set(s.base_nombre, s);
+  }
+  return m;
+}
+
+export async function generateSondeoPDF(opts: {
+  sondeos: Sondeo[]; base: string; fecha: string; modo: ModoSondeo; docs: DocFila[]; ind: Indicadores;
+}) {
+  const { sondeos, base, fecha, modo, docs, ind } = opts;
+  const bases = base === 'all' ? [...new Set(sondeos.filter(s => s.fecha_sondeo === fecha).map(s => s.base_nombre))].sort() : [base];
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+  let y = 0;
+
+  // Cabecera
+  doc.setFillColor(...MAGENTA); doc.rect(0, 0, W, 22, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text('Informe de sondeo · Documentación reglamentaria', M, 10);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+  doc.text(`Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${MODO_LABEL[modo]}`, M, 16);
+  doc.text(`Generado ${new Date().toLocaleString('es-ES')}`, W - M, 16, { align: 'right' });
+  y = 28;
+
+  // KPIs
+  const kw = (W - 2 * M - 9) / 4;
+  const kpis: [string, string, string][] = [
+    ['Lectura (leídos)', pct(ind.porcentaje), `${fmt(ind.lecturas)} de ${fmt(ind.asignaciones)} asignaciones`],
+    ['Pendientes de lectura', fmt(ind.pendientes), `${pct(ind.asignaciones ? ind.pendientes / ind.asignaciones : null)} de las asignaciones`],
+    ['Documentos distintos', docs.length ? fmt(docs.length) : '—', docs.length ? 'en este sondeo' : 'sin recuento por documento'],
+    ['Bases', fmt(bases.length), bases.length === 1 ? bases[0] : 'bases de conducción'],
+  ];
+  kpis.forEach(([t, v, s], i) => {
+    const x = M + i * (kw + 3);
+    if (i === 0) { doc.setFillColor(...MAGENTA); doc.roundedRect(x, y, kw, 22, 2, 2, 'F'); doc.setTextColor(255, 255, 255); }
+    else { doc.setDrawColor(...CLARO); doc.roundedRect(x, y, kw, 22, 2, 2, 'S'); doc.setTextColor(...DARK); }
+    doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.text(t, x + 3, y + 5);
+    doc.setFontSize(15); doc.setFont('helvetica', 'bold'); doc.text(v, x + 3, y + 13);
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal'); doc.text(doc.splitTextToSize(s, kw - 6)[0], x + 3, y + 19);
+  });
+  y += 28;
+
+  const titulo = (t: string) => {
+    if (y > 260) { doc.addPage(); y = 16; }
+    doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(t, M, y); y += 4;
+  };
+  const nota = (t: string) => { doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...GRIS); const l = doc.splitTextToSize(t, W - 2 * M); doc.text(l, M, y); y += l.length * 3 + 2; };
+
+  // Distribución y estados (solo con recuento por estado)
+  if (docs.length) {
+    const t = docs.reduce((s, r) => [s[0] + r.incluidos, s[1] + r.recibidos, s[2] + r.abiertos, s[3] + r.leidos], [0, 0, 0, 0]);
+    const tot = t[0] + t[1] + t[2] + t[3];
+    const half = (W - 2 * M - 6) / 2;
+    titulo('Avance de la distribución'); const y0 = y;
+    const barras: [string, number][] = [['Recibidos, abiertos o leídos', t[1] + t[2] + t[3]], ['Abiertos o leídos', t[2] + t[3]], ['Leídos', t[3]]];
+    barras.forEach(([l, v]) => {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK); doc.text(l, M, y + 3);
+      doc.setFont('helvetica', 'bold'); doc.text(`${fmt(v)} · ${pct(tot ? v / tot : null)}`, M + half, y + 3, { align: 'right' });
+      doc.setFillColor(...CLARO); doc.roundedRect(M, y + 5, half, 2, 1, 1, 'F');
+      doc.setFillColor(...MAGENTA); if (tot && v) doc.roundedRect(M, y + 5, half * v / tot, 2, 1, 1, 'F');
+      y += 10;
+    });
+    nota(`Etapas acumuladas sobre ${fmt(tot)} asignaciones enviadas.`);
+    // Estados
+    const x2 = M + half + 6; let yy = y0;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...DARK); doc.text('En qué estado están los documentos', x2, yy - 4);
+    const cols: [string, number, [number, number, number]][] = [['Incluido', t[0], GRIS], ['Recibido', t[1], LILA], ['Abierto', t[2], [170, 70, 140]], ['Leído', t[3], MAGENTA]];
+    let cx = x2;
+    cols.forEach(([, v, c]) => { if (!tot || !v) return; const w = half * v / tot; doc.setFillColor(...c); doc.rect(cx, yy, w, 5, 'F'); cx += w; });
+    yy += 10;
+    cols.forEach(([l, v, c], i) => {
+      const x = x2 + (i % 2) * (half / 2), yl = yy + Math.floor(i / 2) * 10;
+      doc.setFillColor(...c); doc.rect(x, yl - 2.5, 2.5, 2.5, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.text(l, x + 4, yl);
+      doc.setFont('helvetica', 'bold'); doc.text(`${fmt(v)} · ${pct(tot ? v / tot : null)}`, x, yl + 4);
+    });
+    y = Math.max(y, yy + 20) + 2;
+  }
+
+  // Maquinistas con menor lectura + reincidencia
+  const actuales = individualPorBase(sondeos.filter(s => s.fecha_sondeo === fecha && bases.includes(s.base_nombre)));
+  const lect: Lect[] = [];
+  const previos = new Map<string, Lect>(); const fechasPrev: string[] = [];
+  for (const [b, s] of actuales) {
+    lect.push(...await lecturaMaquinistas(s));
+    const prevLista = sondeos.filter(x => x.base_nombre === b && x.fecha_sondeo < fecha && x.modo !== 'agregado').sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo));
+    const fp = prevLista[0]?.fecha_sondeo;
+    const sp = fp ? individualPorBase(prevLista.filter(x => x.fecha_sondeo === fp)).get(b) : undefined;
+    if (sp) { fechasPrev.push(`${b}: ${fechaEs(sp.fecha_sondeo)}`); for (const x of await lecturaMaquinistas(sp)) previos.set(b + '|' + x.matricula, x); }
+  }
+  titulo('Maquinistas con menor lectura');
+  if (!lect.length) nota('Este sondeo no incluye datos por maquinista (solo agregados por documento), así que no se puede saber qué maquinistas tienen menor lectura.');
+  else {
+    const bajos = lect.filter(x => x.asignados > 0 && x.leidos / x.asignados < UMBRAL)
+      .sort((a, b) => a.leidos / a.asignados - b.leidos / b.asignados || (b.asignados - b.leidos) - (a.asignados - a.leidos));
+    const reinc = { total: 0, mejora: 0, empeora: 0 };
+    const body = bajos.map(x => {
+      const p = x.leidos / x.asignados; const ant = previos.get(x.base + '|' + x.matricula);
+      const pa = ant && ant.asignados ? ant.leidos / ant.asignados : null;
+      const esReinc = pa !== null && pa < UMBRAL;
+      const tend = pa === null ? '—' : Math.abs(p - pa) < 0.0005 ? 'Igual' : p > pa ? 'Mejora' : 'Empeora';
+      if (esReinc) { reinc.total++; if (tend === 'Mejora') reinc.mejora++; if (tend === 'Empeora') reinc.empeora++; }
+      return [x.matricula, x.nombre || '—', ...(bases.length > 1 ? [x.base] : []), fmt(x.asignados - x.leidos), pct(p), pct(pa), pp(pa, p), esReinc ? 'Sí' : pa === null ? 'Sin dato anterior' : 'No', tend];
+    });
+    nota(`Maquinistas por debajo del ${UMBRAL * 100} % de lectura: ${bajos.length} de ${lect.length}. Reincidente = también estaba por debajo del ${UMBRAL * 100} % en el sondeo anterior de su base${fechasPrev.length ? ` (${fechasPrev.join(' · ')})` : ' (no hay sondeo anterior con datos por maquinista)'}. Reincidentes: ${reinc.total} · mejoran ${reinc.mejora} · empeoran ${reinc.empeora}.`);
+    if (bajos.length) {
+      autoTable(doc, {
+        startY: y, margin: { left: M, right: M },
+        head: [['Matrícula', 'Nombre', ...(bases.length > 1 ? ['Base'] : []), 'Pendientes', 'Lectura', 'Anterior', 'Variación', 'Reincidente', 'Tendencia']],
+        body, styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: MAGENTA, fontSize: 7 },
+        didParseCell: d => {
+          if (d.section !== 'body') return;
+          const h = String((d.table.head[0].cells as any)[d.column.index]?.raw ?? '');
+          if (h === 'Tendencia' && d.cell.raw === 'Empeora') d.cell.styles.textColor = [200, 30, 30];
+          if (h === 'Tendencia' && d.cell.raw === 'Mejora') d.cell.styles.textColor = [22, 140, 60];
+          if (h === 'Reincidente' && d.cell.raw === 'Sí') { d.cell.styles.textColor = MAGENTA; d.cell.styles.fontStyle = 'bold'; }
+        },
+      });
+      y = (doc as any).lastAutoTable.finalY + 6;
+    }
+  }
+
+  // Documentos con más pendientes
+  if (docs.length) {
+    titulo('Documentos con más pendientes');
+    const top = [...docs].map(d => ({ d, p: d.incluidos + d.recibidos + d.abiertos, t: totalDe(d) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p).slice(0, 20);
+    autoTable(doc, {
+      startY: y, margin: { left: M, right: M },
+      head: [['Referencia', 'Documento', 'Pendientes', 'Lectura']],
+      body: top.map(x => [x.d.referencia, x.d.titulo || '—', fmt(x.p), pct(x.t ? x.d.leidos / x.t : null)]),
+      styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: MAGENTA, fontSize: 7 }, columnStyles: { 1: { cellWidth: 95 } },
+    });
+    y = (doc as any).lastAutoTable.finalY + 6;
+  }
+
+  // Evolución respecto al sondeo anterior de la misma base y tipo de datos
+  const filasEv: string[][] = []; let sa = 0, sl = 0, pa = 0, pl = 0;
+  for (const b of bases) {
+    const cur = sondeos.find(s => s.base_nombre === b && s.fecha_sondeo === fecha && s.modo === modo);
+    const prev = sondeos.filter(s => s.base_nombre === b && s.modo === modo && s.fecha_sondeo < fecha).sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo))[0];
+    if (!cur || !prev) continue;
+    const [ia, ib] = await Promise.all([indicadoresSondeo(prev), indicadoresSondeo(cur)]);
+    pa += ia.asignaciones; pl += ia.lecturas; sa += ib.asignaciones; sl += ib.lecturas;
+    filasEv.push([b, fechaEs(prev.fecha_sondeo), pct(ia.porcentaje), pct(ib.porcentaje), pp(ia.porcentaje, ib.porcentaje), fmt(ia.pendientes), fmt(ib.pendientes)]);
+  }
+  if (filasEv.length) {
+    titulo('Evolución respecto al sondeo anterior');
+    nota(`Se compara con el sondeo anterior de la misma base y tipo de datos (${MODO_LABEL[modo]}).`);
+    if (filasEv.length > 1) filasEv.push(['Total', '', pct(pa ? pl / pa : null), pct(sa ? sl / sa : null), pp(pa ? pl / pa : null, sa ? sl / sa : null), fmt(pa - pl), fmt(sa - sl)]);
+    autoTable(doc, {
+      startY: y, margin: { left: M, right: M },
+      head: [['Base', 'Sondeo anterior', 'Lectura anterior', `Lectura ${fechaEs(fecha)}`, 'Variación', 'Pendientes antes', 'Pendientes ahora']],
+      body: filasEv, styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: MAGENTA, fontSize: 7 },
+    });
+  }
+
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(6.5); doc.setTextColor(...GRIS); doc.text(`GesBase · Página ${i} de ${n}`, W - M, 290, { align: 'right' }); }
+  doc.save(`informe_sondeo_${(base === 'all' ? 'todas' : base).replace(/\s+/g, '_')}_${fecha}.pdf`);
+}
