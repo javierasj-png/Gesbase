@@ -86,6 +86,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
 
   // Actuaciones (separadas de las lecturas)
   const [acts, setActs] = useState<Actuacion[]>([]);
+  const [nuevaAct, setNuevaAct] = useState<{ base: string; matricula: string; nombre: string; n: number } | null>(null);
   const [recActs, setRecActs] = useState(0);
   useEffect(() => { (async () => {
     const r = await todas<Actuacion>((a, b) => (supabase.from('doc_actuaciones' as never) as any).select('*').order('fecha_actuacion', { ascending: false }).range(a, b));
