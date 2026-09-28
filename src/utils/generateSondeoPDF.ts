@@ -144,11 +144,9 @@ export async function generateSondeoPDF(opts: {
   const previos = new Map<string, Lect>(); const fechasPrev: string[] = [];
   for (const [b, s] of actuales) {
     lect.push(...await lecturaMaquinistas(s));
-    const ant = [...individualPorBase(sondeos.filter(x => x.base_nombre === b && x.fecha_sondeo < fecha)).values()]; // una por base, pero necesitamos la más reciente
     const prevLista = sondeos.filter(x => x.base_nombre === b && x.fecha_sondeo < fecha && x.modo !== 'agregado').sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo));
     const fp = prevLista[0]?.fecha_sondeo;
     const sp = fp ? individualPorBase(prevLista.filter(x => x.fecha_sondeo === fp)).get(b) : undefined;
-    void ant;
     if (sp) { fechasPrev.push(`${b}: ${fechaEs(sp.fecha_sondeo)}`); for (const x of await lecturaMaquinistas(sp)) previos.set(b + '|' + x.matricula, x); }
   }
   titulo('Maquinistas con menor lectura');
