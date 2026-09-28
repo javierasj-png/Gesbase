@@ -24,15 +24,13 @@ async function cargar(modo: ModoSondeo, id: string) {
 
 type Cmp = Comparacion<any> & { nuevasLecturas?: number; retrocesos?: number };
 
-export function CompararSondeos({ sondeos, basesDisponibles }: { sondeos: S[]; basesDisponibles: string[] }) {
-  const bases = useMemo(() => basesDisponibles.filter(b => sondeos.some(s => s.base_nombre === b)), [sondeos, basesDisponibles]);
-  const [base, setBase] = useState('');
+export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: S[]; base: string }) {
+  const bases = useMemo(() => [...new Set(sondeos.map(s => s.base_nombre))].sort(), [sondeos]);
+  const base = baseProp !== 'all' && bases.includes(baseProp) ? baseProp : (bases[0] || '');
   const [modo, setModo] = useState<ModoSondeo | ''>('');
   const [fa, setFa] = useState(''); const [fb, setFb] = useState('');
   const [cmp, setCmp] = useState<Cmp | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => { if (!bases.includes(base)) setBase(bases[0] || ''); }, [bases, base]);
   const modos = useMemo(() => (['agregado', 'resumen_maquinista', 'detalle_agente'] as ModoSondeo[]).filter(m => sondeos.some(s => s.base_nombre === base && s.modo === m)), [sondeos, base]);
   useEffect(() => { if (!modos.includes(modo as ModoSondeo)) setModo(modos[0] || ''); }, [modos, modo]);
   const lista = useMemo(() => sondeos.filter(s => s.base_nombre === base && s.modo === modo).sort((a, b) => a.fecha_sondeo.localeCompare(b.fecha_sondeo)), [sondeos, base, modo]);
@@ -90,12 +88,9 @@ export function CompararSondeos({ sondeos, basesDisponibles }: { sondeos: S[]; b
   return (
     <Card>
       <CardHeader className="pb-3"><CardTitle className="text-base">Evolución entre sondeos</CardTitle>
-        <p className="text-xs text-muted-foreground">Compara dos fechas de la misma base y tipo de datos.</p></CardHeader>
+        <p className="text-xs text-muted-foreground">Compara dos fechas de la base elegida arriba ({base || '—'}) y del mismo tipo de datos.</p></CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-4">
-          <div><label className="text-xs text-muted-foreground">Base</label>
-            <Select value={base} onValueChange={setBase}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>{bases.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
+        <div className="grid gap-3 md:grid-cols-3">
           <div><label className="text-xs text-muted-foreground">Tipo de datos</label>
             <Select value={modo} onValueChange={v => setModo(v as ModoSondeo)}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>{modos.map(m => <SelectItem key={m} value={m}>{MODO_LABEL[m]}</SelectItem>)}</SelectContent></Select></div>
