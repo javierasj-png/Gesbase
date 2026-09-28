@@ -3,7 +3,7 @@ import { readDocFile } from '@/lib/docReglamentaria/readFile';
 
 const csv = 'Referencia,Título,Subcarpeta,F. Entrada Vigor,Incluidos,Recibidos,Abiertos,Leidos\nD-1,Circulación ñ,AVISOS,,1,0,0,2\n';
 const fileOf = (bytes: Uint8Array) => {
-  const f = new File([bytes], 'Seguimiento docs. area Irún.csv');
+  const f = new File([bytes as BlobPart], 'Seguimiento docs. area Irún.csv');
   if (!f.arrayBuffer) (f as any).arrayBuffer = async () => bytes.buffer;
   return f;
 };
