@@ -42,17 +42,27 @@ export function CompararSondeos({ sondeos, basesDisponibles }: { sondeos: S[]; b
     if (!fs.includes(fa)) setFa(fs[fs.length - 2] || '');
   }, [lista, fa, fb]);
 
+  const idA = lista.find(s => s.fecha_sondeo === fa)?.id || '';
+  const idB = lista.find(s => s.fecha_sondeo === fb)?.id || '';
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    const A = lista.find(s => s.fecha_sondeo === fa), B = lista.find(s => s.fecha_sondeo === fb);
-    if (!A || !B || A.id === B.id || !modo) { setCmp(null); return; }
+    setError(null);
+    if (!idA || !idB || idA === idB || !modo) { setCmp(null); setLoading(false); return; }
     let cancel = false; setLoading(true);
     (async () => {
-      const [x, y] = await Promise.all([cargar(modo, A.id), cargar(modo, B.id)]);
-      const c = modo === 'agregado' ? compararAgregados(x, y) : modo === 'resumen_maquinista' ? compararResumenes(x, y) : compararDetalle(x, y);
-      if (!cancel) { setCmp(c); setLoading(false); }
+      try {
+        const [x, y] = await Promise.all([cargar(modo, idA), cargar(modo, idB)]);
+        const c = modo === 'agregado' ? compararAgregados(x, y) : modo === 'resumen_maquinista' ? compararResumenes(x, y) : compararDetalle(x, y);
+        if (!cancel) setCmp(c);
+      } catch (e) {
+        console.error('Comparar sondeos', e);
+        if (!cancel) { setCmp(null); setError('No se ha podido cargar la comparación.'); }
+      } finally {
+        if (!cancel) setLoading(false);
+      }
     })();
     return () => { cancel = true; };
-  }, [lista, fa, fb, modo]);
+  }, [idA, idB, modo]);
 
   if (!sondeos.length) return null;
   const etiqueta = (it: Item<any>) => modo === 'agregado' ? `${it.clave}${(it.despues || it.antes)?.titulo ? ' · ' + (it.despues || it.antes).titulo : ''}`
@@ -98,7 +108,9 @@ export function CompararSondeos({ sondeos, basesDisponibles }: { sondeos: S[]; b
         </div>
 
         {lista.length < 2 ? <p className="text-sm text-muted-foreground text-center py-4">Todavía no hay comparación disponible: solo hay {lista.length} sondeo para esta base y tipo de datos.</p>
-          : loading || !cmp ? <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
+          : loading ? <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
+          : error ? <p className="text-sm text-destructive text-center py-4">{error}</p>
+          : !cmp ? <p className="text-sm text-muted-foreground text-center py-4">Elige un sondeo anterior y uno posterior para compararlos.</p>
           : <>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="kpi-card border-l-4 border-l-primary"><p className="kpi-label">Porcentaje de lectura</p>
