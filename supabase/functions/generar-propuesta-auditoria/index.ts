@@ -417,11 +417,78 @@ serve(async (req) => {
         .order("fecha_parte", { ascending: false })
         .limit(20);
 
+      // Planes específicos de vigilancia (campañas/sondeos/planes específicos)
+      const { data: planesV } = await supabaseAdmin
+        .from("planes_vigilancia")
+        .select("id, categoria, nombre, estado, fecha_inicio, fecha_fin")
+        .eq("base", baseNombre)
+        .order("fecha_inicio", { ascending: false })
+        .limit(20);
+      let planesVigilancia: any[] = [];
+      if (planesV && planesV.length > 0) {
+        const { data: accs } = await supabaseAdmin
+          .from("planes_vigilancia_acciones")
+          .select("plan_id, estado, fecha_prevista, fecha_real, resultado, comunicada, justificado_inactividad")
+          .in("plan_id", planesV.map((p) => p.id));
+        const hoy3 = new Date();
+        planesVigilancia = planesV.map((p) => {
+          const a = (accs || []).filter((x) => x.plan_id === p.id && !x.justificado_inactividad);
+          const realizadas = a.filter((x) => x.fecha_real).length;
+          const vencidas = a.filter((x) => !x.fecha_real && new Date(x.fecha_prevista) < hoy3).length;
+          const exigibles = a.filter((x) => new Date(x.fecha_prevista) <= hoy3 || x.fecha_real).length;
+          const noConformes = a.filter((x) => x.resultado && /no\s*conform|desfavorable|incumpl/i.test(x.resultado)).length;
+          return {
+            nombre: p.nombre, categoria: p.categoria, estado: p.estado, fechaInicio: p.fecha_inicio, fechaFin: p.fecha_fin,
+            totalAcciones: a.length, realizadas, vencidas, exigiblesHoy: exigibles,
+            cumplimientoActual: exigibles > 0 ? Math.round((realizadas / exigibles) * 100) : null,
+            noConformidades: noConformes,
+            noConformidadesComunicadas: a.filter((x) => x.comunicada).length,
+          };
+        });
+      }
+
+      // Lectura de documentación reglamentaria (último sondeo de la base, sin mezclar modalidades)
+      let documentacion: any = null;
+      const { data: sond } = await supabaseAdmin
+        .from("doc_sondeos")
+        .select("id, fecha_sondeo, modo")
+        .eq("base_nombre", baseNombre)
+        .order("fecha_sondeo", { ascending: false })
+        .limit(20);
+      if (sond && sond.length > 0) {
+        const ultimaFecha = sond[0].fecha_sondeo;
+        const delDia = sond.filter((s) => s.fecha_sondeo === ultimaFecha);
+        const pick = delDia.find((s) => s.modo === "resumen_maquinista") || delDia.find((s) => s.modo === "detalle_agente") || delDia[0];
+        let asig = 0, leid = 0, maqsPendientes = 0;
+        if (pick.modo === "resumen_maquinista") {
+          const { data: r } = await supabaseAdmin.from("doc_resumenes_maquinista").select("asignados, leidos_total").eq("sondeo_id", pick.id);
+          (r || []).forEach((x) => { asig += x.asignados; leid += x.leidos_total; if (x.leidos_total < x.asignados) maqsPendientes++; });
+        } else if (pick.modo === "detalle_agente") {
+          const { data: r } = await supabaseAdmin.from("doc_detalle_agente").select("matricula, estado").eq("sondeo_id", pick.id);
+          const pend = new Set<string>();
+          (r || []).forEach((x) => { asig++; if (x.estado === "leido") leid++; else pend.add(x.matricula); });
+          maqsPendientes = pend.size;
+        } else {
+          const { data: r } = await supabaseAdmin.from("doc_registros_agregados").select("incluidos, recibidos, abiertos, leidos").eq("sondeo_id", pick.id);
+          (r || []).forEach((x) => { asig += x.incluidos + x.recibidos + x.abiertos + x.leidos; leid += x.leidos; });
+        }
+        const { count: nActs } = await supabaseAdmin.from("doc_actuaciones").select("id", { count: "exact", head: true }).eq("base_nombre", baseNombre);
+        documentacion = {
+          fechaUltimoSondeo: ultimaFecha, modalidad: pick.modo, sondeosRegistrados: sond.length,
+          asignaciones: asig, lecturas: leid, pendientes: asig - leid,
+          porcentajeLectura: asig > 0 ? Math.round((leid / asig) * 1000) / 10 : null,
+          maquinistasConPendientes: pick.modo === "agregado" ? null : maqsPendientes,
+          actuacionesRegistradas: nActs ?? 0,
+        };
+      }
+
       basesData.push({
         base: baseNombre,
         totalMaquinistas: maqIds.length,
         pe1603: pe1603Info,
         pe1201: pe1201Info,
+        planesVigilancia,
+        documentacion,
         visitas: visitas || [],
         partes: partes || [],
       });
@@ -451,7 +518,16 @@ CRITERIO CLAVE DE CUMPLIMIENTO (MUY IMPORTANTE):
   · 65–80% → 🟡 **Aceptable** (observación menor)
   · 50–65% → 🟠 **Mejorable** (observación / NC menor)
   · < 50%  → 🔴 **Insuficiente** (no conformidad)
-- En las tablas y semáforos usa SIEMPRE \`cumplimientoActual\` (no el global). Muestra el global solo como referencia secundaria.`;
+- En las tablas y semáforos usa SIEMPRE \`cumplimientoActual\` (no el global). Muestra el global solo como referencia secundaria.
+
+PLANES ESPECÍFICOS DE VIGILANCIA (\`planesVigilancia\`):
+- Son planes de vigilancia (específicos, campañas, sondeos) con acciones asignadas a maquinistas. Evalúalos con \`cumplimientoActual\` y los mismos umbrales.
+- Acciones vencidas y no conformidades detectadas son hallazgos; si hay no conformidades sin comunicar (\`noConformidades\` > \`noConformidadesComunicadas\`), señálalo como debilidad del circuito de comunicación.
+
+DOCUMENTACIÓN REGLAMENTARIA (\`documentacion\`):
+- Refleja la lectura de la documentación reglamentaria por los maquinistas según el último sondeo. \`porcentajeLectura\` = lecturas / asignaciones (nunca promedies).
+- Umbrales de lectura: ≥90% 🟢 Satisfactorio · 75–90% 🟡 Aceptable · 60–75% 🟠 Mejorable · <60% 🔴 Insuficiente.
+- Si \`documentacion\` es null: "Sin sondeos de documentación registrados" (esto es una observación: falta de control). No inventes lecturas individuales a partir de datos agregados.`;
 
     const userPrompt = `Fecha de emisión: ${fechaHoy}
 Bases incluidas en el alcance: ${basesData.map((b: any) => b.base).join(", ")}
@@ -469,16 +545,18 @@ Redacta el INFORME DE PROPUESTA DE AUDITORÍA en formato Markdown con la siguien
 ## 1. Resumen ejecutivo
 Párrafo de 6-10 líneas con: contexto, criticidad global (Alta/Media/Baja JUSTIFICADA con cifras), 3 hallazgos top y la recomendación principal. Después una tabla resumen:
 | Indicador | Valor | Valoración |
-con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, acciones vencidas totales, NCs abiertas, partes recientes.
+con filas para: nº bases, maquinistas activos, expedientes 16.03 abiertos, expedientes 12.01 abiertos, % cumplimiento medio 16.03, % cumplimiento medio 12.01, planes específicos activos y su cumplimiento, % lectura de documentación reglamentaria, acciones vencidas totales, NCs abiertas, partes recientes.
 
 ## 2. Alcance y metodología
-Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy) con los UMBRALES OFICIALES: >80% Satisfactorio 🟢, 65-80% Aceptable 🟡, 50-65% Mejorable 🟠, <50% Insuficiente 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
+Breve (4-6 líneas): bases auditadas, periodo analizado (deduce desde fechas de los datos), fuentes (expedientes 1201/1603, planes específicos de vigilancia, sondeos de documentación reglamentaria, visitas Lista 80/122, partes), criterio de muestreo y criterios de evaluación basados en **cumplimientoActual** (realizado/exigible a día de hoy) con los UMBRALES OFICIALES: >80% Satisfactorio 🟢, 65-80% Aceptable 🟡, 50-65% Mejorable 🟠, <50% Insuficiente 🔴. Expedientes con \`exigiblesHoy = 0\` se clasifican como "En curso — sin hitos exigibles aún" y NO computan como incumplimiento.
 
 ## 3. Análisis detallado por base
 Para CADA base, una subsección \`### 3.x Base [NOMBRE]\` con:
 - **Ficha de la base**: tabla con maquinistas activos, expedientes abiertos, NCs históricas, partes recientes.
 - **Estado PE 16.03**: tabla maquinista por maquinista (cumplimiento %, acciones vencidas, fecha fin prevista, semáforo 🟢🟡🔴 según umbrales).
 - **Estado PE 12.01**: tabla por expediente (suceso, cumplimiento, vencidos, fecha fin, semáforo).
+- **Planes específicos de vigilancia**: tabla por plan (nombre, categoría, estado, periodo, realizadas/exigibles, vencidas, NCs y comunicadas, semáforo).
+- **Lectura de documentación reglamentaria**: fecha del último sondeo, asignaciones, lecturas, pendientes, % lectura con semáforo, maquinistas con pendientes y actuaciones registradas.
 - **Histórico de visitas y NCs**: tabla con fecha, tipo, NCs detectadas, estado.
 - **Partes recientes relevantes**: solo los que aporten señal (incidencias graves, recurrencia, mismo maquinista repetido).
 - **Riesgos detectados en esta base**: lista bullet con 3-6 riesgos CONCRETOS citando los datos (ej: "Maquinista X con 4 acciones 16.03 vencidas y cumplimiento 42%").
