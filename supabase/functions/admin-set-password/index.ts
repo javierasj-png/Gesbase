@@ -19,19 +19,19 @@ Deno.serve(async (req) => {
 
     const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
     const { data: { user }, error: uErr } = await userClient.auth.getUser();
-    if (uErr || !user) return json({ error: "No autenticado" }, 401);
+    if (uErr || !user) return json({ error: "No autenticado" });
 
-    const { data: isAdmin } = await userClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!isAdmin) return json({ error: "Solo administradores" }, 403);
+    const admin = createClient(url, service);
+    const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
+    if (!roles || roles.length === 0) return json({ error: "Solo administradores" });
 
     const { user_id, password } = await req.json();
     if (typeof user_id !== "string" || typeof password !== "string" || password.length < 8) {
-      return json({ error: "Datos no válidos (mínimo 8 caracteres)" }, 400);
+      return json({ error: "Datos no válidos (mínimo 8 caracteres)" });
     }
 
-    const admin = createClient(url, service);
     const { error } = await admin.auth.admin.updateUserById(user_id, { password, email_confirm: true });
-    if (error) return json({ error: error.message }, 400);
+    if (error) return json({ error: error.message });
     return json({ ok: true });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
