@@ -6,7 +6,17 @@ export async function readDocFile(file: File): Promise<ResultadoLectura> {
   const buf = await file.arrayBuffer();
   let matrix: unknown[][];
   try {
-    const wb = XLSX.read(buf, { type: 'array', raw: true, cellDates: false });
+    // CSV: decodificar como UTF-8 (o Windows-1252 si no lo es) para conservar tildes en cabeceras y títulos.
+    const isCsv = /\.csv$/i.test(file.name);
+    let wb: XLSX.WorkBook;
+    if (isCsv) {
+      let text: string;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+      catch { text = new TextDecoder('windows-1252').decode(buf); }
+      wb = XLSX.read(text.replace(/^\uFEFF/, ''), { type: 'string', raw: true, cellDates: false });
+    } else {
+      wb = XLSX.read(buf, { type: 'array', raw: true, cellDates: false });
+    }
     const ws = wb.Sheets[wb.SheetNames[0]];
     matrix = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false });
   } catch {
