@@ -5,14 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Upload, X, AlertCircle, Loader2, Save, CheckCircle2 } from 'lucide-react';
+import { Upload, X, AlertCircle, Loader2, Save, CheckCircle2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { readDocFile } from '@/lib/docReglamentaria/readFile';
 import { ConsultaSondeos } from '@/components/docReglamentaria/ConsultaSondeos';
-import { RecuperarCopia } from '@/components/docReglamentaria/RecuperarCopia';
 import { SondeosGuardados } from '@/components/docReglamentaria/SondeosGuardados';
 import { MODO_LABEL, norm, isValidDate, totalRegistros, type ResultadoLectura } from '@/lib/docReglamentaria/parser';
 
@@ -109,20 +108,9 @@ export default function DocumentacionReglamentariaPage() {
         </div>
 
         <ConsultaSondeos recarga={recarga} />
-        <RecuperarCopia onDone={() => setRecarga(x => x + 1)} />
         <SondeosGuardados recarga={recarga} onChange={() => setRecarga(x => x + 1)} />
 
-        {items.length === 0 ? (
-          <Card>
-            <CardContent className="py-16 text-center space-y-3">
-              <FileText className="w-10 h-10 mx-auto text-muted-foreground" />
-              <p className="font-medium">Selecciona archivos para ver una vista previa</p>
-              <p className="text-sm text-muted-foreground">
-                Formatos admitidos: «Seguimiento docs. area…», «Seguimiento maqs. area…» y detalle individual.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
+        {items.length > 0 && (
           <div className="space-y-4">
             <p className="text-xs text-muted-foreground">Revisa la vista previa y pulsa «Guardar sondeo» en cada archivo.</p>
             {items.map(it => {

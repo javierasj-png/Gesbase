@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ESTADOS_ACTUACION, ESTADOS_JUSTIFICAN, CANALES, justificacionPara, type Actuacion } from '@/lib/docReglamentaria/justificaciones';
@@ -64,10 +64,9 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
 
   return (
     <Card>
-      <CardHeader className="pb-3 flex flex-row items-start justify-between space-y-0 gap-2">
+      <CardHeader className="pb-3">
         <div><CardTitle className="text-base">Actuaciones y justificaciones</CardTitle>
-          <p className="text-xs text-muted-foreground">Se guardan aparte de las lecturas: reimportar un sondeo no las borra. Las marcadas «No computa» restan las asignaciones del maquinista en los resultados de su base mientras estén vigentes.</p></div>
-        <Button size="sm" className="gap-1" onClick={() => abrir()} disabled={!periodo || !bases.length}><Plus className="w-4 h-4" />Registrar actuación</Button>
+          <p className="text-xs text-muted-foreground">Se guardan aparte de las lecturas: reimportar un sondeo no las borra. Las marcadas «No computa» restan las asignaciones del maquinista en los resultados de su base mientras estén vigentes. Se registran desde la tabla de maquinistas.</p></div>
       </CardHeader>
       <CardContent>
         {!visibles.length ? <p className="text-sm text-muted-foreground text-center py-4">No hay actuaciones registradas.</p> : (
