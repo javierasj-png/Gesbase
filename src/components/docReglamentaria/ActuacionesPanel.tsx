@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ const fechaEs = (f: string | null) => (f ? f.split('-').reverse().join('/') : 'â
 const hoy = () => new Date().toISOString().slice(0, 10);
 type Form = { base_nombre: string; matricula: string; nombre: string; referencia: string; responsable: string; fecha_actuacion: string; fecha_comunicacion: string; canal: string; estado: string; vigencia_hasta: string; comentario: string; no_computa: boolean };
 
-export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange }: { acts: Actuacion[]; periodo: string; bases: string[]; baseFiltro: string; onChange: () => void }) {
+export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, nueva }: { acts: Actuacion[]; periodo: string; bases: string[]; baseFiltro: string; onChange: () => void; nueva?: { base: string; matricula: string; nombre: string; n: number } | null }) {
   const { toast } = useToast();
   const [f, setF] = useState<Form | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -23,11 +23,16 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange }:
   const visibles = acts.filter(a => baseFiltro === 'all' || a.base_nombre === baseFiltro)
     .sort((a, b) => b.fecha_actuacion.localeCompare(a.fecha_actuacion) || b.created_at.localeCompare(a.created_at));
 
-  const abrir = (a?: Actuacion) => {
+  const abrir = (a?: Actuacion, pre?: { base: string; matricula: string; nombre: string }) => {
     setEditId(a?.id || null);
     setF(a ? { base_nombre: a.base_nombre, matricula: a.matricula || '', nombre: a.nombre || '', referencia: a.referencia || '', responsable: a.responsable, fecha_actuacion: a.fecha_actuacion, fecha_comunicacion: a.fecha_comunicacion || '', canal: a.canal || '', estado: a.estado, vigencia_hasta: a.vigencia_hasta || '', comentario: a.comentario || '', no_computa: a.no_computa }
-      : { base_nombre: baseFiltro !== 'all' ? baseFiltro : bases[0] || '', matricula: '', nombre: '', referencia: '', responsable: '', fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'He hablado con el agente', vigencia_hasta: '', comentario: '', no_computa: false });
+      : { base_nombre: pre?.base || (baseFiltro !== 'all' ? baseFiltro : bases[0] || ''), matricula: pre?.matricula || '', nombre: pre?.nombre || '', referencia: '', responsable: '', fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'He hablado con el agente', vigencia_hasta: '', comentario: '', no_computa: false });
   };
+  useEffect(() => {
+    if (!nueva) return;
+    const existente = acts.find(a => a.base_nombre === nueva.base && a.matricula === nueva.matricula && a.periodo === periodo);
+    abrir(existente, nueva);
+  }, [nueva?.n]);
   const set = (p: Partial<Form>) => setF(x => (x ? { ...x, ...p } : x));
 
   const guardar = async () => {

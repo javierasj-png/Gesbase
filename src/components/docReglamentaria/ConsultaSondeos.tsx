@@ -209,8 +209,9 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
           setRecActs(x => x + 1); return null;
         }} />;
     })()}
-    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} onChange={() => setRecActs(x => x + 1)} />
-    <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} />
+    <SeguimientoMaquinistas sondeos={delDia} acts={acts} periodo={fecha} onChange={() => setRecActs(x => x + 1)}
+      onRegistrar={fm => setNuevaAct(p => ({ base: fm.baseSondeo, matricula: fm.matricula, nombre: fm.maestro ? `${fm.maestro.nombre ?? ''} ${fm.maestro.apellidos ?? ''}`.trim() : fm.nombreArchivo, n: (p?.n ?? 0) + 1 }))} />
+    <ActuacionesPanel acts={acts} periodo={fecha} bases={getAccessibleBases} baseFiltro={base} onChange={() => setRecActs(x => x + 1)} nueva={nuevaAct} />
     <CompararSondeos sondeos={sondeos} basesDisponibles={[...new Set(sondeos.map(s => s.base_nombre))].sort()} />
     </div>
   );
