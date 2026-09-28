@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { MODO_LABEL, norm, type ModoSondeo } from '@/lib/docReglamentaria/parser';
 import { agruparPorDocumento, docsDesdeDetalle, fmtPct, indicadoresDesdeDocs, indicadoresDesdeResumenes, totalDe, type DocFila, type Indicadores } from '@/lib/docReglamentaria/resumen';
+import { SeguimientoMaquinistas } from './SeguimientoMaquinistas';
 
 interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
 const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
@@ -85,6 +86,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   );
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader className="pb-3"><CardTitle className="text-base">Consulta de sondeos guardados</CardTitle></CardHeader>
       <CardContent className="space-y-4">
@@ -134,5 +136,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
           </>}
       </CardContent>
     </Card>
+    <SeguimientoMaquinistas sondeos={delDia} />
+    </div>
   );
 }
