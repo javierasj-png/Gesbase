@@ -12,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBaseFilter } from '@/hooks/useBaseFilter';
 import { readDocFile } from '@/lib/docReglamentaria/readFile';
 import { ConsultaSondeos } from '@/components/docReglamentaria/ConsultaSondeos';
-import { RecuperarCopia } from '@/components/docReglamentaria/RecuperarCopia';
 import { SondeosGuardados } from '@/components/docReglamentaria/SondeosGuardados';
 import { MODO_LABEL, norm, isValidDate, totalRegistros, type ResultadoLectura } from '@/lib/docReglamentaria/parser';
 
