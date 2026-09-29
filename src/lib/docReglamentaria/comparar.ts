@@ -5,6 +5,24 @@ export interface Global { asignaciones: number; lecturas: number; pendientes: nu
 const glob = (a: number, l: number): Global => ({ asignaciones: a, lecturas: l, pendientes: a - l, porcentaje: a ? l / a : null });
 
 export interface Item<T> { clave: string; antes: T | null; despues: T | null }
+export type Tendencia = 'mejora' | 'empeora' | 'igual' | 'sin_datos';
+/** Solo las claves presentes en ambas fechas se clasifican; altas y bajas se muestran aparte. */
+export function evolucion<T>(a: T[], b: T[], clave: (x: T) => string, ratio: (x: T) => number | null) {
+  const antes = new Map(a.map(x => [clave(x), x]));
+  const despues = new Map(b.map(x => [clave(x), x]));
+  const nuevos = b.filter(x => !antes.has(clave(x)));
+  const retirados = a.filter(x => !despues.has(clave(x)));
+  const comunes = a.filter(x => despues.has(clave(x))).map(x => {
+    const y = despues.get(clave(x));
+    if (!y) return null;
+    const r1 = ratio(x), r2 = ratio(y);
+    const tendencia: Tendencia = r1 === null || r2 === null ? 'sin_datos' : r2 > r1 ? 'mejora' : r2 < r1 ? 'empeora' : 'igual';
+    return { clave: clave(x), antes: x, despues: y, tendencia };
+  }).filter((x): x is NonNullable<typeof x> => x !== null);
+  return { nuevos, retirados, comunes };
+}
+export const ratioDocumento = (x: Cuatro) => totalDe(x) ? x.leidos / totalDe(x) : null;
+export const ratioMaquinista = (x: { asignados: number; leidos_total: number }) => x.asignados ? x.leidos_total / x.asignados : null;
 export interface Comparacion<T> {
   antes: Global; despues: Global;
   aparecen: Item<T>[];      // solo en el sondeo posterior
