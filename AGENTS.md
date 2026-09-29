@@ -1,0 +1,1 @@
+- La comparación de documentación usa modalidades coincidentes entre fechas y calcula la evolución individual por proporción de lectura; así no confunde cambios de asignaciones con mejora ni infiere maquinistas desde agregados.

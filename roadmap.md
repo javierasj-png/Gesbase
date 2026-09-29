@@ -1,0 +1,3 @@
+- [ ] Comparar automáticamente documentos y maquinistas entre sondeos de la base seleccionada, con altas, bajas y evolución individual.
+- [ ] Añadir ordenación visible a la tabla de documentos y recolocar las acciones del informe; quitar la etiqueta redundante.
+- [ ] Verificar pruebas y presentación.
