@@ -1,129 +1,147 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, Equal, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { MODO_LABEL, type ModoSondeo } from '@/lib/docReglamentaria/parser';
-import { fmtPct } from '@/lib/docReglamentaria/resumen';
-import { compararAgregados, compararDetalle, compararResumenes, type Comparacion, type Item } from '@/lib/docReglamentaria/comparar';
+import { type ModoSondeo } from '@/lib/docReglamentaria/parser';
+import { docsDesdeDetalle, fmtPct, type DocFila } from '@/lib/docReglamentaria/resumen';
+import { evolucion, ratioDocumento, ratioMaquinista, type ResTot, type Tendencia } from '@/lib/docReglamentaria/comparar';
 
-interface S { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
-const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
+interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
+interface Agregado extends DocFila {}
+interface Resumen extends ResTot { matricula: string }
+interface Detalle { matricula: string; nombre: string | null; referencia: string; titulo: string | null; estado: string }
+interface Resultado<T> { nuevos: T[]; retirados: T[]; comunes: { clave: string; antes: T; despues: T; tendencia: Tendencia }[] }
+interface Comparacion { docs: Resultado<Agregado> | null; maqs: Resultado<Resumen> | null; fuentes: string[] }
 const fechaEs = (f: string) => f.split('-').reverse().join('/');
+const claveDoc = (r: Agregado) => r.referencia;
+const claveMaq = (r: Resumen) => r.matricula.trim();
 
 async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const out: T[] = [];
-  for (let i = 0; ; i += 1000) { const { data, error } = await q(i, i + 999); if (error || !data) break; out.push(...data); if (data.length < 1000) break; }
+  for (let i = 0; ; i += 1000) {
+    const { data, error } = await q(i, i + 999);
+    if (error) throw error;
+    if (!data) throw new Error('Respuesta vacía');
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
   return out;
 }
 async function cargar(modo: ModoSondeo, id: string) {
-  if (modo === 'agregado') return todas<any>((a, b) => supabase.from('doc_registros_agregados').select('referencia,titulo,incluidos,recibidos,abiertos,leidos').eq('sondeo_id', id).range(a, b));
-  if (modo === 'resumen_maquinista') return todas<any>((a, b) => supabase.from('doc_resumenes_maquinista').select('matricula,nombre,asignados,leidos_total').eq('sondeo_id', id).range(a, b));
-  return todas<any>((a, b) => supabase.from('doc_detalle_agente').select('matricula,nombre,referencia,titulo,estado').eq('sondeo_id', id).range(a, b));
+  if (modo === 'agregado') return todas<Agregado>((a, b) => supabase.from('doc_registros_agregados').select('referencia,titulo,incluidos,recibidos,abiertos,leidos').eq('sondeo_id', id).range(a, b));
+  if (modo === 'resumen_maquinista') return todas<Resumen>((a, b) => supabase.from('doc_resumenes_maquinista').select('matricula,nombre,asignados,leidos_total').eq('sondeo_id', id).range(a, b));
+  return todas<Detalle>((a, b) => supabase.from('doc_detalle_agente').select('matricula,nombre,referencia,titulo,estado').eq('sondeo_id', id).range(a, b));
+}
+function resumirDetalle(rows: Detalle[]): Resumen[] {
+  const m = new Map<string, Resumen>();
+  for (const r of rows) {
+    const key = r.matricula.trim();
+    const current = m.get(key) || { matricula: key, nombre: r.nombre, asignados: 0, leidos_total: 0 };
+    current.asignados++;
+    if (r.estado === 'leido') current.leidos_total++;
+    m.set(key, current);
+  }
+  return [...m.values()];
+}
+const ratioLabel = (n: number | null) => fmtPct(n);
+
+function Grupo<T>({ titulo, resultado, nombre, ratio }: { titulo: string; resultado: Resultado<T> | null; nombre: (r: T) => string; ratio: (r: T) => number | null }) {
+  if (!resultado) return <section className="space-y-2"><h3 className="font-semibold text-sm">{titulo}</h3><p className="text-xs text-muted-foreground">No hay datos del mismo tipo en ambas fechas.</p></section>;
+  const grupos = [
+    { key: 'mejora', label: 'Mejoran', Icon: ArrowUp, color: 'text-primary' },
+    { key: 'empeora', label: 'Empeoran', Icon: ArrowDown, color: 'text-destructive' },
+    { key: 'igual', label: 'Misma lectura', Icon: Equal, color: 'text-muted-foreground' },
+    { key: 'sin_datos', label: 'Sin porcentaje comparable', Icon: Equal, color: 'text-muted-foreground' },
+  ] as const;
+  const totalAntes = resultado.comunes.length + resultado.retirados.length;
+  const totalDespues = resultado.comunes.length + resultado.nuevos.length;
+  return <section className="space-y-3">
+    <h3 className="font-semibold text-sm">{titulo}</h3>
+    <p className="text-sm font-medium">{totalAntes} → {totalDespues} <span className="text-muted-foreground font-normal">({totalDespues - totalAntes >= 0 ? '+' : ''}{totalDespues - totalAntes}) · {resultado.nuevos.length} nuevos · {resultado.retirados.length} retirados</span></p>
+    <div className="grid gap-3 lg:grid-cols-3">
+      {grupos.filter(g => g.key !== 'sin_datos' || resultado.comunes.some(c => c.tendencia === 'sin_datos')).map(g => {
+        const filas = resultado.comunes.filter(c => c.tendencia === g.key);
+        return <div key={g.key} className="border rounded-md min-w-0">
+          <div className="bg-muted px-3 py-2 flex items-center justify-between text-xs font-medium"><span className="flex items-center gap-1"><g.Icon className={`w-3.5 h-3.5 ${g.color}`} />{g.label}</span><span>{filas.length}</span></div>
+          <div className="max-h-44 overflow-auto text-xs">{filas.length ? filas.map(c => <div className="border-t px-3 py-2 flex justify-between gap-2" key={c.clave}><span className="min-w-0 break-words">{nombre(c.despues)}</span><span className="shrink-0 whitespace-nowrap">{ratioLabel(ratio(c.antes))} → {ratioLabel(ratio(c.despues))}</span></div>) : <p className="px-3 py-2 text-muted-foreground">Ninguno</p>}</div>
+        </div>;
+      })}
+    </div>
+    {(resultado.nuevos.length > 0 || resultado.retirados.length > 0) && <div className="grid gap-2 md:grid-cols-2 text-xs">
+      <div><span className="font-medium">Nuevos ({resultado.nuevos.length}): </span><span className="text-muted-foreground">{resultado.nuevos.map(nombre).join(' · ') || 'Ninguno'}</span></div>
+      <div><span className="font-medium">Retirados ({resultado.retirados.length}): </span><span className="text-muted-foreground">{resultado.retirados.map(nombre).join(' · ') || 'Ninguno'}</span></div>
+    </div>}
+  </section>;
 }
 
-type Cmp = Comparacion<any> & { nuevasLecturas?: number; retrocesos?: number };
-
-export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: S[]; base: string }) {
+export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: Sondeo[]; base: string }) {
   const bases = useMemo(() => [...new Set(sondeos.map(s => s.base_nombre))].sort(), [sondeos]);
   const base = baseProp !== 'all' && bases.includes(baseProp) ? baseProp : (bases[0] || '');
-  const [modo, setModo] = useState<ModoSondeo | ''>('');
+  const fechas = useMemo(() => [...new Set(sondeos.filter(s => s.base_nombre === base).map(s => s.fecha_sondeo))].sort(), [sondeos, base]);
   const [fa, setFa] = useState(''); const [fb, setFb] = useState('');
-  const [cmp, setCmp] = useState<Cmp | null>(null);
+  const [cmp, setCmp] = useState<Comparacion | null>(null);
   const [loading, setLoading] = useState(false);
-  const modos = useMemo(() => (['agregado', 'resumen_maquinista', 'detalle_agente'] as ModoSondeo[]).filter(m => sondeos.some(s => s.base_nombre === base && s.modo === m)), [sondeos, base]);
-  useEffect(() => { if (!modos.includes(modo as ModoSondeo)) setModo(modos[0] || ''); }, [modos, modo]);
-  const lista = useMemo(() => sondeos.filter(s => s.base_nombre === base && s.modo === modo).sort((a, b) => a.fecha_sondeo.localeCompare(b.fecha_sondeo)), [sondeos, base, modo]);
-  useEffect(() => {
-    const fs = lista.map(s => s.fecha_sondeo);
-    if (!fs.includes(fb)) setFb(fs[fs.length - 1] || '');
-    if (!fs.includes(fa)) setFa(fs[fs.length - 2] || '');
-  }, [lista, fa, fb]);
-
-  const idA = lista.find(s => s.fecha_sondeo === fa)?.id || '';
-  const idB = lista.find(s => s.fecha_sondeo === fb)?.id || '';
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    if (!fechas.includes(fb)) setFb(fechas[fechas.length - 1] || '');
+    if (!fechas.includes(fa) || fa >= (fechas.includes(fb) ? fb : fechas[fechas.length - 1])) setFa(fechas[fechas.length - 2] || '');
+  }, [fechas, fa, fb]);
+  const anteriores = useMemo(() => sondeos.filter(s => s.base_nombre === base && s.fecha_sondeo === fa), [sondeos, base, fa]);
+  const posteriores = useMemo(() => sondeos.filter(s => s.base_nombre === base && s.fecha_sondeo === fb), [sondeos, base, fb]);
+  const ids = (['agregado', 'resumen_maquinista', 'detalle_agente'] as ModoSondeo[]).map(m => {
+    const a = anteriores.find(s => s.modo === m)?.id;
+    const b = posteriores.find(s => s.modo === m)?.id;
+    return a && b ? [m, a, b] as const : null;
+  }).filter((x): x is readonly [ModoSondeo, string, string] => x !== null);
+  const signature = ids.map(x => x.join(':')).join('|');
+
+  useEffect(() => {
     setError(null);
-    if (!idA || !idB || idA === idB || !modo) { setCmp(null); setLoading(false); return; }
-    let cancel = false; setLoading(true);
+    if (!fa || !fb || fa >= fb) { setCmp(null); setLoading(false); return; }
+    let cancel = false;
+    setCmp(null);
+    if (!ids.length) { setLoading(false); return; }
+    setLoading(true);
     (async () => {
       try {
-        const [x, y] = await Promise.all([cargar(modo, idA), cargar(modo, idB)]);
-        const c = modo === 'agregado' ? compararAgregados(x, y) : modo === 'resumen_maquinista' ? compararResumenes(x, y) : compararDetalle(x, y);
-        if (!cancel) setCmp(c);
+        const pares = await Promise.all(ids.map(async ([modo, a, b]) => ({ modo, antes: await cargar(modo, a), despues: await cargar(modo, b) })));
+        const agregado = pares.find(p => p.modo === 'agregado');
+        const resumen = pares.find(p => p.modo === 'resumen_maquinista');
+        const detalle = pares.find(p => p.modo === 'detalle_agente');
+        const docsA = agregado ? agregado.antes as Agregado[] : detalle ? docsDesdeDetalle(detalle.antes as Detalle[]) : null;
+        const docsB = agregado ? agregado.despues as Agregado[] : detalle ? docsDesdeDetalle(detalle.despues as Detalle[]) : null;
+        const maqsA = resumen ? resumen.antes as Resumen[] : detalle ? resumirDetalle(detalle.antes as Detalle[]) : null;
+        const maqsB = resumen ? resumen.despues as Resumen[] : detalle ? resumirDetalle(detalle.despues as Detalle[]) : null;
+        if (!cancel) setCmp({ docs: docsA && docsB ? evolucion<Agregado>(docsA, docsB, claveDoc, ratioDocumento) : null,
+          maqs: maqsA && maqsB ? evolucion<Resumen>(maqsA, maqsB, claveMaq, ratioMaquinista) : null,
+          fuentes: [agregado ? 'Seguimiento docs' : detalle ? 'Detalle por agente' : '', resumen ? 'Seguimiento maqs.' : detalle ? 'Detalle por agente' : ''].filter((x, i, a) => x && a.indexOf(x) === i) });
       } catch (e) {
         console.error('Comparar sondeos', e);
         if (!cancel) { setCmp(null); setError('No se ha podido cargar la comparación.'); }
-      } finally {
-        if (!cancel) setLoading(false);
-      }
+      } finally { if (!cancel) setLoading(false); }
     })();
     return () => { cancel = true; };
-  }, [idA, idB, modo]);
+  // La firma recoge solo los identificadores estables de los sondeos seleccionados.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, fa, fb]);
 
   if (!sondeos.length) return null;
-  const etiqueta = (it: Item<any>) => modo === 'agregado' ? `${it.clave}${(it.despues || it.antes)?.titulo ? ' · ' + (it.despues || it.antes).titulo : ''}`
-    : modo === 'resumen_maquinista' ? `${it.clave}${(it.despues || it.antes)?.nombre ? ' · ' + (it.despues || it.antes).nombre : ''}`
-    : (() => { const r = (it.despues || it.antes); return `${r.matricula} ${r.nombre || ''} · ${r.referencia}`; })();
-  const valor = (v: any) => !v ? '—' : modo === 'detalle_agente' ? v.estado : modo === 'resumen_maquinista' ? `${v.leidos_total}/${v.asignados} leídos` : `I${v.incluidos} R${v.recibidos} A${v.abiertos} L${v.leidos}`;
-  const delta = (a: number, b: number) => { const d = b - a; return d === 0 ? '=' : (d > 0 ? '+' : '') + fmt(d); };
-  const pp = (a: number | null, b: number | null) => a === null || b === null ? '—' : `${b - a >= 0 ? '+' : ''}${((b - a) * 100).toFixed(1).replace('.', ',')} p.p.`;
-
-  const bloque = (t: string, l: Item<any>[], nota?: string) => (
-    <div className="border rounded-md">
-      <div className="px-3 py-2 bg-muted/50 text-xs font-medium flex justify-between"><span>{t}</span><span>{l.length}</span></div>
-      {nota && <p className="px-3 pt-2 text-xs text-muted-foreground">{nota}</p>}
-      <div className="max-h-56 overflow-y-auto text-xs">
-        {l.length === 0 ? <p className="p-3 text-muted-foreground">Ninguno</p> : l.slice(0, 300).map(it => (
-          <div key={it.clave} className="px-3 py-1 border-t flex justify-between gap-2">
-            <span className="truncate">{etiqueta(it)}</span>
-            <span className="shrink-0 capitalize flex items-center gap-1">{valor(it.antes)}<ArrowRight className="w-3 h-3" />{valor(it.despues)}</span>
-          </div>))}
-        {l.length > 300 && <p className="p-2 text-muted-foreground">…y {l.length - 300} más</p>}
+  return <Card><CardHeader className="pb-3"><CardTitle className="text-base">Evolución entre sondeos</CardTitle>
+    <p className="text-xs text-muted-foreground">Comparación de documentos y maquinistas de {base || 'la base seleccionada'} entre dos fechas.</p></CardHeader>
+    <CardContent className="space-y-5">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div><label className="text-xs text-muted-foreground">Sondeo anterior</label><Select value={fa} onValueChange={setFa} disabled={fechas.length < 2}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{fechas.filter(f => f < fb).map(f => <SelectItem key={f} value={f}>{fechaEs(f)}</SelectItem>)}</SelectContent></Select></div>
+        <div><label className="text-xs text-muted-foreground">Sondeo posterior</label><Select value={fb} onValueChange={setFb} disabled={fechas.length < 2}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{fechas.filter(f => f > fa).map(f => <SelectItem key={f} value={f}>{fechaEs(f)}</SelectItem>)}</SelectContent></Select></div>
       </div>
-    </div>
-  );
-
-  return (
-    <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base">Evolución entre sondeos</CardTitle>
-        <p className="text-xs text-muted-foreground">Compara dos fechas de la base elegida arriba ({base || '—'}) y del mismo tipo de datos.</p></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div><label className="text-xs text-muted-foreground">Tipo de datos</label>
-            <Select value={modo} onValueChange={v => setModo(v as ModoSondeo)}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>{modos.map(m => <SelectItem key={m} value={m}>{MODO_LABEL[m]}</SelectItem>)}</SelectContent></Select></div>
-          <div><label className="text-xs text-muted-foreground">Sondeo anterior</label>
-            <Select value={fa} onValueChange={setFa} disabled={lista.length < 2}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>{lista.filter(s => s.fecha_sondeo < fb).map(s => <SelectItem key={s.id} value={s.fecha_sondeo}>{fechaEs(s.fecha_sondeo)}</SelectItem>)}</SelectContent></Select></div>
-          <div><label className="text-xs text-muted-foreground">Sondeo posterior</label>
-            <Select value={fb} onValueChange={setFb} disabled={lista.length < 2}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>{lista.filter(s => s.fecha_sondeo > fa).map(s => <SelectItem key={s.id} value={s.fecha_sondeo}>{fechaEs(s.fecha_sondeo)}</SelectItem>)}</SelectContent></Select></div>
-        </div>
-
-        {lista.length < 2 ? <p className="text-sm text-muted-foreground text-center py-4">Todavía no hay comparación disponible: solo hay {lista.length} sondeo para esta base y tipo de datos.</p>
-          : loading ? <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
-          : error ? <p className="text-sm text-destructive text-center py-4">{error}</p>
-          : !cmp ? <p className="text-sm text-muted-foreground text-center py-4">Elige un sondeo anterior y uno posterior para compararlos.</p>
-          : <>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="kpi-card border-l-4 border-l-primary"><p className="kpi-label">Porcentaje de lectura</p>
-                <p className="kpi-value">{fmtPct(cmp.antes.porcentaje)} → {fmtPct(cmp.despues.porcentaje)}</p><p className="text-xs text-muted-foreground mt-1">{pp(cmp.antes.porcentaje, cmp.despues.porcentaje)}</p></div>
-              <div className="kpi-card border-l-4 border-l-primary"><p className="kpi-label">Pendientes</p>
-                <p className="kpi-value">{fmt(cmp.antes.pendientes)} → {fmt(cmp.despues.pendientes)}</p><p className="text-xs text-muted-foreground mt-1">{delta(cmp.antes.pendientes, cmp.despues.pendientes)}</p></div>
-              <div className="kpi-card border-l-4 border-l-primary"><p className="kpi-label">Asignaciones</p>
-                <p className="kpi-value">{fmt(cmp.antes.asignaciones)} → {fmt(cmp.despues.asignaciones)}</p><p className="text-xs text-muted-foreground mt-1">{delta(cmp.antes.asignaciones, cmp.despues.asignaciones)}</p></div>
-            </div>
-            {modo === 'detalle_agente' && <p className="text-xs text-muted-foreground">Cambios de estado: {cmp.nuevasLecturas} pasan a leído · {cmp.retrocesos} dejan de figurar como leído · {cmp.iguales} sin cambios.</p>}
-            {modo === 'agregado' && <p className="text-xs text-muted-foreground">Datos agregados por documento: no permiten saber qué maquinistas han leído.</p>}
-            <div className="grid gap-3 md:grid-cols-3">
-              {bloque(modo === 'detalle_agente' ? 'Asignaciones nuevas' : 'Aparecen', cmp.aparecen)}
-              {bloque(modo === 'detalle_agente' ? 'Asignaciones retiradas' : 'Desaparecen', cmp.desaparecen, 'Que desaparezca no significa que se haya leído.')}
-              {bloque(modo === 'detalle_agente' ? 'Cambios de estado' : 'Cambian sus recuentos', cmp.cambian)}
-            </div>
-          </>}
-      </CardContent>
-    </Card>
-  );
+      {fechas.length < 2 ? <p className="text-sm text-muted-foreground">Se necesitan al menos dos fechas para comparar.</p>
+        : loading ? <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin" /></div>
+        : error ? <p className="text-sm text-destructive">{error}</p>
+        : !cmp ? <p className="text-sm text-muted-foreground">No hay tipos de datos coincidentes entre estas dos fechas.</p>
+        : <>
+          <p className="text-xs text-muted-foreground">Se compara el porcentaje de lectura de cada registro presente en ambas fechas. Altas y retiradas no se cuentan como mejora o empeoramiento. Fuentes: {cmp.fuentes.join(' · ')}.</p>
+          <Grupo<Agregado> titulo="Documentos" resultado={cmp.docs} nombre={r => `${r.referencia}${r.titulo ? ` · ${r.titulo}` : ''}`} ratio={ratioDocumento} />
+          <Grupo<Resumen> titulo="Maquinistas" resultado={cmp.maqs} nombre={r => `${r.matricula}${r.nombre ? ` · ${r.nombre}` : ''}`} ratio={ratioMaquinista} />
+        </>}
+    </CardContent></Card>;
 }
