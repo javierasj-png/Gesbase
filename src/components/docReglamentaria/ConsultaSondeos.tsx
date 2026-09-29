@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Mail, FileDown } from 'lucide-react';
 import { generateSondeoPDF } from '@/utils/generateSondeoPDF';
@@ -17,6 +16,8 @@ import { agruparPorDocumento, docsDesdeDetalle, fmtPct, indicadoresDesdeDocs, in
 import { SeguimientoMaquinistas } from './SeguimientoMaquinistas';
 import { CompararSondeos } from './CompararSondeos';
 import { ActuacionesPanel } from './ActuacionesPanel';
+import { useTableSort } from '@/hooks/useTableSort';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { ajustar, justificacionPara, type Actuacion, type ResumenDesglose } from '@/lib/docReglamentaria/justificaciones';
 
 interface Sondeo { id: string; fecha_sondeo: string; base_nombre: string; modo: ModoSondeo }
@@ -88,6 +89,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const q = norm(busca);
   const visibles = q ? docs.filter(r => norm(r.referencia).includes(q) || norm(r.titulo || '').includes(q)) : docs;
   const indVisible = q && modo !== 'resumen_maquinista' ? indicadoresDesdeDocs(visibles) : ind;
+  const { sortedItems: docsOrdenados, sortConfig, requestSort } = useTableSort(visibles.map(r => ({ ...r, lectura: totalDe(r) ? r.leidos / totalDe(r) : null })));
 
   // Actuaciones (separadas de las lecturas)
   const [acts, setActs] = useState<Actuacion[]>([]);
@@ -152,6 +154,17 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               {kpi('Pendientes', fmt(indVisible.pendientes))}
               {kpi('Porcentaje de lectura', fmtPct(indVisible.porcentaje), indVisible.asignaciones ? `${fmt(indVisible.lecturas)} de ${fmt(indVisible.asignaciones)}` : 'Sin asignaciones')}
             </div>
+            <div className="flex items-center justify-start gap-2 flex-wrap">
+              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !delDia.length} onClick={async () => {
+                setPdfLoading(true);
+                try { await generateSondeoPDF({ sondeos, base, fecha }); }
+                catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
+                finally { setPdfLoading(false); }
+              }}>{pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}Descargar informe PDF</Button>
+              {base === 'all' || q || modo === 'resumen_maquinista'
+                ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
+                : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}
+            </div>
             {ajuste && (ajuste.excluidos.length > 0 || ajuste.sinDesglose.length > 0) && (() => {
               const t = ajuste.n[0] + ajuste.n[1] + ajuste.n[2] + ajuste.n[3];
               return (
@@ -178,10 +191,10 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               <div className="overflow-x-auto border rounded-md max-h-[480px]">
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0"><tr>
-                    <th className="p-2 text-left">Referencia</th><th className="p-2 text-left">Título</th>
-                    <th className="p-2">Incluido</th><th className="p-2">Recibido</th><th className="p-2">Abierto</th><th className="p-2">Leído</th><th className="p-2">Lectura</th>
+                    {([['referencia', 'Referencia'], ['titulo', 'Título'], ['incluidos', 'Incluido'], ['recibidos', 'Recibido'], ['abiertos', 'Abierto'], ['leidos', 'Leído'], ['lectura', 'Lectura']] as const).map(([key, label]) =>
+                      <SortableTableHead key={key} sortKey={key} currentSortKey={String(sortConfig.key)} direction={sortConfig.direction} onSort={requestSort} className={`h-auto p-2 bg-muted hover:bg-muted ${key === 'referencia' || key === 'titulo' ? 'text-left' : 'text-center'}`}>{label}</SortableTableHead>)}
                   </tr></thead>
-                  <tbody>{visibles.map(r => { const t = totalDe(r); return (
+                  <tbody>{docsOrdenados.map(r => { const t = totalDe(r); return (
                     <tr key={r.referencia} className="border-t">
                       <td className="p-2 font-mono">{r.referencia}</td><td className="p-2">{r.titulo || '—'}</td>
                       <td className="p-2 text-center">{fmt(r.incluidos)}</td><td className="p-2 text-center">{fmt(r.recibidos)}</td>
@@ -191,18 +204,6 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
                 </table>
               </div>
             )}
-            <div className="flex gap-2 flex-wrap">{delDia.filter(s => s.modo === modo).map(s => <Badge key={s.id} variant="outline">{s.base_nombre}</Badge>)}</div>
-            <div className="flex items-center justify-end gap-2 border-t pt-3">
-              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !delDia.length} onClick={async () => {
-                setPdfLoading(true);
-                try { await generateSondeoPDF({ sondeos, base, fecha }); }
-                catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
-                finally { setPdfLoading(false); }
-              }}>{pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}Descargar informe PDF</Button>
-              {base === 'all' || q || modo === 'resumen_maquinista'
-                ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
-                : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}
-            </div>
           </>}
       </CardContent>
     </Card>
