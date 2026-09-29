@@ -6,6 +6,7 @@ import {
   totalDe, agruparPorDocumento, docsDesdeDetalle, indicadoresDesdeDocs, indicadoresDesdeResumenes,
   type DocFila, type Indicadores,
 } from '@/lib/docReglamentaria/resumen';
+import { evolucion, ratioDocumento } from '@/lib/docReglamentaria/comparar';
 
 const MAGENTA: [number, number, number] = [130, 0, 94];
 const LILA: [number, number, number] = [200, 160, 190];
@@ -22,7 +23,12 @@ interface Lect { matricula: string; nombre: string | null; base: string; asignad
 const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
 const pct = (p: number | null) => p === null ? 'Sin datos' : `${(p * 100).toFixed(1).replace('.', ',')} %`;
 const fechaEs = (f: string) => f.split('-').reverse().join('/');
-const pp = (a: number | null, b: number | null) => a === null || b === null ? '—' : `${b - a >= 0 ? '+' : ''}${((b - a) * 100).toFixed(1).replace('.', ',')} p.p.`;
+const pp = (a: number | null, b: number | null) => {
+  if (a === null || b === null) return '—';
+  const delta = (b - a) * 100;
+  const decimals = delta !== 0 && Math.abs(delta) < 0.05 ? 2 : 1;
+  return `${delta > 0 ? '+' : ''}${delta.toFixed(decimals).replace('.', ',')} p.p.`;
+};
 
 async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const out: T[] = [];
@@ -92,9 +98,11 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
   doc.setFillColor(...MAGENTA); doc.rect(0, 0, W, 22, 'F');
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
   doc.text('Informe de sondeo · Documentación reglamentaria', M, 10);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  doc.text(`Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${modosDia.map(m => MODO_LABEL[m]).join(' + ') || 'Sin datos'}`, M, 16);
-  doc.text(`Generado ${new Date().toLocaleString('es-ES')}`, W - M, 16, { align: 'right' });
+   doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+   const generado = `Generado ${new Date().toLocaleString('es-ES')}`;
+   const subtitulo = `Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${modosDia.map(m => MODO_LABEL[m]).join(' + ') || 'Sin datos'}`;
+   doc.text(doc.splitTextToSize(subtitulo, W - 2 * M - doc.getTextWidth(generado) - 5)[0], M, 16);
+   doc.text(generado, W - M, 16, { align: 'right' });
   y = 28;
 
   // KPIs del tipo principal (agregado si existe; si no, el primero cargado)
@@ -214,30 +222,62 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // Evolución respecto al sondeo anterior, por cada tipo de datos cargado ese día
-  const filasEv: string[][] = [];
-  for (const modo of modosDia) {
-    let sa = 0, sl = 0, pa = 0, pl = 0, n = 0;
-    for (const b of bases) {
-      const cur = delDia.find(s => s.base_nombre === b && s.modo === modo);
-      const prev = sondeos.filter(s => s.base_nombre === b && s.modo === modo && s.fecha_sondeo < fecha).sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo))[0];
-      if (!cur || !prev) continue;
-      const [ia, ib] = await Promise.all([datosModo([prev], modo), datosModo([cur], modo)]);
-      if (!ia.ind || !ib.ind) continue;
-      pa += ia.ind.asignaciones; pl += ia.ind.lecturas; sa += ib.ind.asignaciones; sl += ib.ind.lecturas; n++;
-      filasEv.push([MODO_LABEL[modo], b, fechaEs(prev.fecha_sondeo), pct(ia.ind.porcentaje), pct(ib.ind.porcentaje), pp(ia.ind.porcentaje, ib.ind.porcentaje), fmt(ia.ind.pendientes), fmt(ib.ind.pendientes)]);
-    }
-    if (n > 1) filasEv.push([MODO_LABEL[modo], 'Total', '', pct(pa ? pl / pa : null), pct(sa ? sl / sa : null), pp(pa ? pl / pa : null, sa ? sl / sa : null), fmt(pa - pl), fmt(sa - sl)]);
-  }
-  if (filasEv.length) {
-    titulo('Evolución respecto al sondeo anterior');
-    nota('Se compara cada tipo de datos con el sondeo anterior de la misma base y del mismo tipo.');
-    autoTable(doc, {
-      startY: y, margin: { left: M, right: M },
-      head: [['Tipo de datos', 'Base', 'Sondeo anterior', 'Lectura anterior', `Lectura ${fechaEs(fecha)}`, 'Variación', 'Pendientes antes', 'Pendientes ahora']],
-      body: filasEv, styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: MAGENTA, fontSize: 7 },
-    });
-  }
+   // Misma clasificación individual que «Evolución entre sondeos» en pantalla.
+   // Se elige una sola modalidad coincidente por dimensión y base, sin mezclar asignaciones.
+   titulo('Evolución respecto al sondeo anterior');
+   nota('Solo se comparan registros presentes en ambas fechas y de la misma modalidad. Las altas y retiradas se muestran aparte; no se cuentan como mejora ni empeoramiento.');
+   const anterior = (b: string, modo: ModoSondeo) => sondeos
+     .filter(s => s.base_nombre === b && s.modo === modo && s.fecha_sondeo < fecha)
+     .sort((p, q) => q.fecha_sondeo.localeCompare(p.fecha_sondeo))[0];
+   const ratioLect = (x: Lect) => x.asignados ? x.leidos / x.asignados : null;
+   const tablaEvolucion = <T,>(label: string, b: string, modo: ModoSondeo, prev: Sondeo, antes: T[], despues: T[], clave: (x: T) => string, nombre: (x: T) => string, ratio: (x: T) => number | null) => {
+     const res = evolucion(antes, despues, clave, ratio);
+     const counts = { mejora: 0, empeora: 0, igual: 0, sin_datos: 0 };
+     for (const c of res.comunes) counts[c.tendencia]++;
+     if (y > 239) { doc.addPage(); y = 16; }
+     titulo(`${label} · ${b}`);
+     nota(`${MODO_LABEL[modo]} · ${fechaEs(prev.fecha_sondeo)} → ${fechaEs(fecha)} · ${antes.length} → ${despues.length} (${despues.length - antes.length >= 0 ? '+' : ''}${despues.length - antes.length}) · ${res.nuevos.length} nuevos · ${res.retirados.length} retirados`);
+     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...DARK);
+     doc.text(`Mejoran ${counts.mejora}   ·   Empeoran ${counts.empeora}   ·   Misma lectura ${counts.igual}${counts.sin_datos ? `   ·   Sin porcentaje comparable ${counts.sin_datos}` : ''}`, M, y);
+     y += 5;
+     const orden = { empeora: 0, mejora: 1, sin_datos: 2, igual: 3 };
+     const cambiados = res.comunes.filter(c => c.tendencia !== 'igual').sort((a, b) => orden[a.tendencia] - orden[b.tendencia]);
+     const filas = [
+       ...cambiados.map(c => [
+         ({ mejora: 'Mejora', empeora: 'Empeora', igual: 'Igual', sin_datos: 'Sin datos' })[c.tendencia],
+         clave(c.despues), nombre(c.despues), pct(ratio(c.antes)), pct(ratio(c.despues)), pp(ratio(c.antes), ratio(c.despues)),
+       ]),
+       ...res.nuevos.map(x => ['Nuevo', clave(x), nombre(x), '—', pct(ratio(x)), '—']),
+       ...res.retirados.map(x => ['Retirado', clave(x), nombre(x), pct(ratio(x)), '—', '—']),
+     ];
+     if (!filas.length) { nota(res.comunes.length ? 'Todos los registros comunes mantienen el mismo porcentaje de lectura.' : 'No hay registros en ninguno de los dos sondeos.'); return; }
+     nota('Detalle de cambios, altas y retiradas. Los registros con la misma lectura figuran en el recuento anterior, sin repetirlos en esta tabla.');
+     autoTable(doc, {
+       startY: y, margin: { left: M, right: M, bottom: 13 },
+       head: [['Resultado', label === 'Documentos' ? 'Referencia' : 'Matrícula', label === 'Documentos' ? 'Documento' : 'Nombre', 'Antes', 'Ahora', 'Variación']],
+       body: filas, styles: { fontSize: 7, cellPadding: 1.2, overflow: 'linebreak' }, headStyles: { fillColor: MAGENTA, fontSize: 7 },
+       columnStyles: { 0: { cellWidth: 21 }, 1: { cellWidth: 24 }, 2: { cellWidth: 'auto' }, 3: { cellWidth: 19 }, 4: { cellWidth: 19 }, 5: { cellWidth: 21 } },
+       didParseCell: d => { if (d.section === 'body' && d.column.index === 0 && d.cell.raw === 'Empeora') d.cell.styles.textColor = [200, 30, 30]; },
+     });
+     y = (doc as any).lastAutoTable.finalY + 7;
+   };
+   for (const b of bases) {
+     const compararTipo = (preferencias: ModoSondeo[]) => preferencias.map(modo => {
+       const cur = delDia.find(s => s.base_nombre === b && s.modo === modo);
+       const prev = anterior(b, modo);
+       return cur && prev ? { modo, cur, prev } : null;
+     }).find(x => x !== null);
+     const docsPar = compararTipo(['agregado', 'detalle_agente']);
+     if (docsPar) {
+       const [a, d] = await Promise.all([datosModo([docsPar.prev], docsPar.modo), datosModo([docsPar.cur], docsPar.modo)]);
+       tablaEvolucion<DocFila>('Documentos', b, docsPar.modo, docsPar.prev, a.docs, d.docs, x => x.referencia, x => x.titulo || '—', ratioDocumento);
+     } else { titulo(`Documentos · ${b}`); nota('No hay sondeo anterior de la misma modalidad con datos por documento.'); }
+     const maqsPar = compararTipo(['resumen_maquinista', 'detalle_agente']);
+     if (maqsPar) {
+       const [a, d] = await Promise.all([lecturaMaquinistas(maqsPar.prev), lecturaMaquinistas(maqsPar.cur)]);
+       tablaEvolucion('Maquinistas', b, maqsPar.modo, maqsPar.prev, a, d, x => x.matricula.trim(), x => x.nombre || '—', ratioLect);
+     } else { titulo(`Maquinistas · ${b}`); nota('No hay sondeo anterior de la misma modalidad con datos por maquinista; no se infieren personas desde totales agregados.'); }
+   }
 
   const n = doc.getNumberOfPages();
   for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(6.5); doc.setTextColor(...GRIS); doc.text(`GesBase · Página ${i} de ${n}`, W - M, 290, { align: 'right' }); }
