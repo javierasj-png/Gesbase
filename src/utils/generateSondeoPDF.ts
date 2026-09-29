@@ -23,7 +23,12 @@ interface Lect { matricula: string; nombre: string | null; base: string; asignad
 const fmt = (n: number) => new Intl.NumberFormat('es-ES').format(n);
 const pct = (p: number | null) => p === null ? 'Sin datos' : `${(p * 100).toFixed(1).replace('.', ',')} %`;
 const fechaEs = (f: string) => f.split('-').reverse().join('/');
-const pp = (a: number | null, b: number | null) => a === null || b === null ? '—' : `${b - a >= 0 ? '+' : ''}${((b - a) * 100).toFixed(1).replace('.', ',')} p.p.`;
+const pp = (a: number | null, b: number | null) => {
+  if (a === null || b === null) return '—';
+  const delta = (b - a) * 100;
+  const decimals = delta !== 0 && Math.abs(delta) < 0.05 ? 2 : 1;
+  return `${delta > 0 ? '+' : ''}${delta.toFixed(decimals).replace('.', ',')} p.p.`;
+};
 
 async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const out: T[] = [];
@@ -235,15 +240,18 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...DARK);
      doc.text(`Mejoran ${counts.mejora}   ·   Empeoran ${counts.empeora}   ·   Misma lectura ${counts.igual}${counts.sin_datos ? `   ·   Sin porcentaje comparable ${counts.sin_datos}` : ''}`, M, y);
      y += 5;
+     const orden = { empeora: 0, mejora: 1, sin_datos: 2, igual: 3 };
+     const cambiados = res.comunes.filter(c => c.tendencia !== 'igual').sort((a, b) => orden[a.tendencia] - orden[b.tendencia]);
      const filas = [
-       ...res.comunes.map(c => [
+       ...cambiados.map(c => [
          ({ mejora: 'Mejora', empeora: 'Empeora', igual: 'Igual', sin_datos: 'Sin datos' })[c.tendencia],
          clave(c.despues), nombre(c.despues), pct(ratio(c.antes)), pct(ratio(c.despues)), pp(ratio(c.antes), ratio(c.despues)),
        ]),
        ...res.nuevos.map(x => ['Nuevo', clave(x), nombre(x), '—', pct(ratio(x)), '—']),
        ...res.retirados.map(x => ['Retirado', clave(x), nombre(x), pct(ratio(x)), '—', '—']),
      ];
-     if (!filas.length) { nota('No hay registros en ninguno de los dos sondeos.'); return; }
+     if (!filas.length) { nota(res.comunes.length ? 'Todos los registros comunes mantienen el mismo porcentaje de lectura.' : 'No hay registros en ninguno de los dos sondeos.'); return; }
+     nota('Detalle de cambios, altas y retiradas. Los registros con la misma lectura figuran en el recuento anterior, sin repetirlos en esta tabla.');
      autoTable(doc, {
        startY: y, margin: { left: M, right: M, bottom: 13 },
        head: [['Resultado', label === 'Documentos' ? 'Referencia' : 'Matrícula', label === 'Documentos' ? 'Documento' : 'Nombre', 'Antes', 'Ahora', 'Variación']],
