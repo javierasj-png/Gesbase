@@ -6,14 +6,14 @@ const d = (matricula: string, referencia: string, estado: string) => ({ matricul
 describe('comparar sondeos', () => {
   it('clasifica documentos comunes por lectura relativa y separa altas y bajas', () => {
     const fila = (referencia: string, leidos: number, incluidos: number) => ({ referencia, titulo: null, leidos, incluidos, recibidos: 0, abiertos: 0 });
-    const x = evolucion([fila('A', 1, 3), fila('B', 3, 1), fila('C', 1, 1), fila('D', 0, 0), fila('RET', 0, 1)],
+    const x = evolucion<ReturnType<typeof fila>>([fila('A', 1, 3), fila('B', 3, 1), fila('C', 1, 1), fila('D', 0, 0), fila('RET', 0, 1)],
       [fila('A', 2, 2), fila('B', 2, 2), fila('C', 2, 2), fila('D', 1, 0), fila('NEW', 0, 1)], x => x.referencia, ratioDocumento);
     expect(x.comunes.map(r => r.tendencia)).toEqual(['mejora', 'empeora', 'igual', 'sin_datos']);
     expect(x.nuevos.map(r => r.referencia)).toEqual(['NEW']);
     expect(x.retirados.map(r => r.referencia)).toEqual(['RET']);
   });
   it('compara porcentajes individuales aunque cambie el número de asignaciones', () => {
-    const x = evolucion([{ matricula: '1', asignados: 2, leidos_total: 1 }], [{ matricula: '1', asignados: 4, leidos_total: 2 }], r => r.matricula, ratioMaquinista);
+    const x = evolucion<{ matricula: string; asignados: number; leidos_total: number }>([{ matricula: '1', asignados: 2, leidos_total: 1 }], [{ matricula: '1', asignados: 4, leidos_total: 2 }], r => r.matricula, ratioMaquinista);
     expect(x.comunes[0].tendencia).toBe('igual');
   });
   it('detalle: nuevas, retiradas, pendientes que pasan a leídas y que siguen pendientes', () => {

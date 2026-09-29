@@ -113,8 +113,8 @@ export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: Sondeo[]
         const docsB = agregado ? agregado.despues as Agregado[] : detalle ? docsDesdeDetalle(detalle.despues as Detalle[]) : null;
         const maqsA = resumen ? resumen.antes as Resumen[] : detalle ? resumirDetalle(detalle.antes as Detalle[]) : null;
         const maqsB = resumen ? resumen.despues as Resumen[] : detalle ? resumirDetalle(detalle.despues as Detalle[]) : null;
-        if (!cancel) setCmp({ docs: docsA && docsB ? evolucion(docsA, docsB, claveDoc, ratioDocumento) : null,
-          maqs: maqsA && maqsB ? evolucion(maqsA, maqsB, claveMaq, ratioMaquinista) : null,
+        if (!cancel) setCmp({ docs: docsA && docsB ? evolucion<Agregado>(docsA, docsB, claveDoc, ratioDocumento) : null,
+          maqs: maqsA && maqsB ? evolucion<Resumen>(maqsA, maqsB, claveMaq, ratioMaquinista) : null,
           fuentes: [agregado ? 'Seguimiento docs' : detalle ? 'Detalle por agente' : '', resumen ? 'Seguimiento maqs.' : detalle ? 'Detalle por agente' : ''].filter((x, i, a) => x && a.indexOf(x) === i) });
       } catch (e) {
         console.error('Comparar sondeos', e);
@@ -140,8 +140,8 @@ export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: Sondeo[]
         : !cmp ? <p className="text-sm text-muted-foreground">No hay tipos de datos coincidentes entre estas dos fechas.</p>
         : <>
           <p className="text-xs text-muted-foreground">Se compara el porcentaje de lectura de cada registro presente en ambas fechas. Altas y retiradas no se cuentan como mejora o empeoramiento. Fuentes: {cmp.fuentes.join(' · ')}.</p>
-          <Grupo titulo="Documentos" resultado={cmp.docs} nombre={r => `${r.referencia}${r.titulo ? ` · ${r.titulo}` : ''}`} ratio={ratioDocumento} />
-          <Grupo titulo="Maquinistas" resultado={cmp.maqs} nombre={r => `${r.matricula}${r.nombre ? ` · ${r.nombre}` : ''}`} ratio={ratioMaquinista} />
+          <Grupo<Agregado> titulo="Documentos" resultado={cmp.docs} nombre={r => `${r.referencia}${r.titulo ? ` · ${r.titulo}` : ''}`} ratio={ratioDocumento} />
+          <Grupo<Resumen> titulo="Maquinistas" resultado={cmp.maqs} nombre={r => `${r.matricula}${r.nombre ? ` · ${r.nombre}` : ''}`} ratio={ratioMaquinista} />
         </>}
     </CardContent></Card>;
 }
