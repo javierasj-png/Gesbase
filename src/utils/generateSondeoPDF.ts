@@ -93,9 +93,11 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
   doc.setFillColor(...MAGENTA); doc.rect(0, 0, W, 22, 'F');
   doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
   doc.text('Informe de sondeo · Documentación reglamentaria', M, 10);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  doc.text(`Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${modosDia.map(m => MODO_LABEL[m]).join(' + ') || 'Sin datos'}`, M, 16);
-  doc.text(`Generado ${new Date().toLocaleString('es-ES')}`, W - M, 16, { align: 'right' });
+   doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+   const generado = `Generado ${new Date().toLocaleString('es-ES')}`;
+   const subtitulo = `Sondeo del ${fechaEs(fecha)} · ${base === 'all' ? 'Todas mis bases' : base} · ${modosDia.map(m => MODO_LABEL[m]).join(' + ') || 'Sin datos'}`;
+   doc.text(doc.splitTextToSize(subtitulo, W - 2 * M - doc.getTextWidth(generado) - 5)[0], M, 16);
+   doc.text(generado, W - M, 16, { align: 'right' });
   y = 28;
 
   // KPIs del tipo principal (agregado si existe; si no, el primero cargado)
@@ -260,7 +262,7 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
      const docsPar = compararTipo(['agregado', 'detalle_agente']);
      if (docsPar) {
        const [a, d] = await Promise.all([datosModo([docsPar.prev], docsPar.modo), datosModo([docsPar.cur], docsPar.modo)]);
-       tablaEvolucion('Documentos', b, docsPar.modo, docsPar.prev, a.docs, d.docs, x => x.referencia, x => x.titulo || '—', ratioDocumento);
+       tablaEvolucion<DocFila>('Documentos', b, docsPar.modo, docsPar.prev, a.docs, d.docs, x => x.referencia, x => x.titulo || '—', ratioDocumento);
      } else { titulo(`Documentos · ${b}`); nota('No hay sondeo anterior de la misma modalidad con datos por documento.'); }
      const maqsPar = compararTipo(['resumen_maquinista', 'detalle_agente']);
      if (maqsPar) {
