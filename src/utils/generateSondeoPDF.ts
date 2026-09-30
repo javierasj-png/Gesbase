@@ -236,7 +236,7 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
      for (const c of res.comunes) counts[c.tendencia]++;
      if (y > 239) { doc.addPage(); y = 16; }
      titulo(`${label} · ${b}`);
-     nota(`${MODO_LABEL[modo]} · ${fechaEs(prev.fecha_sondeo)} → ${fechaEs(fecha)} · ${antes.length} → ${despues.length} (${despues.length - antes.length >= 0 ? '+' : ''}${despues.length - antes.length}) · ${res.nuevos.length} nuevos · ${res.retirados.length} retirados`);
+     nota(`${MODO_LABEL[modo]} · ${fechaEs(prev.fecha_sondeo)} a ${fechaEs(fecha)} · ${antes.length} a ${despues.length} (${despues.length - antes.length >= 0 ? '+' : ''}${despues.length - antes.length}) · ${res.nuevos.length} nuevos · ${res.retirados.length} retirados`);
      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...DARK);
      doc.text(`Mejoran ${counts.mejora}   ·   Empeoran ${counts.empeora}   ·   Misma lectura ${counts.igual}${counts.sin_datos ? `   ·   Sin porcentaje comparable ${counts.sin_datos}` : ''}`, M, y);
      y += 5;
