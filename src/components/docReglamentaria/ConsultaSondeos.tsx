@@ -181,8 +181,8 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
                     <ul className="text-xs list-disc pl-5">{ajuste.excluidos.map(e => <li key={e.base + e.matricula}><span className="font-mono">{e.matricula}</span> {e.nombre || ''} ({e.base}) · {e.nota.estado} · {fmt(e.n.reduce((a, b) => a + b, 0))} asignaciones, {fmt(e.n[3])} leídas{e.nota.vigencia_hasta ? ` · revisión ${fechaEs(e.nota.vigencia_hasta)}` : ''}</li>)}</ul>
                   </>}
                   {ajuste.sinDesglose.length > 0 && <p className="text-xs text-destructive">No se restan {ajuste.sinDesglose.length} justificado(s) ({ajuste.sinDesglose.map(s => s.matricula).join(', ')}): su resumen no trae el desglose por estado y no se pueden atribuir sus asignaciones con fiabilidad.</p>}
-                </div>);
-            })()}
+                </div>
+            )}
             {justificadosSinResumen.length > 0 && <p className="text-xs text-destructive">Hay {justificadosSinResumen.length} justificación(es) «No computa» vigentes, pero no hay resumen por maquinista de esta fecha y base. Sin él no se sabe cuántas asignaciones les corresponden, así que no se resta nada.</p>}
             {modo === 'agregado' && q && <p className="text-xs text-muted-foreground">Con búsqueda de documento se muestran todas las asignaciones, sin ajuste «No computa».</p>}
             {modo !== 'resumen_maquinista' && !scrollActivo && <p className="text-xs text-muted-foreground">Haz clic en la tabla para desplazarte dentro de ella.</p>}
