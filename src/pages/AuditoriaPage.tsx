@@ -27,22 +27,16 @@ import {
 } from '@/components/ui/table';
 import {
   FileBarChart,
-  ClipboardCheck,
   Download,
   Users,
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
-  FileText,
   Filter,
   Loader2,
   Building2,
-  Eye,
-  Search,
 } from 'lucide-react';
-import { generatePartesPDF } from '@/utils/generatePartesPDF';
 import { cn } from '@/lib/utils';
-import type { Parte } from '@/types/partes';
 import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
 import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
 import { format, subMonths, subYears } from 'date-fns';
@@ -50,9 +44,6 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 interface CumplimientoBase {
