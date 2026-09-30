@@ -392,14 +392,10 @@ export default function AuditoriaPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2">
             <TabsTrigger value="cumplimiento" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Estado de Cumplimiento
-            </TabsTrigger>
-            <TabsTrigger value="partes" className="flex items-center gap-2">
-              <ClipboardCheck className="w-4 h-4" />
-              Control de Partes
             </TabsTrigger>
             <TabsTrigger value="visitas" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
@@ -570,171 +566,6 @@ export default function AuditoriaPage() {
             </Card>
           </TabsContent>
 
-          {/* Control de Partes Tab */}
-          <TabsContent value="partes" className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Partes</p>
-                      <p className="text-2xl font-bold">{totalPartes}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <FileText className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nuevos</p>
-                      <p className="text-2xl font-bold">{partesNuevos}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <ClipboardCheck className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cerrados</p>
-                      <p className="text-2xl font-bold">{partesCerrados}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Partes Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Historial de Partes</CardTitle>
-                <CardDescription>
-                  Partes registrados en el período {format(new Date(fechaDesde), 'dd/MM/yyyy', { locale: es })} – {format(new Date(fechaHasta), 'dd/MM/yyyy', { locale: es })}
-                  {baseFilter !== 'all' ? ` · ${baseFilter}` : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-3 items-end">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por nº parte, maquinista o base..."
-                      value={partesSearch}
-                      onChange={(e) => setPartesSearch(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <Select value={partesEstado} onValueChange={setPartesEstado}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="Nuevo">Nuevo</SelectItem>
-                      <SelectItem value="En revisión">En revisión</SelectItem>
-                      <SelectItem value="Cerrado">Cerrado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="default"
-                    onClick={() => generatePartesPDF(
-                      filteredPartes,
-                      fechaDesde ? new Date(fechaDesde) : undefined,
-                      fechaHasta ? new Date(fechaHasta) : undefined,
-                    )}
-                    disabled={filteredPartes.length === 0}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar PDF
-                  </Button>
-                </div>
-
-                {loadingPartes ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                ) : filteredPartes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <FileText className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">No hay partes en el período seleccionado</p>
-                    <p className="text-xs">Ajusta los filtros de fecha o base</p>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="w-[160px]">Tipo Informe</TableHead>
-                          <TableHead className="w-[100px]">Fecha</TableHead>
-                          <TableHead>Base</TableHead>
-                          <TableHead>Maquinista</TableHead>
-                          <TableHead>Línea/Tramo</TableHead>
-                          <TableHead className="w-[100px]">Tipo Suceso</TableHead>
-                          <TableHead className="w-[110px]">Estado</TableHead>
-                          <TableHead className="w-[60px] text-right">Ver</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPartes.map((parte) => (
-                          <TableRow key={parte.id} className="hover:bg-muted/30">
-                            <TableCell className="font-medium">
-                              {parte.tipo_informe ? (
-                                <Badge variant="outline" className={cn("text-xs", informeColors[parte.tipo_informe] || '')}>
-                                  {parte.tipo_informe}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {parte.fecha_parte
-                                ? format(new Date(parte.fecha_parte), 'dd/MM/yyyy', { locale: es })
-                                : '-'}
-                            </TableCell>
-                            <TableCell>{parte.base || '-'}</TableCell>
-                            <TableCell>{parte.maquinista_texto || '-'}</TableCell>
-                            <TableCell>{parte.linea_tramo || '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn("text-xs", tipoColors[parte.tipo_parte] || tipoColors['Otro'])}>
-                                {parte.tipo_parte}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn("text-xs", estadoColors[parte.estado] || estadoColors['Cerrado'])}>
-                                {parte.estado}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => { setSelectedParte(parte); setDetailOpen(true); }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Visitas Tab */}
           <TabsContent value="visitas" className="space-y-6">
             <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} fechaDesde={fechaDesde} fechaHasta={fechaHasta} canGenerateReport={isAdmin} />
@@ -742,58 +573,6 @@ export default function AuditoriaPage() {
         </Tabs>
       </div>
 
-      {/* Detail dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Parte {selectedParte?.numero_parte || 'sin número'}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedParte && (
-            <ScrollArea className="max-h-[70vh] pr-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Fecha: </span><span className="font-medium">{selectedParte.fecha_parte ? format(new Date(selectedParte.fecha_parte), 'dd/MM/yyyy', { locale: es }) : '-'}</span></div>
-                  <div><span className="text-muted-foreground">Hora: </span><span className="font-medium">{selectedParte.hora_parte || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Base: </span><span className="font-medium">{selectedParte.base || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Maquinista: </span><span className="font-medium">{selectedParte.maquinista_texto || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Tren/Servicio: </span><span className="font-medium">{selectedParte.tren_servicio || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Línea/Tramo: </span><span className="font-medium">{selectedParte.linea_tramo || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Tipo: </span><span className="font-medium">{selectedParte.tipo_parte}</span></div>
-                  <div><span className="text-muted-foreground">Min. retraso: </span><span className="font-medium">{selectedParte.minutos_retraso}</span></div>
-                </div>
-                <Separator />
-                {selectedParte.descripcion_hechos && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Descripción</p>
-                    <p className="text-sm whitespace-pre-line">{selectedParte.descripcion_hechos}</p>
-                  </div>
-                )}
-                {selectedParte.causa && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Causa</p>
-                    <p className="text-sm">{selectedParte.causa}</p>
-                  </div>
-                )}
-                {selectedParte.acciones_tomadas && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Acciones tomadas</p>
-                    <p className="text-sm">{selectedParte.acciones_tomadas}</p>
-                  </div>
-                )}
-                {selectedParte.observaciones && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
-                    <p className="text-sm">{selectedParte.observaciones}</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 }
