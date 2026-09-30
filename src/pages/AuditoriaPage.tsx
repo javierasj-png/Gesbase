@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -27,32 +26,22 @@ import {
 } from '@/components/ui/table';
 import {
   FileBarChart,
-  ClipboardCheck,
   Download,
   Users,
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
-  FileText,
   Filter,
   Loader2,
   Building2,
-  Eye,
-  Search,
 } from 'lucide-react';
-import { generatePartesPDF } from '@/utils/generatePartesPDF';
-import { cn } from '@/lib/utils';
-import type { Parte } from '@/types/partes';
 import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
 import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
-import { format, subMonths, subYears } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { useGlobalBaseFilter } from '@/hooks/useGlobalBaseFilter';
 
 interface CumplimientoBase {
@@ -87,39 +76,16 @@ const probarIA = async () => {
     alert("Error conectando con la IA de Gesbase");
   }
 };
-const tipoColors: Record<string, string> = {
-  'Incidencia': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  'Retraso': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  'Avería': 'bg-red-500/10 text-red-600 border-red-500/20',
-  'Seguridad': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  'Otro': 'bg-muted text-muted-foreground border-border',
-};
-
-const informeColors: Record<string, string> = {
-  'PAI': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  'Informe Conducción': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
-};
-
-const estadoColors: Record<string, string> = {
-  'Nuevo': 'bg-green-500/10 text-green-600 border-green-500/20',
-  'En revisión': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  'Cerrado': 'bg-muted text-muted-foreground border-border',
-};
 
 export default function AuditoriaPage() {
   const { isAdmin, isGestor, assignedBases } = useAuth();
-  usePageMeta({ title: 'Auditoría — Gestión de Base', description: 'Auditorías de base: visitas, control de partes y propuestas de mejora.', path: '/auditoria' });
+  usePageMeta({ title: 'Auditoría — Gestión de Base', description: 'Auditorías de base: visitas y propuestas de mejora.', path: '/auditoria' });
   const [selectedTab, setSelectedTab] = useState('cumplimiento');
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
-  // Partes search & detail state
-  const [partesSearch, setPartesSearch] = useState('');
-  const [partesEstado, setPartesEstado] = useState('all');
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedParte, setSelectedParte] = useState<Parte | null>(null);
 
   // Fetch bases for filter
   const { data: bases } = useQuery({
@@ -347,41 +313,6 @@ export default function AuditoriaPage() {
     enabled: accessibleBases.length > 0
   });
 
-  // Partes data filtered by period & base
-  const { data: partes = [], isLoading: loadingPartes } = useQuery({
-    queryKey: ['auditoria-partes', fechaDesde, fechaHasta, baseFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from('partes')
-        .select('*')
-        .gte('fecha_parte', fechaDesde)
-        .lte('fecha_parte', fechaHasta)
-        .order('fecha_parte', { ascending: false });
-
-      if (baseFilter !== 'all') {
-        query = query.eq('base', baseFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as unknown as Parte[];
-    }
-  });
-
-  // Filter partes by search & estado
-  const filteredPartes = partes.filter(p => {
-    const matchesSearch = !partesSearch ||
-      (p.numero_parte?.toLowerCase().includes(partesSearch.toLowerCase())) ||
-      (p.maquinista_texto?.toLowerCase().includes(partesSearch.toLowerCase())) ||
-      (p.base?.toLowerCase().includes(partesSearch.toLowerCase()));
-    const matchesEstado = partesEstado === 'all' || p.estado === partesEstado;
-    return matchesSearch && matchesEstado;
-  });
-
-  // Partes KPIs
-  const totalPartes = partes.length;
-  const partesCerrados = partes.filter(p => p.estado === 'Cerrado').length;
-  const partesNuevos = partes.filter(p => p.estado === 'Nuevo').length;
 
   const getCumplimientoBadge = (porcentaje: number) => {
     const info = getUmbralInfo(porcentaje);
@@ -405,7 +336,7 @@ export default function AuditoriaPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Auditoría e Informes</h1>
             <p className="text-muted-foreground">
-              Genera informes de cumplimiento SGS y controla el registro de partes
+              Genera informes de cumplimiento SGS y audita las visitas a las bases
             </p>
           </div>
 
@@ -459,14 +390,10 @@ export default function AuditoriaPage() {
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2">
             <TabsTrigger value="cumplimiento" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Estado de Cumplimiento
-            </TabsTrigger>
-            <TabsTrigger value="partes" className="flex items-center gap-2">
-              <ClipboardCheck className="w-4 h-4" />
-              Control de Partes
             </TabsTrigger>
             <TabsTrigger value="visitas" className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
@@ -637,171 +564,6 @@ export default function AuditoriaPage() {
             </Card>
           </TabsContent>
 
-          {/* Control de Partes Tab */}
-          <TabsContent value="partes" className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Partes</p>
-                      <p className="text-2xl font-bold">{totalPartes}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <FileText className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Nuevos</p>
-                      <p className="text-2xl font-bold">{partesNuevos}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <ClipboardCheck className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cerrados</p>
-                      <p className="text-2xl font-bold">{partesCerrados}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Partes Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Historial de Partes</CardTitle>
-                <CardDescription>
-                  Partes registrados en el período {format(new Date(fechaDesde), 'dd/MM/yyyy', { locale: es })} – {format(new Date(fechaHasta), 'dd/MM/yyyy', { locale: es })}
-                  {baseFilter !== 'all' ? ` · ${baseFilter}` : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-3 items-end">
-                  <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por nº parte, maquinista o base..."
-                      value={partesSearch}
-                      onChange={(e) => setPartesSearch(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <Select value={partesEstado} onValueChange={setPartesEstado}>
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="Nuevo">Nuevo</SelectItem>
-                      <SelectItem value="En revisión">En revisión</SelectItem>
-                      <SelectItem value="Cerrado">Cerrado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="default"
-                    onClick={() => generatePartesPDF(
-                      filteredPartes,
-                      fechaDesde ? new Date(fechaDesde) : undefined,
-                      fechaHasta ? new Date(fechaHasta) : undefined,
-                    )}
-                    disabled={filteredPartes.length === 0}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar PDF
-                  </Button>
-                </div>
-
-                {loadingPartes ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                ) : filteredPartes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <FileText className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-sm">No hay partes en el período seleccionado</p>
-                    <p className="text-xs">Ajusta los filtros de fecha o base</p>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="w-[160px]">Tipo Informe</TableHead>
-                          <TableHead className="w-[100px]">Fecha</TableHead>
-                          <TableHead>Base</TableHead>
-                          <TableHead>Maquinista</TableHead>
-                          <TableHead>Línea/Tramo</TableHead>
-                          <TableHead className="w-[100px]">Tipo Suceso</TableHead>
-                          <TableHead className="w-[110px]">Estado</TableHead>
-                          <TableHead className="w-[60px] text-right">Ver</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPartes.map((parte) => (
-                          <TableRow key={parte.id} className="hover:bg-muted/30">
-                            <TableCell className="font-medium">
-                              {parte.tipo_informe ? (
-                                <Badge variant="outline" className={cn("text-xs", informeColors[parte.tipo_informe] || '')}>
-                                  {parte.tipo_informe}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {parte.fecha_parte
-                                ? format(new Date(parte.fecha_parte), 'dd/MM/yyyy', { locale: es })
-                                : '-'}
-                            </TableCell>
-                            <TableCell>{parte.base || '-'}</TableCell>
-                            <TableCell>{parte.maquinista_texto || '-'}</TableCell>
-                            <TableCell>{parte.linea_tramo || '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn("text-xs", tipoColors[parte.tipo_parte] || tipoColors['Otro'])}>
-                                {parte.tipo_parte}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={cn("text-xs", estadoColors[parte.estado] || estadoColors['Cerrado'])}>
-                                {parte.estado}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => { setSelectedParte(parte); setDetailOpen(true); }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Visitas Tab */}
           <TabsContent value="visitas" className="space-y-6">
             <VisitasBaseTab baseFilter={baseFilter} bases={bases || []} fechaDesde={fechaDesde} fechaHasta={fechaHasta} canGenerateReport={isAdmin} />
@@ -809,58 +571,6 @@ export default function AuditoriaPage() {
         </Tabs>
       </div>
 
-      {/* Detail dialog */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Parte {selectedParte?.numero_parte || 'sin número'}
-            </DialogTitle>
-          </DialogHeader>
-          {selectedParte && (
-            <ScrollArea className="max-h-[70vh] pr-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Fecha: </span><span className="font-medium">{selectedParte.fecha_parte ? format(new Date(selectedParte.fecha_parte), 'dd/MM/yyyy', { locale: es }) : '-'}</span></div>
-                  <div><span className="text-muted-foreground">Hora: </span><span className="font-medium">{selectedParte.hora_parte || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Base: </span><span className="font-medium">{selectedParte.base || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Maquinista: </span><span className="font-medium">{selectedParte.maquinista_texto || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Tren/Servicio: </span><span className="font-medium">{selectedParte.tren_servicio || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Línea/Tramo: </span><span className="font-medium">{selectedParte.linea_tramo || '-'}</span></div>
-                  <div><span className="text-muted-foreground">Tipo: </span><span className="font-medium">{selectedParte.tipo_parte}</span></div>
-                  <div><span className="text-muted-foreground">Min. retraso: </span><span className="font-medium">{selectedParte.minutos_retraso}</span></div>
-                </div>
-                <Separator />
-                {selectedParte.descripcion_hechos && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Descripción</p>
-                    <p className="text-sm whitespace-pre-line">{selectedParte.descripcion_hechos}</p>
-                  </div>
-                )}
-                {selectedParte.causa && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Causa</p>
-                    <p className="text-sm">{selectedParte.causa}</p>
-                  </div>
-                )}
-                {selectedParte.acciones_tomadas && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Acciones tomadas</p>
-                    <p className="text-sm">{selectedParte.acciones_tomadas}</p>
-                  </div>
-                )}
-                {selectedParte.observaciones && (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
-                    <p className="text-sm">{selectedParte.observaciones}</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 }
