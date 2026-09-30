@@ -93,7 +93,7 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
                 <thead className="bg-muted sticky top-0"><tr>
                   <th className="p-2 text-left">Nombre</th><th className="p-2 text-left">Matrícula</th><th className="p-2 text-left">Base</th>
                   <th className="p-2">Asignaciones</th><th className="p-2">Lecturas</th><th className="p-2">Pendientes</th><th className="p-2">Lectura</th>
-                  <th className="p-2">Detalle</th><th className="p-2">Ficha</th>
+                  <th className="p-2">Detalle</th><th className="p-2">Ficha</th><th className="p-2">Acciones</th>
                 </tr></thead>
                 <tbody>{filas.map(f => {
                   const c = cifras(f);
