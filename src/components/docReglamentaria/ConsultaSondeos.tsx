@@ -190,7 +190,8 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               <p className="text-sm text-muted-foreground">Este tipo de datos solo trae totales por maquinista; no incluye recuentos por documento.</p>
             ) : (
               <div onClick={() => setScrollActivo(true)} onMouseLeave={() => setScrollActivo(false)}
-                className={`overflow-x-auto border rounded-md max-h-[480px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden'}`}>
+                style={{ scrollbarWidth: scrollActivo ? 'auto' : 'none' }}
+                className={`overflow-x-auto border rounded-md max-h-[480px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden [&::-webkit-scrollbar]:hidden'}`}>
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0"><tr>
                     {([['referencia', 'Referencia'], ['titulo', 'Título'], ['incluidos', 'Incluido'], ['recibidos', 'Recibido'], ['abiertos', 'Abierto'], ['leidos', 'Leído'], ['lectura', 'Lectura']] as const).map(([key, label]) =>
