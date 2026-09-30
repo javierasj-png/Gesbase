@@ -118,6 +118,13 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const justificadosSinResumen = ajusteAplica && !resDesglose
     ? [...new Set(acts.filter(a => (base === 'all' || a.base_nombre === base) && delDia.some(s => s.base_nombre === a.base_nombre) && a.matricula && justificacionPara([a], a.matricula, fecha)).map(a => a.matricula!))] : [];
 
+  // En pantalla solo se muestran los resultados tras restar «No computa»
+  const ajusteAplicado = !!ajuste && ajuste.excluidos.length > 0;
+  const indFinal: Indicadores | null = ajusteAplicado && ajuste ? (() => {
+    const total = ajuste.n[0] + ajuste.n[1] + ajuste.n[2] + ajuste.n[3];
+    return { asignaciones: total, lecturas: ajuste.n[3], pendientes: total - ajuste.n[3], porcentaje: total ? ajuste.n[3] / total : null };
+  })() : indVisible;
+
 
   if (!loading && !sondeos.length) {
     return <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">Sin datos: todavía no hay sondeos guardados en tus bases.</CardContent></Card>;
