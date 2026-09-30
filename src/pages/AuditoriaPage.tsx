@@ -78,28 +78,10 @@ const probarIA = async () => {
     alert("Error conectando con la IA de Gesbase");
   }
 };
-const tipoColors: Record<string, string> = {
-  'Incidencia': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  'Retraso': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  'Avería': 'bg-red-500/10 text-red-600 border-red-500/20',
-  'Seguridad': 'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  'Otro': 'bg-muted text-muted-foreground border-border',
-};
-
-const informeColors: Record<string, string> = {
-  'PAI': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-  'Informe Conducción': 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
-};
-
-const estadoColors: Record<string, string> = {
-  'Nuevo': 'bg-green-500/10 text-green-600 border-green-500/20',
-  'En revisión': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
-  'Cerrado': 'bg-muted text-muted-foreground border-border',
-};
 
 export default function AuditoriaPage() {
   const { isAdmin, isGestor, assignedBases } = useAuth();
-  usePageMeta({ title: 'Auditoría — Gestión de Base', description: 'Auditorías de base: visitas, control de partes y propuestas de mejora.', path: '/auditoria' });
+  usePageMeta({ title: 'Auditoría — Gestión de Base', description: 'Auditorías de base: visitas y propuestas de mejora.', path: '/auditoria' });
   const [selectedTab, setSelectedTab] = useState('cumplimiento');
   const [fechaDesde, setFechaDesde] = useState(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'));
