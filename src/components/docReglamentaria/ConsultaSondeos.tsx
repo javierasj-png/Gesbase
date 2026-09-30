@@ -42,6 +42,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   const [fecha, setFecha] = useState('');
   const [modo, setModo] = useState<ModoSondeo | ''>('');
   const [busca, setBusca] = useState('');
+  const [scrollActivo, setScrollActivo] = useState(false);
   const [msgBase, setMsgBase] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -149,10 +150,10 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
           : !indVisible ? <p className="text-sm text-muted-foreground py-4 text-center">Sin datos para esta fecha, base y búsqueda.</p>
           : <>
             <div className="grid gap-3 md:grid-cols-4">
-              {kpi('Asignaciones totales', fmt(indVisible.asignaciones))}
-              {kpi('Lecturas', fmt(indVisible.lecturas))}
-              {kpi('Pendientes', fmt(indVisible.pendientes))}
-              {kpi('Porcentaje de lectura', fmtPct(indVisible.porcentaje), indVisible.asignaciones ? `${fmt(indVisible.lecturas)} de ${fmt(indVisible.asignaciones)}` : 'Sin asignaciones')}
+              {kpi('Asignaciones totales', fmt(indFinal!.asignaciones))}
+              {kpi('Lecturas', fmt(indFinal!.lecturas))}
+              {kpi('Pendientes', fmt(indFinal!.pendientes))}
+              {kpi('Porcentaje de lectura', fmtPct(indFinal!.porcentaje), indFinal!.asignaciones ? `${fmt(indFinal!.lecturas)} de ${fmt(indFinal!.asignaciones)}` : 'Sin asignaciones')}
             </div>
             <div className="flex items-center justify-start gap-2 flex-wrap">
               <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !delDia.length} onClick={async () => {
@@ -169,15 +170,9 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               const t = ajuste.n[0] + ajuste.n[1] + ajuste.n[2] + ajuste.n[3];
               return (
                 <div className="rounded-md border p-3 space-y-2 text-sm">
-                  <p className="font-medium">Resultado ajustado («No computa»)</p>
+                  <p className="font-medium">«No computa»</p>
                   {ajuste.excluidos.length > 0 && <>
-                    <p className="text-xs text-muted-foreground">Recuentos originales arriba. Se restan {fmt(ajuste.asignacionesRestadas)} asignaciones de {ajuste.excluidos.length} maquinista(s) justificado(s) vigentes en este sondeo:</p>
-                    <div className="grid gap-3 md:grid-cols-4">
-                      {kpi('Asignaciones ajustadas', fmt(t))}
-                      {kpi('Lecturas ajustadas', fmt(ajuste.n[3]))}
-                      {kpi('Pendientes ajustados', fmt(t - ajuste.n[3]))}
-                      {kpi('Lectura ajustada', fmtPct(t ? ajuste.n[3] / t : null))}
-                    </div>
+                    <p className="text-xs text-muted-foreground">Se restan {fmt(ajuste.asignacionesRestadas)} asignaciones de {ajuste.excluidos.length} maquinista(s) justificado(s) vigentes en este sondeo:</p>
                     <ul className="text-xs list-disc pl-5">{ajuste.excluidos.map(e => <li key={e.base + e.matricula}><span className="font-mono">{e.matricula}</span> {e.nombre || ''} ({e.base}) · {e.nota.estado} · {fmt(e.n.reduce((a, b) => a + b, 0))} asignaciones, {fmt(e.n[3])} leídas{e.nota.vigencia_hasta ? ` · revisión ${fechaEs(e.nota.vigencia_hasta)}` : ''}</li>)}</ul>
                   </>}
                   {ajuste.sinDesglose.length > 0 && <p className="text-xs text-destructive">No se restan {ajuste.sinDesglose.length} justificado(s) ({ajuste.sinDesglose.map(s => s.matricula).join(', ')}): su resumen no trae el desglose por estado y no se pueden atribuir sus asignaciones con fiabilidad.</p>}
@@ -185,10 +180,12 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
             })()}
             {justificadosSinResumen.length > 0 && <p className="text-xs text-destructive">Hay {justificadosSinResumen.length} justificación(es) «No computa» vigentes, pero no hay resumen por maquinista de esta fecha y base. Sin él no se sabe cuántas asignaciones les corresponden, así que no se resta nada.</p>}
             {modo === 'agregado' && q && <p className="text-xs text-muted-foreground">Con búsqueda de documento se muestran todas las asignaciones, sin ajuste «No computa».</p>}
+            {modo !== 'resumen_maquinista' && !scrollActivo && <p className="text-xs text-muted-foreground">Haz clic en la tabla para desplazarte dentro de ella.</p>}
             {modo === 'resumen_maquinista' ? (
               <p className="text-sm text-muted-foreground">Este tipo de datos solo trae totales por maquinista; no incluye recuentos por documento.</p>
             ) : (
-              <div className="overflow-x-auto border rounded-md max-h-[480px]">
+              <div onClick={() => setScrollActivo(true)} onMouseLeave={() => setScrollActivo(false)}
+                className={`overflow-x-auto border rounded-md max-h-[480px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden'}`}>
                 <table className="w-full text-xs">
                   <thead className="bg-muted sticky top-0"><tr>
                     {([['referencia', 'Referencia'], ['titulo', 'Título'], ['incluidos', 'Incluido'], ['recibidos', 'Recibido'], ['abiertos', 'Abierto'], ['leidos', 'Leído'], ['lectura', 'Lectura']] as const).map(([key, label]) =>
