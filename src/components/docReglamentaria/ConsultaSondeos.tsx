@@ -137,7 +137,22 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
   return (
     <div className="space-y-6">
     <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base">Consulta de sondeos guardados</CardTitle></CardHeader>
+      <CardHeader className="flex flex-col gap-3 space-y-0 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <CardTitle className="text-base">Consulta de sondeos guardados</CardTitle>
+        {!loading && indVisible && (
+          <div className="flex flex-wrap items-center gap-2">
+            {base !== 'all' && !q && modo !== 'resumen_maquinista' && (
+              <Button variant="outline" className="gap-2" onClick={() => setMsgBase(true)}><Mail className="h-4 w-4" />Preparar resumen de la base</Button>
+            )}
+            <Button variant="outline" className="gap-2" disabled={pdfLoading || !delDia.length} onClick={async () => {
+              setPdfLoading(true);
+              try { await generateSondeoPDF({ sondeos, base, fecha }); }
+              catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
+              finally { setPdfLoading(false); }
+            }}>{pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Descargar informe PDF</Button>
+          </div>
+        )}
+      </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div><label className="text-xs text-muted-foreground">Fecha del sondeo</label>
@@ -162,17 +177,9 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
               {kpi('Pendientes', fmt(indFinal!.pendientes))}
               {kpi('Porcentaje de lectura', fmtPct(indFinal!.porcentaje), indFinal!.asignaciones ? `${fmt(indFinal!.lecturas)} de ${fmt(indFinal!.asignaciones)}` : 'Sin asignaciones')}
             </div>
-            <div className="flex items-center justify-start gap-2 flex-wrap">
-              <Button size="sm" variant="outline" className="gap-1" disabled={pdfLoading || !delDia.length} onClick={async () => {
-                setPdfLoading(true);
-                try { await generateSondeoPDF({ sondeos, base, fecha }); }
-                catch (e) { console.error(e); toast.error('No se pudo generar el informe'); }
-                finally { setPdfLoading(false); }
-              }}>{pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}Descargar informe PDF</Button>
-              {base === 'all' || q || modo === 'resumen_maquinista'
-                ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
-                : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}
-            </div>
+             {(base === 'all' || q || modo === 'resumen_maquinista') && (
+               <p className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</p>
+             )}
             {ajuste && (ajuste.excluidos.length > 0 || ajuste.sinDesglose.length > 0) && (
                 <div className="rounded-md border p-3 space-y-2 text-sm">
                   <p className="font-medium">«No computa»</p>
