@@ -77,7 +77,8 @@ function Grupo<T>({ titulo, resultado, nombre, ratio }: { titulo: string; result
 
 export function CompararSondeos({ sondeos, base: baseProp }: { sondeos: Sondeo[]; base: string }) {
   const bases = useMemo(() => [...new Set(sondeos.map(s => s.base_nombre))].sort(), [sondeos]);
-  const base = baseProp !== 'all' && bases.includes(baseProp) ? baseProp : (bases[0] || '');
+  // Con una base concreta elegida, nunca se muestra otra base aunque esta no tenga sondeos.
+  const base = baseProp !== 'all' ? baseProp : (bases[0] || '');
   const fechas = useMemo(() => [...new Set(sondeos.filter(s => s.base_nombre === base).map(s => s.fecha_sondeo))].sort(), [sondeos, base]);
   const [fa, setFa] = useState(''); const [fb, setFb] = useState('');
   const [cmp, setCmp] = useState<Comparacion | null>(null);
