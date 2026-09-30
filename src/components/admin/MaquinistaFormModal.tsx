@@ -17,7 +17,7 @@ import { MaquinistaInput } from '@/hooks/useMaquinistas';
 interface MaquinistaFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  maquinista?: { id: string; matricula: string; nombre_apellidos: string; base: string; activo: boolean; observaciones: string | null; bajo_pe_1603: boolean; fecha_primer_servicio: string | null; fecha_licencia_conduccion: string | null } | null;
+  maquinista?: { id: string; matricula: string; nombre_apellidos: string; base: string; activo: boolean; observaciones: string | null; email?: string | null; bajo_pe_1603: boolean; fecha_primer_servicio: string | null; fecha_licencia_conduccion: string | null } | null;
   onSave: (input: MaquinistaInput) => void;
 }
 
@@ -35,6 +35,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
   const [formData, setFormData] = useState({
     matricula: '',
     nombreApellidos: '',
+    email: '',
     base: '' as Base | '',
     activo: true,
     observaciones: '',
@@ -55,6 +56,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
         setFormData({
           matricula: maquinista.matricula,
           nombreApellidos: maquinista.nombre_apellidos,
+          email: maquinista.email || '',
           base: maquinista.base as Base,
           activo: maquinista.activo,
           observaciones: maquinista.observaciones || '',
@@ -68,6 +70,7 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
         setFormData({
           matricula: '',
           nombreApellidos: '',
+          email: '',
           base: defaultBase,
           activo: true,
           observaciones: '',
@@ -112,11 +115,18 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
       return;
     }
 
+    const email = formData.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: 'Correo no válido', description: 'Revisa el correo electrónico corporativo', variant: 'destructive' });
+      return;
+    }
+
     setLoading(true);
     try {
       onSave({
         matricula: formData.matricula.trim(),
         nombreApellidos: formData.nombreApellidos.trim(),
+        email,
         base: formData.base as Base,
         activo: formData.activo,
         observaciones: formData.observaciones.trim() || undefined,
@@ -163,6 +173,18 @@ export function MaquinistaFormModal({ open, onOpenChange, maquinista, onSave }: 
               onChange={(e) => setFormData({ ...formData, nombreApellidos: e.target.value })}
               placeholder="Ej: Juan Pérez López"
               maxLength={100}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo electrónico corporativo</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Ej: nombre.apellido@renfe.es (opcional)"
+              maxLength={255}
             />
           </div>
 

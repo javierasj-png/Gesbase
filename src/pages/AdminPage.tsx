@@ -612,6 +612,7 @@ export default function AdminPage() {
           maquinista={editingMaquinista ? {
             id: editingMaquinista.id,
             matricula: editingMaquinista.matricula,
+                email: (editingMaquinista as any).email ?? null,
             nombre_apellidos: editingMaquinista.nombre_apellidos,
             base: editingMaquinista.base,
             activo: editingMaquinista.activo,
