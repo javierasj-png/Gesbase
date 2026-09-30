@@ -173,9 +173,7 @@ export function ConsultaSondeos({ recarga }: { recarga: number }) {
                 ? <span className="text-xs text-muted-foreground">Para preparar el resumen de la base, elige una base concreta, sin búsqueda y con datos por documento.</span>
                 : <Button size="sm" variant="outline" className="gap-1" onClick={() => setMsgBase(true)}><Mail className="w-4 h-4" />Preparar resumen de la base</Button>}
             </div>
-            {ajuste && (ajuste.excluidos.length > 0 || ajuste.sinDesglose.length > 0) && (() => {
-              const t = ajuste.n[0] + ajuste.n[1] + ajuste.n[2] + ajuste.n[3];
-              return (
+            {ajuste && (ajuste.excluidos.length > 0 || ajuste.sinDesglose.length > 0) && (
                 <div className="rounded-md border p-3 space-y-2 text-sm">
                   <p className="font-medium">«No computa»</p>
                   {ajuste.excluidos.length > 0 && <>
