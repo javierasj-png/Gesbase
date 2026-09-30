@@ -87,7 +87,8 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
             <div
               onClick={() => setScrollActivo(true)}
               onMouseLeave={() => setScrollActivo(false)}
-              className={`overflow-x-auto border rounded-md max-h-[520px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden'}`}>
+              style={{ scrollbarWidth: scrollActivo ? 'auto' : 'none' }}
+              className={`overflow-x-auto border rounded-md max-h-[520px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden [&::-webkit-scrollbar]:hidden'}`}>
               <table className="w-full text-xs">
                 <thead className="bg-muted sticky top-0"><tr>
                   <th className="p-2 text-left">Nombre</th><th className="p-2 text-left">Matrícula</th><th className="p-2 text-left">Base</th>
