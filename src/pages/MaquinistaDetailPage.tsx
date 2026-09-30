@@ -366,7 +366,6 @@ export default function MaquinistaDetailPage() {
                 id: maquinista.id,
                 nombre_apellidos: `${maquinista.nombre} ${maquinista.apellidos}`,
                 matricula: maquinista.matricula,
-                email: (maquinista as any).email ?? null,
                 base: maquinista.base,
                 bajo_pe_1603: !!expediente1603,
               }}
