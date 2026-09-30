@@ -28,6 +28,7 @@ async function todas<T>(q: (a: number, b: number) => PromiseLike<{ data: T[] | n
 
 export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onChange, onRegistrar }: { sondeos: S[]; acts?: Actuacion[]; periodo?: string; onChange?: () => void; onRegistrar?: (f: FilaMaquinista) => void }) {
   const [filas, setFilas] = useState<FilaMaquinista[] | null>(null);
+  const [scrollActivo, setScrollActivo] = useState(false);
   const [ver, setVer] = useState<FilaMaquinista | null>(null);
   const [msg, setMsg] = useState<FilaMaquinista | null>(null);
   const key = sondeos.map(s => s.id).sort().join(',');
@@ -82,7 +83,11 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
               {sinVinculo > 0 && <Badge variant="destructive">{sinVinculo} sin correspondencia</Badge>}
               {discrep > 0 && <Badge variant="secondary" className="gap-1"><AlertTriangle className="w-3 h-3" />{discrep} discrepancia(s) resumen/detalle</Badge>}
             </div>
-            <div className="overflow-x-auto border rounded-md max-h-[520px]">
+            {!scrollActivo && <p className="text-xs text-muted-foreground">Haz clic en la tabla para desplazarte dentro de ella.</p>}
+            <div
+              onClick={() => setScrollActivo(true)}
+              onMouseLeave={() => setScrollActivo(false)}
+              className={`overflow-x-auto border rounded-md max-h-[520px] ${scrollActivo ? 'overflow-y-auto ring-1 ring-primary/40' : 'overflow-y-hidden'}`}>
               <table className="w-full text-xs">
                 <thead className="bg-muted sticky top-0"><tr>
                   <th className="p-2 text-left">Nombre</th><th className="p-2 text-left">Matrícula</th><th className="p-2 text-left">Base</th>
