@@ -130,7 +130,7 @@ export async function generateSondeoPDF(opts: { sondeos: Sondeo[]; base: string;
     if (y > 260) { doc.addPage(); y = 16; }
     doc.setTextColor(...DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text(t, M, y); y += 4;
   };
-  const nota = (t: string) => { doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...GRIS); const l = doc.splitTextToSize(t, W - 2 * M); doc.text(l, M, y); y += l.length * 3 + 2; };
+  const nota = (t: string) => { doc.setFont('helvetica', 'italic'); doc.setFontSize(7); doc.setTextColor(...GRIS); const l: string[] = doc.splitTextToSize(t, W - 2 * M); l.forEach((linea, i) => doc.text(linea, M, y + i * 3, { align: 'left', charSpace: 0 })); y += l.length * 3 + 2; };
 
   // Distribución y estados, por cada tipo con recuento por documento cargado ese día
   const modosConDocs = modosDia.filter(m => (datos.get(m)?.docs.length ?? 0) > 0);
