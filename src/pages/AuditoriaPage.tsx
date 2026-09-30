@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -39,7 +38,7 @@ import {
 import { cn } from '@/lib/utils';
 import { VisitasBaseTab } from '@/components/auditoria/VisitasBaseTab';
 import { generateAuditoriaPDF } from '@/utils/generateAuditoriaPDF';
-import { format, subMonths, subYears } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
