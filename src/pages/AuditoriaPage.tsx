@@ -88,11 +88,6 @@ export default function AuditoriaPage() {
   const [baseFilter, setBaseFilter] = useGlobalBaseFilter();
   const [generatingPDF, setGeneratingPDF] = useState(false);
 
-  // Partes search & detail state
-  const [partesSearch, setPartesSearch] = useState('');
-  const [partesEstado, setPartesEstado] = useState('all');
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedParte, setSelectedParte] = useState<Parte | null>(null);
 
   // Fetch bases for filter
   const { data: bases } = useQuery({
@@ -320,41 +315,6 @@ export default function AuditoriaPage() {
     enabled: accessibleBases.length > 0
   });
 
-  // Partes data filtered by period & base
-  const { data: partes = [], isLoading: loadingPartes } = useQuery({
-    queryKey: ['auditoria-partes', fechaDesde, fechaHasta, baseFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from('partes')
-        .select('*')
-        .gte('fecha_parte', fechaDesde)
-        .lte('fecha_parte', fechaHasta)
-        .order('fecha_parte', { ascending: false });
-
-      if (baseFilter !== 'all') {
-        query = query.eq('base', baseFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as unknown as Parte[];
-    }
-  });
-
-  // Filter partes by search & estado
-  const filteredPartes = partes.filter(p => {
-    const matchesSearch = !partesSearch ||
-      (p.numero_parte?.toLowerCase().includes(partesSearch.toLowerCase())) ||
-      (p.maquinista_texto?.toLowerCase().includes(partesSearch.toLowerCase())) ||
-      (p.base?.toLowerCase().includes(partesSearch.toLowerCase()));
-    const matchesEstado = partesEstado === 'all' || p.estado === partesEstado;
-    return matchesSearch && matchesEstado;
-  });
-
-  // Partes KPIs
-  const totalPartes = partes.length;
-  const partesCerrados = partes.filter(p => p.estado === 'Cerrado').length;
-  const partesNuevos = partes.filter(p => p.estado === 'Nuevo').length;
 
   const getCumplimientoBadge = (porcentaje: number) => {
     const info = getUmbralInfo(porcentaje);
@@ -378,7 +338,7 @@ export default function AuditoriaPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Auditoría e Informes</h1>
             <p className="text-muted-foreground">
-              Genera informes de cumplimiento SGS y controla el registro de partes
+              Genera informes de cumplimiento SGS y audita las visitas a las bases
             </p>
           </div>
 
