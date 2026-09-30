@@ -15,10 +15,11 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   seguimiento: SeguimientoEspecial | null;
   maquinistaNombre: string;
+  maquinistaEmail?: string | null;
   onSave: (id: string, cambios: any) => Promise<unknown>;
 }
 
-export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, maquinistaNombre, onSave }: Props) {
+export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimiento, maquinistaNombre, maquinistaEmail, onSave }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [generandoIA, setGenerandoIA] = useState(false);
@@ -40,11 +41,11 @@ export function EditarSeguimientoEspecialDialog({ open, onOpenChange, seguimient
     setFechaAnomalia(seguimiento.fecha_anomalia || '');
     setFechaInicio(seguimiento.fecha_inicio || '');
     setObservaciones(seguimiento.observaciones || '');
-    setEmailTo(seguimiento.email_destinatario || '');
+    setEmailTo(seguimiento.email_destinatario || maquinistaEmail || '');
     setEmailAsunto(seguimiento.email_asunto || '');
     setEmailCuerpo(seguimiento.email_cuerpo || '');
     setEmailEnviado(!!seguimiento.email_enviado_at);
-  }, [seguimiento]);
+  }, [seguimiento, maquinistaEmail]);
 
   if (!seguimiento) return null;
 
