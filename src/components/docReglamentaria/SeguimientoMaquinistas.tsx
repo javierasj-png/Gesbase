@@ -50,7 +50,7 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
       const mats = [...new Set([...r, ...d].map(x => x.matricula.trim()))];
       const maestros: MaqMaestro[] = [];
       for (let i = 0; i < mats.length; i += 200) {
-        const { data } = await supabase.from('maquinistas').select('id,matricula,nombre,apellidos,base').in('matricula', mats.slice(i, i + 200));
+        const { data } = await supabase.from('maquinistas').select('id,matricula,nombre,apellidos,base,email').in('matricula', mats.slice(i, i + 200));
         maestros.push(...((data || []) as MaqMaestro[]));
       }
       const out = construirSeguimiento(
