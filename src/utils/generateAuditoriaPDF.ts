@@ -100,6 +100,14 @@ function baseSubHeader(doc: jsPDF, baseNombre: string, y: number): number {
   return y + 5;
 }
 
+function emptyNote(doc: jsPDF, text: string, y: number): number {
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...COOL_GRAY);
+  doc.text(text, MARGIN, y + 2);
+  return y + 8;
+}
+
 interface AuditoriaPDFOptions {
   bases: string[];
   baseFilter: string;
@@ -687,10 +695,13 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
   const tipoVigMap = new Map(((tiposVig as any[]) || []).map((t) => [t.id, t.nombre]));
   const maqMapVig = new Map(maqs.map((m: any) => [m.id, m]));
 
+  doc.addPage();
+  addPageHeader(doc, 'Informe de Auditoría SGS');
+  y = sectionTitle(doc, '5. PLANES ESPECÍFICOS DE VIGILANCIA Y CAMPAÑAS', PAGE_HEADER_H + 8);
+  if (planesList.length === 0) {
+    y = emptyNote(doc, 'Sin planes específicos ni campañas registrados en el periodo.', y);
+  }
   if (planesList.length > 0) {
-    doc.addPage();
-    addPageHeader(doc, 'Informe de Auditoría SGS');
-    y = sectionTitle(doc, '5. PLANES ESPECÍFICOS DE VIGILANCIA Y CAMPAÑAS', PAGE_HEADER_H + 8);
 
     for (const baseNombre of basesToReport) {
       const planesBase = planesList.filter((p) => p.base === baseNombre);
@@ -781,6 +792,129 @@ export async function generateAuditoriaPDF(options: AuditoriaPDFOptions) {
     }
   }
 
+  const fmt = (d?: string | null) => (d ? format(parseISO(d), 'dd/MM/yy') : '-');
+  const tableStyle = {
+    theme: 'grid' as const,
+    headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold' as const, fontSize: 7.5 },
+    styles: { fontSize: 6.8, cellPadding: 2, lineColor: COOL_GRAY, lineWidth: 0.4 },
+    bodyStyles: { textColor: DARK },
+  };
+
+  // ── SECCIÓN 6: SEGUIMIENTOS ESPECIALES ──
+  const maqIdsAll = maqs.map((m: any) => m.id);
+  const { data: segs } = maqIdsAll.length
+    ? await supabase.from('seguimientos_especiales').select('*').in('maquinista_id', maqIdsAll)
+        .gte('fecha_inicio', threeYearsAgoISO).order('fecha_inicio', { ascending: false })
+    : { data: [] as any[] };
+  const segList = (segs as any[]) || [];
+  const segIds = segList.map((s) => s.id);
+  const { data: segPlan } = segIds.length
+    ? await supabase.from('plan_seguimiento_especial').select('*').in('seguimiento_id', segIds)
+    : { data: [] as any[] };
+  const segPlanList = (segPlan as any[]) || [];
+
+  doc.addPage();
+  addPageHeader(doc, 'Informe de Auditoría SGS');
+  y = sectionTitle(doc, '6. SEGUIMIENTOS ESPECIALES', PAGE_HEADER_H + 8);
+  if (segList.length === 0) y = emptyNote(doc, 'Sin seguimientos especiales registrados en el periodo.', y);
+  for (const baseNombre of basesToReport) {
+    const lista = segList.filter((s) => (maqMapVig.get(s.maquinista_id) as any)?.base === baseNombre);
+    if (lista.length === 0) continue;
+    y = needSpace(doc, y, 22, 'Informe de Auditoría SGS');
+    y = baseSubHeader(doc, baseNombre, y) + 1;
+    autoTable(doc, {
+      ...tableStyle,
+      startY: y,
+      head: [['Maquinista', 'Motivo', 'Inicio', 'Fin', 'PREVER', 'Estado', 'Acciones', 'Email']],
+      body: lista.map((s) => {
+        const m: any = maqMapVig.get(s.maquinista_id);
+        const acc = segPlanList.filter((p) => p.seguimiento_id === s.id);
+        const real = acc.filter((p) => p.fecha_real || p.estado === 'realizada').length;
+        return [
+          m ? `${m.apellidos}, ${m.nombre}` : '-',
+          s.motivo,
+          fmt(s.fecha_inicio),
+          fmt(s.fecha_fin),
+          s.indice_prever != null ? String(s.indice_prever) : '-',
+          s.estado,
+          `${real}/${acc.length}`,
+          s.email_enviado_at ? fmt(s.email_enviado_at.slice(0, 10)) : '-',
+        ];
+      }),
+    });
+    y = tableEndY(doc, y) + 6;
+  }
+
+  // ── SECCIÓN 7: DOCUMENTACIÓN REGLAMENTARIA (SONDEOS Y CONTROL DOCUMENTAL) ──
+  const { data: sondeos } = await supabase.from('doc_sondeos').select('*')
+    .in('base_nombre', basesToReport).order('fecha_sondeo', { ascending: false });
+  const sondeoList = (sondeos as any[]) || [];
+  const sIds = sondeoList.map((s) => s.id);
+  const [{ data: agr }, { data: res }, { data: det }, { data: acts }] = await Promise.all([
+    sIds.length ? supabase.from('doc_registros_agregados').select('sondeo_id, incluidos, leidos').in('sondeo_id', sIds) : Promise.resolve({ data: [] as any[] }),
+    sIds.length ? supabase.from('doc_resumenes_maquinista').select('sondeo_id, asignados, leidos_total').in('sondeo_id', sIds) : Promise.resolve({ data: [] as any[] }),
+    sIds.length ? supabase.from('doc_detalle_agente').select('sondeo_id, estado').in('sondeo_id', sIds).limit(50000) : Promise.resolve({ data: [] as any[] }),
+    supabase.from('doc_actuaciones').select('*').in('base_nombre', basesToReport).order('fecha_actuacion', { ascending: false }),
+  ]);
+  const ratio = (sid: string, modo: string): [number, number] => {
+    if (modo === 'agregado') {
+      const r = ((agr as any[]) || []).filter((x) => x.sondeo_id === sid);
+      return [r.reduce((a, x) => a + (x.leidos || 0), 0), r.reduce((a, x) => a + (x.incluidos || 0), 0)];
+    }
+    if (modo === 'resumen_maquinista') {
+      const r = ((res as any[]) || []).filter((x) => x.sondeo_id === sid);
+      return [r.reduce((a, x) => a + (x.leidos_total || 0), 0), r.reduce((a, x) => a + (x.asignados || 0), 0)];
+    }
+    const r = ((det as any[]) || []).filter((x) => x.sondeo_id === sid);
+    return [r.filter((x) => x.estado === 'leido').length, r.length];
+  };
+  const modoLabel: Record<string, string> = { agregado: 'Seguimiento docs', resumen_maquinista: 'Resumen maquinistas', detalle_agente: 'Detalle por agente' };
+
+  doc.addPage();
+  addPageHeader(doc, 'Informe de Auditoría SGS');
+  y = sectionTitle(doc, '7. DOCUMENTACIÓN REGLAMENTARIA — SONDEOS Y CONTROL DOCUMENTAL', PAGE_HEADER_H + 8);
+  const actList = (acts as any[]) || [];
+  if (sondeoList.length === 0 && actList.length === 0) y = emptyNote(doc, 'Sin sondeos ni actuaciones de control documental registrados.', y);
+  for (const baseNombre of basesToReport) {
+    const sb = sondeoList.filter((s) => s.base_nombre === baseNombre);
+    const ab = actList.filter((a) => a.base_nombre === baseNombre);
+    if (sb.length === 0 && ab.length === 0) continue;
+    y = needSpace(doc, y, 22, 'Informe de Auditoría SGS');
+    y = baseSubHeader(doc, baseNombre, y) + 1;
+    if (sb.length) {
+      autoTable(doc, {
+        ...tableStyle,
+        startY: y,
+        head: [['Fecha sondeo', 'Tipo de datos', 'Asignaciones', 'Leídas', 'Pendientes', '% lectura', 'Archivo']],
+        body: sb.map((s) => {
+          const [l, t] = ratio(s.id, s.modo);
+          return [fmt(s.fecha_sondeo), modoLabel[s.modo] || s.modo, t ? String(t) : 'Sin datos', t ? String(l) : '-',
+            t ? String(t - l) : '-', t ? `${((l / t) * 100).toFixed(1)}%` : 'Sin datos', s.nombre_archivo || '-'];
+        }),
+      });
+      y = tableEndY(doc, y) + 5;
+    }
+    y = needSpace(doc, y, 16, 'Informe de Auditoría SGS');
+    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
+    doc.text('Control documental — actuaciones y justificaciones', MARGIN, y);
+    y += 2;
+    if (ab.length === 0) { y = emptyNote(doc, 'Sin actuaciones registradas.', y + 3); continue; }
+    autoTable(doc, {
+      ...tableStyle,
+      startY: y + 1,
+      head: [['Fecha', 'Maquinista', 'Documento', 'Responsable', 'Estado', 'Comunicación', 'No computa']],
+      body: ab.map((a) => [
+        fmt(a.fecha_actuacion),
+        [a.matricula, a.nombre].filter(Boolean).join(' · ') || '-',
+        a.referencia || '-',
+        a.responsable,
+        a.estado,
+        a.fecha_comunicacion ? `${fmt(a.fecha_comunicacion)} · ${a.canal || ''}` : '-',
+        a.no_computa ? `Sí${a.vigencia_hasta ? ` (hasta ${fmt(a.vigencia_hasta)})` : ''}` : 'No',
+      ]),
+    });
+    y = tableEndY(doc, y) + 6;
+  }
 
   // ── Footers ──
   addFooters(doc, 'Informe Auditoría SGS');
