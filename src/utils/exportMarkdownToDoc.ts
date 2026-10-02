@@ -114,7 +114,8 @@ export function exportMarkdownToDoc(markdown: string, filename: string) {
       </xml>
       <![endif]-->
       <style>
-        @page { margin: 1.5cm 1.5cm 1.5cm 1.5cm; size: A4; }
+        @page WordSection1 { size: 21cm 29.7cm; margin: 1.5cm 1.5cm 1.5cm 1.5cm; mso-page-orientation: portrait; }
+        div.WordSection1 { page: WordSection1; }
         body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #222; margin: 0; padding: 0; }
         h1 { font-size: 18pt; color: #1a1a2e; border-bottom: 2px solid #1a1a2e; padding-bottom: 4pt; }
         h2 { font-size: 14pt; color: #16213e; margin-top: 16pt; }
@@ -129,7 +130,7 @@ export function exportMarkdownToDoc(markdown: string, filename: string) {
         th { background-color: #f0f0f0; font-weight: bold; }
       </style>
     </head>
-    <body>${htmlBody}</body>
+    <body><div class="WordSection1">${htmlBody}</div></body>
     </html>
   `;
 
