@@ -16,7 +16,7 @@ describe('comunicaciones (plantillas del tablero)', () => {
     expect(mailto('', 'x', 'y')).toEqual({ error: 'Indica un correo válido.' });
     expect(mailto('no-es-correo', 'x', 'y')).toHaveProperty('error');
     const cuerpo = mensajeAgente({ nombre: 'Luis', fecha: '2026-09-22', leidos: 1, total: 4, pendientes: null });
-    expect(cuerpo).toContain('No se dispone del detalle por documento');
+    expect(cuerpo).not.toContain('No se dispone');
   });
   it('comunicación de base: ordena documentos por pendientes, omite los leídos y resume para el registro', () => {
     const d = { base: 'Irún', fecha: '2026-09-22', leidos: 30, total: 40, docs: [{ referencia: 'A', titulo: 't', pendientes: 2 }, { referencia: 'B', titulo: 't', pendientes: 8 }, { referencia: 'C', titulo: 't', pendientes: 0 }] };
