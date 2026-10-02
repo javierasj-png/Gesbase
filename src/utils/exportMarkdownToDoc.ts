@@ -5,14 +5,34 @@
 const MAGENTA = '#82005E';
 const GRIS = '#6B6C6E';
 
-function inline(t: string): string {
-  return t
+const NIVELES: { re: RegExp; bg: string; fg: string; hl: string }[] = [
+  { re: /Satisfactori[oa]/i, bg: '#2E7D32', fg: '#FFFFFF', hl: 'green' },
+  { re: /Aceptable/i, bg: '#F9A825', fg: '#000000', hl: 'yellow' },
+  { re: /Mejorable/i, bg: '#EF6C00', fg: '#FFFFFF', hl: 'darkYellow' },
+  { re: /Insuficiente|Deficiente|Cr[ií]tic[oa]/i, bg: '#C62828', fg: '#FFFFFF', hl: 'red' },
+];
+const EMOJI: Record<string, string> = { '🟢': '#2E7D32', '🟡': '#F9A825', '🟠': '#EF6C00', '🔴': '#C62828', '⚪': '#98999B' };
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function inline(raw: string): string {
+  return esc(raw)
+    .replace(/`([^`]+)`/g, '<span style="font-family:Consolas,monospace;color:#82005E">$1</span>')
     .replace(/\*\*\*(.+?)\*\*\*/g, `<b style="color:${MAGENTA}"><i>$1</i></b>`)
     .replace(/\*\*(.+?)\*\*/g, `<b style="color:${MAGENTA}">$1</b>`)
-    .replace(/\*(.+?)\*/g, '<i>$1</i>')
-    .replace(/\b(ALTA|CR[IÍ]TICA|URGENTE|VENCID[AO]S?)\b/g, '<span style="color:#FFFFFF;background:#C62828;mso-highlight:red;font-weight:bold;padding:0 3pt">$1</span>')
-    .replace(/\b(MEDIA)\b/g, '<span style="color:#000000;background:#F9A825;mso-highlight:yellow;font-weight:bold;padding:0 3pt">$1</span>')
-    .replace(/\b(BAJA)\b/g, '<span style="color:#FFFFFF;background:#2E7D32;mso-highlight:green;font-weight:bold;padding:0 3pt">$1</span>');
+    .replace(/(^|[^*])\*([^*]+?)\*/g, '$1<i>$2</i>')
+    // Emoji semáforo → círculo coloreado (Word pinta los emoji en gris)
+    .replace(/(🟢|🟡|🟠|🔴|⚪)\uFE0F?/gu, (e) => `<span style="font-family:Arial;color:${EMOJI[e.replace('\uFE0F', '')]};font-size:12pt">&#9679;</span>`)
+    .replace(/\b(ALTA|CR[IÍ]TICA|URGENTE)\b/g, '<span style="color:#FFFFFF;background:#C62828;mso-highlight:red;font-weight:bold">&nbsp;$1&nbsp;</span>')
+    .replace(/\b(MEDIA)\b/g, '<span style="color:#000000;background:#F9A825;mso-highlight:yellow;font-weight:bold">&nbsp;$1&nbsp;</span>')
+    .replace(/\b(BAJA)\b/g, '<span style="color:#FFFFFF;background:#2E7D32;mso-highlight:green;font-weight:bold">&nbsp;$1&nbsp;</span>');
+}
+
+/** Celda de valoración: se rellena entera con el color del nivel. */
+function nivelCelda(raw: string) {
+  const plain = raw.replace(/[🟢🟡🟠🔴⚪\uFE0F*]/gu, '').trim();
+  if (plain.length > 30) return null;
+  return NIVELES.find((n) => n.re.test(plain)) ?? null;
 }
 
 /** Converts markdown to Word-compatible HTML with inline colours (Word ignores many CSS rules). */
@@ -30,11 +50,18 @@ function markdownToHtml(md: string): string {
       const cells = (r: string) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
       const head = cells(l);
       i += 2;
-      let t = '<table style="border-collapse:collapse;width:100%"><tr>' + head.map((h) => `<th style="background:${MAGENTA};color:#FFFFFF;border:1px solid ${MAGENTA};padding:4pt 6pt;font-size:10pt;text-align:left">${inline(h).replace(/color:#82005E/g, 'color:#FFFFFF')}</th>`).join('') + '</tr>';
+      const fs = head.length >= 7 ? '7.5pt' : head.length >= 5 ? '8.5pt' : '9.5pt';
+      const cellBase = `border:1px solid #D9C2D2;padding:3pt 4pt;font-size:${fs};vertical-align:top;word-wrap:break-word`;
+      let t = '<table border="1" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;width:100%;table-layout:fixed;mso-table-layout-alt:fixed">';
+      t += '<tr>' + head.map((h) => `<th style="${cellBase};background:${MAGENTA};mso-shading:${MAGENTA};color:#FFFFFF;text-align:left">${inline(h).replace(/color:#82005E/g, 'color:#FFFFFF')}</th>`).join('') + '</tr>';
       let n = 0;
       while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
         const bg = n++ % 2 ? '#F7EAF3' : '#FFFFFF';
-        t += '<tr>' + cells(lines[i]).map((c) => `<td style="background:${bg};border:1px solid #D9C2D2;padding:4pt 6pt;font-size:10pt">${inline(c)}</td>`).join('') + '</tr>';
+        t += '<tr>' + cells(lines[i]).map((c) => {
+          const lv = nivelCelda(c);
+          if (lv) return `<td style="${cellBase};background:${lv.bg};mso-shading:${lv.bg};color:${lv.fg};font-weight:bold;text-align:center">${esc(c.replace(/[🟢🟡🟠🔴⚪\uFE0F*]/gu, '').trim())}</td>`;
+          return `<td style="${cellBase};background:${bg}">${inline(c)}</td>`;
+        }).join('') + '</tr>';
         i++;
       }
       out.push(t + '</table>');
