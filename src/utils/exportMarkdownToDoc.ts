@@ -53,14 +53,23 @@ function markdownToHtml(md: string): string {
       const fs = head.length >= 7 ? '7.5pt' : head.length >= 5 ? '8.5pt' : '9.5pt';
       const cellBase = `border:1px solid #D9C2D2;padding:3pt 4pt;font-size:${fs};vertical-align:top;word-wrap:break-word`;
       let t = '<table border="1" cellspacing="0" cellpadding="0" width="100%" style="border-collapse:collapse;width:100%;table-layout:fixed;mso-table-layout-alt:fixed">';
-      t += '<tr>' + head.map((h) => `<th style="${cellBase};background:${MAGENTA};mso-shading:${MAGENTA};color:#FFFFFF;text-align:left">${inline(h).replace(/color:#82005E/g, 'color:#FFFFFF')}</th>`).join('') + '</tr>';
+      // Anchos proporcionales al contenido para que las palabras no se partan
+      const body: string[][] = [];
+      for (let k = i; k < lines.length && /^\s*\|.*\|\s*$/.test(lines[k]); k++) body.push(cells(lines[k]));
+      const peso = head.map((h, ci) => {
+        const longest = (txt: string) => Math.max(...txt.split(/\s+/).map((w) => w.length), 4);
+        return Math.max(longest(h) * 0.9, ...body.map((r) => Math.min(longest(r[ci] ?? ''), 22)), 5);
+      });
+      const tot = peso.reduce((a, b) => a + b, 0);
+      t += '<colgroup>' + peso.map((w) => `<col width="${Math.round((w / tot) * 100)}%"/>`).join('') + '</colgroup>';
+      t += '<tr>' + head.map((h, ci) => `<td width="${Math.round((peso[ci] / tot) * 100)}%" bgcolor="${MAGENTA}" style="${cellBase};background:${MAGENTA};mso-shading:${MAGENTA}"><b><font color="#FFFFFF" style="color:#FFFFFF">${esc(h.replace(/\*/g, ''))}</font></b></td>`).join('') + '</tr>';
       let n = 0;
       while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
         const bg = n++ % 2 ? '#F7EAF3' : '#FFFFFF';
         t += '<tr>' + cells(lines[i]).map((c) => {
           const lv = nivelCelda(c);
-          if (lv) return `<td style="${cellBase};background:${lv.bg};mso-shading:${lv.bg};color:${lv.fg};font-weight:bold;text-align:center">${esc(c.replace(/[🟢🟡🟠🔴⚪\uFE0F*]/gu, '').trim())}</td>`;
-          return `<td style="${cellBase};background:${bg}">${inline(c)}</td>`;
+          if (lv) return `<td bgcolor="${lv.bg}" style="${cellBase};background:${lv.bg};mso-shading:${lv.bg};color:${lv.fg};font-weight:bold;text-align:center">${esc(c.replace(/[🟢🟡🟠🔴⚪\uFE0F*]/gu, '').trim())}</td>`;
+          return `<td bgcolor="${bg}" style="${cellBase};background:${bg}">${inline(c)}</td>`;
         }).join('') + '</tr>';
         i++;
       }
