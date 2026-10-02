@@ -16,7 +16,7 @@ export interface DatosAgente {
 export function mensajeAgente(d: DatosAgente): string {
   const pend = d.total - d.leidos;
   let b = `Hola ${d.nombre},\n\nEn el seguimiento del ${fechaEs(d.fecha)} tienes ${fmt(d.leidos)} de ${fmt(d.total)} documentos leídos (${fmtPct(d.total ? d.leidos / d.total : null)}). Quedan ${fmt(pend)} pendientes.\n\n`;
-  if (d.pendientes === null) b += pend > 0 ? 'No se dispone del detalle por documento en este sondeo.' : 'No hay documentos pendientes.';
+  if (d.pendientes === null) { if (pend <= 0) b += 'No hay documentos pendientes.'; }
   else b += d.pendientes.length ? 'Documentos pendientes:\n' + d.pendientes.map(p => `- ${p.referencia}: ${p.titulo || ''} — ${ETAPA[p.estado] || p.estado}`).join('\n') : 'No hay documentos pendientes.';
   return b + '\n\nPor favor, revisa los documentos pendientes y confirma su lectura. Si hay alguna incidencia que lo impida, comunícala al responsable de tu base.\n\nGracias.';
 }
