@@ -76,6 +76,23 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [comunicacionOpen, setComunicacionOpen] = useState(false);
+  const [agentes, setAgentes] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    if (!open || !plan) return;
+    supabase
+      .from('maquinistas')
+      .select('id, nombre, apellidos')
+      .eq('base', plan.base)
+      .eq('activo', true)
+      .then(({ data }) => {
+        setAgentes(
+          ((data as any[]) || [])
+            .map((m) => ({ id: m.id, nombre: `${m.apellidos}, ${m.nombre}` }))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+        );
+      });
+  }, [open, plan]);
 
   const nombreTipo = (id: string) => tipos.find((t) => t.id === id)?.nombre ?? id;
 
@@ -153,6 +170,7 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
         const { error } = await supabase
           .from('planes_vigilancia_acciones')
           .update({
+            maquinista_id: f.maquinista_id,
             fecha_prevista: f.fecha_prevista,
             fecha_real: f.fecha_real,
             estado: estadoAuto(f, plan),
@@ -291,7 +309,33 @@ export function PlanVigilanciaDetalle({ plan, open, onOpenChange, onChanged }: P
               <tbody className="divide-y">
                 {filas.map((f) => (
                   <tr key={f.id}>
-                    <td className="px-2 py-1 whitespace-nowrap">{f.maquinistaNombre}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {plan.estado === 'archivado' || estadoAuto(f, plan) === 'realizada' ? (
+                        f.maquinistaNombre
+                      ) : (
+                        <Select
+                          value={f.maquinista_id}
+                          onValueChange={(v) =>
+                            setFila(f.id, {
+                              maquinista_id: v,
+                              maquinistaNombre: agentes.find((a) => a.id === v)?.nombre ?? f.maquinistaNombre,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-[190px] text-xs" title="Cambiar agente (bajas o cambios)">
+                            <SelectValue>{f.maquinistaNombre}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {!agentes.some((a) => a.id === f.maquinista_id) && (
+                              <SelectItem value={f.maquinista_id}>{f.maquinistaNombre}</SelectItem>
+                            )}
+                            {agentes.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>{a.nombre}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </td>
                     <td className="px-2 py-1 whitespace-nowrap">
                       {f.tipo_accion_libre || nombreTipo(f.tipo_accion)}
                     </td>
