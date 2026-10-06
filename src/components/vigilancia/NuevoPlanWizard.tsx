@@ -77,6 +77,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated, baseInic
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [maxPorAgente, setMaxPorAgente] = useState(1);
+  const [asignacion, setAsignacion] = useState<{ tipo: string; mid: string }[] | null>(null);
 
   // Paso 4
   const [fechaInicio, setFechaInicio] = useState('');
@@ -174,6 +175,50 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated, baseInic
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxNecesario]);
 
+  const barajar = <T,>(arr: T[]) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // Reparto aleatorio: cada acción se asigna por separado a un maquinista al azar
+  // (con menos carga y sin superar el máximo), así acompañamientos y registros
+  // pueden recaer en agentes distintos.
+  const generarReparto = (agentesIds: string[]) => {
+    const carga: Record<string, number> = {};
+    agentesIds.forEach((id) => (carga[id] = 0));
+    const acciones = barajar(tiposElegidos.flatMap(([tipo, n]) => Array.from({ length: n }, () => tipo)));
+    const res: { tipo: string; mid: string }[] = [];
+    for (const tipo of acciones) {
+      const libres = agentesIds.filter((id) => carga[id] < maxPorAgente);
+      const min = Math.min(...libres.map((id) => carga[id]));
+      const cand = barajar(libres.filter((id) => carga[id] === min));
+      const mid = cand[0];
+      carga[mid]++;
+      res.push({ tipo, mid });
+    }
+    return res;
+  };
+
+  const asignarAleatorio = () => {
+    let ids = seleccionados;
+    if (ids.length === 0) {
+      const n = Math.min(maquinistas.length, Math.ceil(totalAcciones / maxPorAgente));
+      ids = barajar(maquinistas).slice(0, n).map((m) => m.id);
+      setSeleccionados(ids);
+    }
+    if (ids.length * maxPorAgente < totalAcciones) return;
+    setAsignacion(generarReparto(ids));
+  };
+
+  useEffect(() => {
+    setAsignacion((a) => (a && a.every((x) => seleccionados.includes(x.mid)) && a.length === totalAcciones ? a : null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seleccionados, totalAcciones, maxPorAgente]);
+
   const puedeAvanzar = () => {
     if (paso === 0) return !!categoria && nombre.trim().length > 0 && !!base;
     if (paso === 1) return tiposElegidos.length > 0;
@@ -218,24 +263,16 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated, baseInic
       }[] = [];
       // Acciones definidas a nivel de base: se reparten en rotación entre los
       // maquinistas seleccionados (orden aleatorio), sin superar el máximo por agente.
-      const agentes = [...seleccionados];
-      for (let i = agentes.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [agentes[i], agentes[j]] = [agentes[j], agentes[i]];
-      }
-      let k = 0;
-      for (const [tipo, reps] of tiposElegidos) {
-        for (let i = 0; i < reps; i++) {
-          filas.push({
-            plan_id: plan!.id,
-            maquinista_id: agentes[k % agentes.length],
-            tipo_accion: tipo,
-            tipo_accion_libre: tipo === 'otros' ? tipoLibre.trim() || null : null,
-            fecha_prevista: fechaInicio,
-            created_by: user?.id ?? null,
-          });
-          k++;
-        }
+      const reparto = asignacion ?? generarReparto(seleccionados);
+      for (const { tipo, mid } of reparto) {
+        filas.push({
+          plan_id: plan!.id,
+          maquinista_id: mid,
+          tipo_accion: tipo,
+          tipo_accion_libre: tipo === 'otros' ? tipoLibre.trim() || null : null,
+          fecha_prevista: fechaInicio,
+          created_by: user?.id ?? null,
+        });
       }
       if (filas.length) {
         const { error: accError } = await supabase.from('planes_vigilancia_acciones').insert(filas);
@@ -474,12 +511,28 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated, baseInic
                   onChange={(e) => setMaxPorAgente(Math.max(1, parseInt(e.target.value || '1', 10)))}
                 />
               </div>
+              <Button variant="outline" size="sm" className="mb-0.5" onClick={asignarAleatorio} disabled={totalAcciones === 0 || maquinistas.length === 0}>
+                <Shuffle className="w-4 h-4 mr-1" /> Asignar aleatoriamente las {totalAcciones} acciones
+              </Button>
               {seleccionados.length > 0 && !capacidadOk && (
                 <p className="text-sm text-destructive pb-2">
                   Con {seleccionados.length} maquinistas y máximo {maxPorAgente} no se cubren {totalAcciones} acciones. Añade maquinistas o sube el máximo.
                 </p>
               )}
             </div>
+            {asignacion && (
+              <div className="border rounded-lg divide-y max-h-48 overflow-y-auto text-sm">
+                {asignacion.map((a, i) => {
+                  const m = maquinistas.find((x) => x.id === a.mid);
+                  return (
+                    <div key={i} className="flex justify-between px-3 py-1">
+                      <span>{tipos.find((t) => t.id === a.tipo)?.nombre ?? a.tipo}</span>
+                      <span className="text-muted-foreground">{m ? `${m.apellidos}, ${m.nombre}` : '—'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
