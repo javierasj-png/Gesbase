@@ -419,6 +419,7 @@ export default function PlanesVigilanciaPage() {
         onOpenChange={setWizardOpen}
         bases={getAccessibleBases}
         onCreated={refetch}
+        baseInicial={baseFilter !== 'all' ? baseFilter : undefined}
       />
 
       <PlanVigilanciaDetalle

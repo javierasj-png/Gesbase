@@ -46,11 +46,12 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   bases: string[];
   onCreated: () => void;
+  baseInicial?: string;
 }
 
 const PASOS = ['Categoría', 'Acciones', 'Alcance', 'Periodo'];
 
-export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props) {
+export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated, baseInicial }: Props) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { tipos } = useTiposAccionVigilancia();
@@ -75,6 +76,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
   const [maquinistas, setMaquinistas] = useState<MaquinistaLite[]>([]);
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [busqueda, setBusqueda] = useState('');
+  const [maxPorAgente, setMaxPorAgente] = useState(1);
 
   // Paso 4
   const [fechaInicio, setFechaInicio] = useState('');
@@ -87,7 +89,8 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
     setNombre('');
     setDescripcion('');
     setResponsable('');
-    setBase(bases[0] || '');
+    setBase(baseInicial && bases.includes(baseInicial) ? baseInicial : bases[0] || '');
+    setMaxPorAgente(1);
     setSeleccionTipos({});
     setTipoLibre('');
     setModo('concretos');
@@ -163,11 +166,18 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
   );
 
   const tiposElegidos = Object.entries(seleccionTipos).filter(([, n]) => n > 0);
+  const totalAcciones = tiposElegidos.reduce((s, [, n]) => s + n, 0);
+  const maxNecesario = seleccionados.length ? Math.ceil(totalAcciones / seleccionados.length) : 0;
+  const capacidadOk = seleccionados.length > 0 && seleccionados.length * maxPorAgente >= totalAcciones;
+  useEffect(() => {
+    if (maxNecesario > maxPorAgente) setMaxPorAgente(maxNecesario);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxNecesario]);
 
   const puedeAvanzar = () => {
     if (paso === 0) return !!categoria && nombre.trim().length > 0 && !!base;
     if (paso === 1) return tiposElegidos.length > 0;
-    if (paso === 2) return seleccionados.length > 0;
+    if (paso === 2) return capacidadOk;
     if (paso === 3) return !!fechaInicio && !!fechaFin && fechaFin >= fechaInicio;
     return false;
   };
@@ -206,18 +216,25 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
         fecha_prevista: string;
         created_by: string | null;
       }[] = [];
-      for (const mid of seleccionados) {
-        for (const [tipo, reps] of tiposElegidos) {
-          for (let i = 0; i < reps; i++) {
-            filas.push({
-              plan_id: plan!.id,
-              maquinista_id: mid,
-              tipo_accion: tipo,
-              tipo_accion_libre: tipo === 'otros' ? tipoLibre.trim() || null : null,
-              fecha_prevista: fechaInicio,
-              created_by: user?.id ?? null,
-            });
-          }
+      // Acciones definidas a nivel de base: se reparten en rotación entre los
+      // maquinistas seleccionados (orden aleatorio), sin superar el máximo por agente.
+      const agentes = [...seleccionados];
+      for (let i = agentes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [agentes[i], agentes[j]] = [agentes[j], agentes[i]];
+      }
+      let k = 0;
+      for (const [tipo, reps] of tiposElegidos) {
+        for (let i = 0; i < reps; i++) {
+          filas.push({
+            plan_id: plan!.id,
+            maquinista_id: agentes[k % agentes.length],
+            tipo_accion: tipo,
+            tipo_accion_libre: tipo === 'otros' ? tipoLibre.trim() || null : null,
+            fecha_prevista: fechaInicio,
+            created_by: user?.id ?? null,
+          });
+          k++;
         }
       }
       if (filas.length) {
@@ -335,7 +352,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
         {paso === 1 && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Selecciona los tipos de acción y el número de repeticiones por maquinista.
+              Selecciona los tipos de acción y el número total de acciones que debe realizar la base en el periodo.
             </p>
             {tiposDisponibles.map((t) => {
               const val = seleccionTipos[t.id] || 0;
@@ -444,7 +461,24 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
 
             <div className="flex items-center gap-2 text-sm">
               <Users className="w-4 h-4 text-muted-foreground" />
-              Se aplicará a <strong>{seleccionados.length}</strong> maquinistas
+              <strong>{totalAcciones}</strong> acciones de la base repartidas entre <strong>{seleccionados.length}</strong> maquinistas
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1.5">
+                <Label>Máximo de acciones por maquinista</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="w-28"
+                  value={maxPorAgente}
+                  onChange={(e) => setMaxPorAgente(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                />
+              </div>
+              {seleccionados.length > 0 && !capacidadOk && (
+                <p className="text-sm text-destructive pb-2">
+                  Con {seleccionados.length} maquinistas y máximo {maxPorAgente} no se cubren {totalAcciones} acciones. Añade maquinistas o sube el máximo.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -489,8 +523,7 @@ export function NuevoPlanWizard({ open, onOpenChange, bases, onCreated }: Props)
                 ))}
               </div>
               <p className="text-muted-foreground">
-                {seleccionados.length} maquinistas ·{' '}
-                {seleccionados.length * tiposElegidos.reduce((s, [, n]) => s + n, 0)} acciones previstas
+                {totalAcciones} acciones de la base · {seleccionados.length} maquinistas · máx. {maxPorAgente} por agente
               </p>
             </div>
           </div>
