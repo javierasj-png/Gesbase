@@ -147,7 +147,7 @@ export function SeguimientoMaquinistas({ sondeos, acts = [], periodo = '', onCha
           registrar={async r => {
             const { error } = await (supabase.from('doc_actuaciones' as never) as any).insert({
               base_nombre: msg.baseSondeo, matricula: msg.matricula, nombre: msg.nombreArchivo || nombre, responsable: r.responsable,
-              fecha_actuacion: r.fecha, fecha_comunicacion: r.fecha, canal: r.canal, estado: 'Aviso enviado', periodo, no_computa: false,
+              fecha_actuacion: r.fecha, fecha_comunicacion: r.fecha, canal: r.canal, estado: 'Seguimiento ordinario', periodo, no_computa: false,
               comentario: `Comunicación de lectura (sondeo ${periodo.split('-').reverse().join('/')}): ${c.lecturas}/${c.asignaciones} leídos.${r.destinatario ? ' Destinatario: ' + r.destinatario + '.' : ''}`,
             });
             if (error?.code === '23505') return 'Este agente ya tiene una actuación registrada para este sondeo. Edítala en «Actuaciones» para añadir la comunicación.';

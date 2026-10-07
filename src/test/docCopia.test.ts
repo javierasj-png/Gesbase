@@ -19,7 +19,7 @@ const copia = {
   ],
 };
 
-const act = (p: Partial<Actuacion>): Actuacion => ({ id: 'x', base_nombre: 'Irún', matricula: null, nombre: null, referencia: null, responsable: 'r', fecha_actuacion: '2026-09-20', fecha_comunicacion: null, canal: null, estado: 'Baja IT', vigencia_hasta: null, comentario: null, no_computa: false, periodo: '2026-09-22', created_at: '', updated_at: '', created_by: null, updated_by: null, ...p });
+const act = (p: Partial<Actuacion>): Actuacion => ({ id: 'x', base_nombre: 'Irún', matricula: null, nombre: null, referencia: null, responsable: 'r', fecha_actuacion: '2026-09-20', fecha_comunicacion: null, canal: null, estado: 'Situación temporal - recuperación pendiente', vigencia_hasta: null, comentario: null, no_computa: false, periodo: '2026-09-22', created_at: '', updated_at: '', created_by: null, updated_by: null, ...p });
 
 describe('copias del tablero', () => {
   const c = leerCopia(JSON.stringify(copia));

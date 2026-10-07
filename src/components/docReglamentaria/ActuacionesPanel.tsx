@@ -26,7 +26,7 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
   const abrir = (a?: Actuacion, pre?: { base: string; matricula: string; nombre: string }) => {
     setEditId(a?.id || null);
     setF(a ? { base_nombre: a.base_nombre, matricula: a.matricula || '', nombre: a.nombre || '', referencia: a.referencia || '', responsable: a.responsable, fecha_actuacion: a.fecha_actuacion, fecha_comunicacion: a.fecha_comunicacion || '', canal: a.canal || '', estado: a.estado, vigencia_hasta: a.vigencia_hasta || '', comentario: a.comentario || '', no_computa: a.no_computa }
-      : { base_nombre: pre?.base || (baseFiltro !== 'all' ? baseFiltro : bases[0] || ''), matricula: pre?.matricula || '', nombre: pre?.nombre || '', referencia: '', responsable: '', fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'He hablado con el agente', vigencia_hasta: '', comentario: '', no_computa: false });
+      : { base_nombre: pre?.base || (baseFiltro !== 'all' ? baseFiltro : bases[0] || ''), matricula: pre?.matricula || '', nombre: pre?.nombre || '', referencia: '', responsable: '', fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'Seguimiento ordinario', vigencia_hasta: '', comentario: '', no_computa: false });
   };
   useEffect(() => {
     if (!nueva) return;
