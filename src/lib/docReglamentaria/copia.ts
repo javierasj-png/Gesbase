@@ -7,7 +7,8 @@ const s = (v: unknown) => (typeof v === 'string' ? v.trim() : v === null || v ==
 const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v));
 const int = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
 const ESTADOS = ['incluido', 'recibido', 'abierto', 'leido'] as const;
-const ESTADOS_VALIDOS: string[] = [...ESTADOS_ACTUACION, ESTADO_BASE_COMUNICADO];
+const ESTADOS_TABLERO = ['He hablado con el agente', 'Aviso enviado', 'Mando intermedio (MMII)', 'Baja IT', 'Vacaciones', 'Anomalía comunicada', 'Incidencia técnica', 'Pendiente de seguimiento', 'Otra situación'];
+const ESTADOS_VALIDOS: string[] = [...ESTADOS_TABLERO, ...ESTADOS_ACTUACION, ESTADO_BASE_COMUNICADO];
 
 export interface SondeoCopia {
   clave: string; origen: string; fecha: string; modo: ModoSondeo; nombre: string;
@@ -106,7 +107,7 @@ export function leerCopia(texto: string): Copia {
     if (until && (!isDate(until) || until < fecha)) errores.push('Fecha de revisión inválida.');
     return {
       idOrigen: s(n?.id), origen: s(n?.area), matricula, nombre: matricula ? s(n?.agent) || null : null, referencia: s(n?.ref) || null,
-      responsable: s(n?.owner).slice(0, 150), fecha_actuacion: fecha, fecha_comunicacion: fc, canal, estado, vigencia_hasta: until,
+      responsable: s(n?.owner).slice(0, 150), fecha_actuacion: fecha, fecha_comunicacion: fc, canal, estado: estado === ESTADO_BASE_COMUNICADO ? estado : grupoEstado(estado, esJustificanteCopia(n)), vigencia_hasta: until,
       comentario: s(n?.comment) || null, no_computa: esJustificanteCopia(n), periodo: isDate(n?.period) ? n.period : fecha, errores,
     };
   });

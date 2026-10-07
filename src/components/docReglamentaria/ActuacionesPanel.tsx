@@ -105,7 +105,8 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
                 <SelectContent>{bases.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent></Select></div>
             <div><label className="text-xs text-muted-foreground">Estado</label>
               <Select value={f.estado} onValueChange={v => set({ estado: v, no_computa: ESTADOS_JUSTIFICAN.includes(v) })}><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ESTADOS_ACTUACION.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
+                <SelectContent>{ESTADOS_ACTUACION.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+              <p className="text-[11px] text-muted-foreground mt-1">No indiques el motivo personal (salud, vacaciones…). Situaciones de larga duración, como liberado sindical, van como exclusión validada sin fecha de revisión.</p></div>
             <div className="md:col-span-2"><label className="text-xs text-muted-foreground">Resultados del sondeo</label>
               <Select value={f.no_computa ? 'no' : 'si'} onValueChange={v => set({ no_computa: v === 'no' })}><SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="si">Computa: su lectura cuenta en los resultados de la base</SelectItem><SelectItem value="no">No computa: justificado, se resta de los resultados de la base</SelectItem></SelectContent></Select>
