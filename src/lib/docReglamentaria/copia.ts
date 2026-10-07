@@ -1,6 +1,6 @@
 /** Copias JSON del tablero original («Guardar copia», version 1). Lectura, vista previa y exportación. Sin IA. */
 import type { ModoSondeo } from './parser';
-import { ESTADOS_ACTUACION, ESTADOS_JUSTIFICAN, CANALES, type Actuacion } from './justificaciones';
+import { ESTADOS_ACTUACION, ESTADOS_LEGACY_JUSTIFICAN, CANALES, grupoEstado, type Actuacion } from './justificaciones';
 import { ESTADO_BASE_COMUNICADO } from './comunicaciones';
 
 const s = (v: unknown) => (typeof v === 'string' ? v.trim() : v === null || v === undefined ? '' : String(v).trim());
@@ -29,7 +29,7 @@ export interface Copia {
 export function esJustificanteCopia(n: { agentId?: string; excluded?: boolean; status?: string; comment?: string }): boolean {
   if (!s(n.agentId)) return false;
   if (n.excluded !== undefined) return n.excluded === true;
-  return ESTADOS_JUSTIFICAN.includes(s(n.status)) || (s(n.status) === 'Otra situación' && /mando\s+intermedio|\bmmii\b/i.test(s(n.comment)));
+  return ESTADOS_LEGACY_JUSTIFICAN.includes(s(n.status)) || (s(n.status) === 'Otra situación' && /mando\s+intermedio|\bmmii\b/i.test(s(n.comment)));
 }
 
 export function leerCopia(texto: string): Copia {
