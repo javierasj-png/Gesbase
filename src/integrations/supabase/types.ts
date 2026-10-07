@@ -1731,6 +1731,7 @@ export type Database = {
         Args: { _gestor_id: string; _user_id: string }
         Returns: boolean
       }
+      has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role:
         | {
             Args: {
