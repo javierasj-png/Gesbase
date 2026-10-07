@@ -299,7 +299,12 @@ export function AlertasPanel({ baseFilter, maxItems = 5 }: AlertasPanelProps) {
         : a.tipo === 'plan_especifico' ? 'Plan Específico'
         : 'Licencia';
 
-      return `${a.maquinista_nombre};${a.maquinista_base};${label};${desc};${dias};${getGrupoLabel(grupo)}`;
+      const cell = (v: unknown) => {
+        let s = String(v ?? '');
+        if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+        return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      return [a.maquinista_nombre, a.maquinista_base, label, desc, dias, getGrupoLabel(grupo)].map(cell).join(';');
     });
     const csv = '\uFEFF' + [header, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
