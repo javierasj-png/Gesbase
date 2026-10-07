@@ -113,7 +113,6 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
               {!f.matricula && <p className="text-xs text-muted-foreground mt-1">Una acción sin matrícula no cambia los resultados.</p>}</div>
             <div><label className="text-xs text-muted-foreground">Matrícula (vacío = toda la base)</label><Input value={f.matricula} readOnly={!!editId} onChange={e => set({ matricula: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">Nombre del maquinista</label><Input value={f.nombre} onChange={e => set({ nombre: e.target.value })} /></div>
-            <div className="md:col-span-2"><label className="text-xs text-muted-foreground">Referencia de documento (opcional)</label><Input value={f.referencia} onChange={e => set({ referencia: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">Responsable</label><Input maxLength={150} value={f.responsable} onChange={e => set({ responsable: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">Fecha de actuación</label><Input type="date" max={hoy()} value={f.fecha_actuacion} onChange={e => set({ fecha_actuacion: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">Fecha de comunicación</label><Input type="date" max={hoy()} value={f.fecha_comunicacion} onChange={e => set({ fecha_comunicacion: e.target.value })} /></div>
