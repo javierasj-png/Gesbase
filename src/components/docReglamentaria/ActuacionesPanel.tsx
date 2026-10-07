@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { ESTADOS_ACTUACION, ESTADOS_JUSTIFICAN, CANALES, justificacionPara, type Actuacion } from '@/lib/docReglamentaria/justificaciones';
 
 const fechaEs = (f: string | null) => (f ? f.split('-').reverse().join('/') : '—');
@@ -17,6 +18,9 @@ type Form = { base_nombre: string; matricula: string; nombre: string; referencia
 
 export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, nueva }: { acts: Actuacion[]; periodo: string; bases: string[]; baseFiltro: string; onChange: () => void; nueva?: { base: string; matricula: string; nombre: string; n: number } | null }) {
   const { toast } = useToast();
+  const { userAccess } = useAuth();
+  const perfil = userAccess?.profile;
+  const responsableSesion = [perfil?.nombre, perfil?.apellidos].filter(Boolean).join(' ') || perfil?.email || '';
   const [f, setF] = useState<Form | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -26,7 +30,7 @@ export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, n
   const abrir = (a?: Actuacion, pre?: { base: string; matricula: string; nombre: string }) => {
     setEditId(a?.id || null);
     setF(a ? { base_nombre: a.base_nombre, matricula: a.matricula || '', nombre: a.nombre || '', referencia: a.referencia || '', responsable: a.responsable, fecha_actuacion: a.fecha_actuacion, fecha_comunicacion: a.fecha_comunicacion || '', canal: a.canal || '', estado: a.estado, vigencia_hasta: a.vigencia_hasta || '', comentario: a.comentario || '', no_computa: a.no_computa }
-      : { base_nombre: pre?.base || (baseFiltro !== 'all' ? baseFiltro : bases[0] || ''), matricula: pre?.matricula || '', nombre: pre?.nombre || '', referencia: '', responsable: '', fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'Seguimiento ordinario', vigencia_hasta: '', comentario: '', no_computa: false });
+      : { base_nombre: pre?.base || (baseFiltro !== 'all' ? baseFiltro : bases[0] || ''), matricula: pre?.matricula || '', nombre: pre?.nombre || '', referencia: '', responsable: responsableSesion, fecha_actuacion: hoy(), fecha_comunicacion: '', canal: '', estado: 'Seguimiento ordinario', vigencia_hasta: '', comentario: '', no_computa: false });
   };
   useEffect(() => {
     if (!nueva) return;
