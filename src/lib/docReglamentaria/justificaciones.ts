@@ -1,6 +1,22 @@
 /** Reglas «no computa» copiadas del tablero original (isJustifying / justificationFor / subtractAreas). */
-export const ESTADOS_ACTUACION = ['He hablado con el agente', 'Aviso enviado', 'Mando intermedio (MMII)', 'Baja IT', 'Vacaciones', 'Anomalía comunicada', 'Incidencia técnica', 'Pendiente de seguimiento', 'Otra situación'] as const;
-export const ESTADOS_JUSTIFICAN = ['Mando intermedio (MMII)', 'Baja IT', 'Vacaciones'];
+/** Grupos genéricos (sin datos personales como motivos de salud o vacaciones). */
+export const ESTADO_ORDINARIO = 'Seguimiento ordinario';
+export const ESTADO_TEMPORAL = 'Situación temporal - recuperación pendiente';
+export const ESTADO_EXCLUSION = 'Exclusión del cómputo validada';
+export const ESTADOS_ACTUACION = [ESTADO_ORDINARIO, ESTADO_TEMPORAL, ESTADO_EXCLUSION] as const;
+/** Estados que por defecto marcan «no computa». */
+export const ESTADOS_JUSTIFICAN: string[] = [ESTADO_TEMPORAL, ESTADO_EXCLUSION];
+/** Estados del tablero antiguo (solo para leer copias). */
+export const ESTADOS_LEGACY_JUSTIFICAN = ['Mando intermedio (MMII)', 'Baja IT', 'Vacaciones'];
+
+/** Convierte un estado antiguo a su grupo actual. */
+export function grupoEstado(estado: string, noComputa = false): string {
+  const e = (estado || '').trim();
+  if ((ESTADOS_ACTUACION as readonly string[]).includes(e)) return e;
+  if (/mmii|mando intermedio|liberad/i.test(e)) return ESTADO_EXCLUSION;
+  if (/baja|vacacion|incidencia/i.test(e)) return ESTADO_TEMPORAL;
+  return noComputa ? ESTADO_EXCLUSION : ESTADO_ORDINARIO;
+}
 export const CANALES = ['Correo electrónico', 'Teléfono', 'Presencial', 'Otro'];
 
 export interface Actuacion {

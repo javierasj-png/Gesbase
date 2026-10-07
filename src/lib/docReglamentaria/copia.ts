@@ -1,13 +1,14 @@
 /** Copias JSON del tablero original («Guardar copia», version 1). Lectura, vista previa y exportación. Sin IA. */
 import type { ModoSondeo } from './parser';
-import { ESTADOS_ACTUACION, ESTADOS_JUSTIFICAN, CANALES, type Actuacion } from './justificaciones';
+import { ESTADOS_ACTUACION, ESTADOS_LEGACY_JUSTIFICAN, CANALES, grupoEstado, type Actuacion } from './justificaciones';
 import { ESTADO_BASE_COMUNICADO } from './comunicaciones';
 
 const s = (v: unknown) => (typeof v === 'string' ? v.trim() : v === null || v === undefined ? '' : String(v).trim());
 const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v));
 const int = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
 const ESTADOS = ['incluido', 'recibido', 'abierto', 'leido'] as const;
-const ESTADOS_VALIDOS: string[] = [...ESTADOS_ACTUACION, ESTADO_BASE_COMUNICADO];
+const ESTADOS_TABLERO = ['He hablado con el agente', 'Aviso enviado', 'Mando intermedio (MMII)', 'Baja IT', 'Vacaciones', 'Anomalía comunicada', 'Incidencia técnica', 'Pendiente de seguimiento', 'Otra situación'];
+const ESTADOS_VALIDOS: string[] = [...ESTADOS_TABLERO, ...ESTADOS_ACTUACION, ESTADO_BASE_COMUNICADO];
 
 export interface SondeoCopia {
   clave: string; origen: string; fecha: string; modo: ModoSondeo; nombre: string;
@@ -29,7 +30,7 @@ export interface Copia {
 export function esJustificanteCopia(n: { agentId?: string; excluded?: boolean; status?: string; comment?: string }): boolean {
   if (!s(n.agentId)) return false;
   if (n.excluded !== undefined) return n.excluded === true;
-  return ESTADOS_JUSTIFICAN.includes(s(n.status)) || (s(n.status) === 'Otra situación' && /mando\s+intermedio|\bmmii\b/i.test(s(n.comment)));
+  return ESTADOS_LEGACY_JUSTIFICAN.includes(s(n.status)) || (s(n.status) === 'Otra situación' && /mando\s+intermedio|\bmmii\b/i.test(s(n.comment)));
 }
 
 export function leerCopia(texto: string): Copia {
@@ -106,7 +107,7 @@ export function leerCopia(texto: string): Copia {
     if (until && (!isDate(until) || until < fecha)) errores.push('Fecha de revisión inválida.');
     return {
       idOrigen: s(n?.id), origen: s(n?.area), matricula, nombre: matricula ? s(n?.agent) || null : null, referencia: s(n?.ref) || null,
-      responsable: s(n?.owner).slice(0, 150), fecha_actuacion: fecha, fecha_comunicacion: fc, canal, estado, vigencia_hasta: until,
+      responsable: s(n?.owner).slice(0, 150), fecha_actuacion: fecha, fecha_comunicacion: fc, canal, estado: estado === ESTADO_BASE_COMUNICADO ? estado : grupoEstado(estado, esJustificanteCopia(n)), vigencia_hasta: until,
       comentario: s(n?.comment) || null, no_computa: esJustificanteCopia(n), periodo: isDate(n?.period) ? n.period : fecha, errores,
     };
   });
