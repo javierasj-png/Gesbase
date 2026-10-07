@@ -1,0 +1,54 @@
+LICENCIA DE SOFTWARE PROPIETARIO
+================================
+
+Aplicación: Gesbase
+Titular: Javier Alonso San José
+Fecha: 7 de octubre de 2026
+
+Copyright (c) 2025-2026 Javier Alonso San José. Todos los derechos reservados.
+
+Declaración de propiedad
+------------------------
+Javier Alonso San José es el autor y titular exclusivo de los derechos de
+propiedad intelectual e industrial sobre la aplicación Gesbase, incluyendo
+el código fuente y objeto, el diseño de la interfaz y la identidad visual,
+el modelo de datos y las reglas de negocio implementadas (certificaciones
+SGS PE 16.03 y PE 12.01, vigilancia, plan anual, cuadro de mando, auditoría
+y documentación reglamentaria), así como los textos e informes originales
+generados por la aplicación.
+
+La aplicación es una obra original amparada por el Real Decreto Legislativo
+1/1996 (Ley de Propiedad Intelectual) y por los tratados internacionales
+aplicables (Convenio de Berna).
+
+Licencia
+--------
+Software propietario de código cerrado. Quedan reservados todos los derechos
+no concedidos expresamente. Solo se permite el uso interno de la aplicación
+a través de las URL y credenciales habilitadas por el Titular, previo
+acuerdo escrito.
+
+Queda expresamente prohibido, salvo autorización previa y por escrito del
+Titular:
+
+ 1. Copiar, modificar, descompilar, realizar ingeniería inversa o intentar
+    reconstruir el código fuente.
+ 2. Distribuir, sublicenciar, arrendar, ceder, revender o poner a
+    disposición de terceros la aplicación o cualquier parte de ella.
+ 3. Reproducir su aspecto visual, estructura funcional o contenidos
+    originales en otros productos.
+ 4. Extraer o reutilizar sustancialmente el contenido de la base de datos
+    o del modelo de datos.
+ 5. Eliminar u ocultar los avisos de propiedad o menciones de autoría.
+
+Componentes de terceros
+-----------------------
+Las librerías de terceros incluidas conservan sus propias licencias de
+origen (MIT, Apache u otras). Dichas licencias no afectan a la titularidad
+del código propio de Gesbase.
+
+Documento completo
+------------------
+La versión completa de la licencia, con la declaración detallada de
+propiedad y el bloque de firma, obra en el documento
+«LICENCIA_Gesbase_Javier_Alonso_San_Jose.md» en poder del Titular.
