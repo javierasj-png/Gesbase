@@ -5,7 +5,7 @@ export const ESTADO_TEMPORAL = 'Situación temporal - recuperación pendiente';
 export const ESTADO_EXCLUSION = 'Exclusión del cómputo validada';
 export const ESTADOS_ACTUACION = [ESTADO_ORDINARIO, ESTADO_TEMPORAL, ESTADO_EXCLUSION] as const;
 /** Estados que por defecto marcan «no computa». */
-export const ESTADOS_JUSTIFICAN: string[] = [ESTADO_TEMPORAL, ESTADO_EXCLUSION];
+export const ESTADOS_JUSTIFICAN: string[] = [ESTADO_EXCLUSION];
 /** Estados del tablero antiguo (solo para leer copias). */
 export const ESTADOS_LEGACY_JUSTIFICAN = ['Mando intermedio (MMII)', 'Baja IT', 'Vacaciones'];
 
