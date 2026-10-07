@@ -18,8 +18,9 @@ type Form = { base_nombre: string; matricula: string; nombre: string; referencia
 
 export function ActuacionesPanel({ acts, periodo, bases, baseFiltro, onChange, nueva }: { acts: Actuacion[]; periodo: string; bases: string[]; baseFiltro: string; onChange: () => void; nueva?: { base: string; matricula: string; nombre: string; n: number } | null }) {
   const { toast } = useToast();
-  const { profile } = useAuth();
-  const responsableSesion = [profile?.nombre, profile?.apellidos].filter(Boolean).join(' ') || profile?.email || '';
+  const { userAccess } = useAuth();
+  const perfil = userAccess?.profile;
+  const responsableSesion = [perfil?.nombre, perfil?.apellidos].filter(Boolean).join(' ') || perfil?.email || '';
   const [f, setF] = useState<Form | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
