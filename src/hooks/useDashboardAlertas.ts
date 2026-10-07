@@ -253,6 +253,32 @@ export function useDashboardAlertas(baseFilter?: string) {
 
         const maqMap1603 = new Map(maquinistas1603?.map(m => [m.id, m]) || []);
 
+        // Expedientes con el trienio cumplido: aviso para revisar y cerrar
+        for (const exp of expedientes1603) {
+          if (!exp.fecha_primer_servicio) continue;
+          const maq = maqMap1603.get(exp.maquinista_id);
+          if (!maq) continue;
+          if (!isAdmin && !assignedBases.includes(maq.base as typeof assignedBases[number])) continue;
+          if (baseFilter && baseFilter !== 'all' && maq.base !== baseFilter) continue;
+          const finTrienio = addYears(new Date(exp.fecha_primer_servicio), 3);
+          finTrienio.setHours(0, 0, 0, 0);
+          if (finTrienio >= today) continue;
+          allAlertas.push({
+            tipo: 'pe1603',
+            id: exp.id,
+            bloque_id: `cierre-${exp.id}`,
+            maquinista_id: exp.maquinista_id,
+            maquinista_nombre: `${maq.nombre} ${maq.apellidos}`,
+            maquinista_base: maq.base,
+            etiqueta: `3 años cumplidos el ${finTrienio.toLocaleDateString('es-ES')} — revisar y cerrar expediente`,
+            tipo_actuacion: 'Cierre pendiente',
+            estado: 'Vencida',
+            dias_restantes: differenceInDays(finTrienio, today),
+            fin_ventana: finTrienio,
+            grupo: 'vencidas',
+          });
+        }
+
         // Get plan items without actuacion
         const expIds = expedientes1603.map(e => e.id);
         const { data: planItems } = await supabase
