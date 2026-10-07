@@ -251,7 +251,8 @@ export function VisitasBaseTab({ baseFilter, bases, fechaDesde, fechaHasta, canG
     setUploading(true);
     try {
       // Upload file
-      const filePath = `${baseObj.id}/${Date.now()}_${file.name}`;
+      const { data: { user: upUser } } = await supabase.auth.getUser();
+      const filePath = `${upUser?.id}/${baseObj.id}/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('visitas-base')
         .upload(filePath, file);

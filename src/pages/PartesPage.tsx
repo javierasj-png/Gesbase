@@ -131,7 +131,7 @@ export default function PartesPage() {
       // Upload file to storage if available
       let archivoUrl: string | null = null;
       if (currentFile) {
-        const filePath = `${Date.now()}_${currentFile.name}`;
+        const filePath = `${user?.id}/${Date.now()}_${currentFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from('partes')
           .upload(filePath, currentFile);
