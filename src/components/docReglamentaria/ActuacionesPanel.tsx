@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pencil, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { ESTADOS_ACTUACION, ESTADOS_JUSTIFICAN, CANALES, justificacionPara, type Actuacion } from '@/lib/docReglamentaria/justificaciones';
 
 const fechaEs = (f: string | null) => (f ? f.split('-').reverse().join('/') : '—');
