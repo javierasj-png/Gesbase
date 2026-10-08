@@ -83,8 +83,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
     ? 'convencional'
     : (planAnual.redes.length === 1 ? planAnual.redes[0] : '');
   const needsKm = selectedTipo === 'registro';
-  const needsResultado = selectedTipo === 'alcohol' || selectedTipo === 'drogas';
-
+  
   const handleRegistrar = async () => {
     if (!selectedTipo || !fechaActuacion) return;
     if (needsRed && !selectedRed) return;
@@ -106,7 +105,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
           fecha_real: fechaActuacion,
           km_recorridos: km,
           indice_prever: prever,
-          resultado: needsResultado ? resultado || null : null,
+          resultado: null,
           observaciones: observaciones || null,
           registrado_por: user?.id ?? null,
         });
@@ -156,7 +155,7 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
           red: needsRed ? selectedRed || null : null,
           km_recorridos: km,
           indice_prever: prever,
-          resultado: needsResultado ? resultado || null : null,
+          resultado: null,
           observaciones: observaciones || null,
         })
         .eq('id', editingActuacion.id);
@@ -338,7 +337,6 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                       <span>{format(parseISO(a.fecha_real), 'dd/MM/yyyy')}</span>
                       {a.km_recorridos !== null && <span>— {Number(a.km_recorridos).toFixed(2)} km</span>}
                       {a.indice_prever !== null && <span>— PREVER {a.indice_prever}</span>}
-                      {a.resultado && <span>— {a.resultado}</span>}
                       {a.source === 'pe1603' && (
                         <Badge variant="outline" className="text-[10px] px-1 py-0">PE 16.03</Badge>
                       )}
@@ -412,7 +410,6 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
                     <span>{format(parseISO(a.fecha_real), 'dd/MM/yyyy')}</span>
                     {a.km_recorridos !== null && <span>• {Number(a.km_recorridos).toFixed(2)} km</span>}
                     {a.indice_prever !== null && <span>• PREVER {a.indice_prever}</span>}
-                    {a.resultado && <span>• {a.resultado}</span>}
                     {a.source === 'pe1603' && (
                       <Badge variant="secondary" className="text-[10px]">PE 16.03</Badge>
                     )}
@@ -492,18 +489,6 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
               <Label>Índice PREVER <span className="text-muted-foreground font-normal">(opcional)</span></Label>
               <Input type="text" value={indicePrever} onChange={e => setIndicePrever(e.target.value)} placeholder="Ej: 4.5" />
             </div>
-            {needsResultado && (
-              <div className="space-y-2">
-                <Label>Resultado</Label>
-                <Select value={resultado} onValueChange={setResultado}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona resultado" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Negativo">Negativo</SelectItem>
-                    <SelectItem value="Positivo">Positivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div className="space-y-2">
               <Label>Observaciones <span className="text-muted-foreground font-normal">(opcional)</span></Label>
               <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} />
@@ -565,18 +550,6 @@ export function MaquinistaPlanAnualTab({ maquinistaId, maquinistaNombre, baseNam
               <Label>Índice PREVER</Label>
               <Input type="text" value={indicePrever} onChange={e => setIndicePrever(e.target.value)} />
             </div>
-            {needsResultado && (
-              <div className="space-y-2">
-                <Label>Resultado</Label>
-                <Select value={resultado} onValueChange={setResultado}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Negativo">Negativo</SelectItem>
-                    <SelectItem value="Positivo">Positivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div className="space-y-2">
               <Label>Observaciones</Label>
               <Textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={3} />

@@ -808,13 +808,12 @@ export async function generateDossierPDF(maquinistaId: string) {
         a.red === 'av' ? 'AV' : a.red === 'convencional' ? 'Conv.' : '-',
         a.km_recorridos != null ? `${a.km_recorridos}` : '-',
         a.indice_prever != null ? `${a.indice_prever}` : '-',
-        a.resultado || '-',
         a._src,
       ]);
 
     autoTable(doc, {
       startY: y,
-      head: [['Fecha', 'Tipo', 'Red', 'Km', 'PREVER', 'Resultado', 'Origen']],
+      head: [['Fecha', 'Tipo', 'Red', 'Km', 'PREVER', 'Origen']],
       body: detailRows,
       theme: 'grid',
       headStyles: { fillColor: MAGENTA, textColor: WHITE, fontStyle: 'bold', fontSize: 7 },
