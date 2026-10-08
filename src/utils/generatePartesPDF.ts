@@ -23,7 +23,7 @@ export function generatePartesPDF(
   doc.setTextColor(...WHITE);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('GesBase - Listado de Informes Ferroviarios', MARGIN, 12);
+  doc.text('Listado de Informes Ferroviarios', MARGIN, 12);
 
   // Date range & generation info
   doc.setFontSize(9);
