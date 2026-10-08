@@ -362,7 +362,7 @@ export function MaquinistaPE1603Tab({
         fecha_real: fechaActuacion,
         indice_prever: indicePreverValue,
         observaciones: observaciones || null,
-        resultado: resultado || null,
+        resultado: null,
       });
 
       const existingDuplicate = actuacionesRegistradas.find(
@@ -386,7 +386,7 @@ export function MaquinistaPE1603Tab({
           expediente_id: expediente1603.id,
           tipo: selectedTipo,
           fecha_real: fechaActuacion,
-          resultado: resultado || null,
+          resultado: null,
           indice_prever: indicePreverValue,
           km_recorridos: selectedTipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
@@ -506,7 +506,7 @@ export function MaquinistaPE1603Tab({
         fecha_real: fechaActuacion,
         indice_prever: indicePreverValue,
         observaciones: observaciones || null,
-        resultado: resultado || null,
+        resultado: null,
       });
 
       const existingDuplicate = actuacionesRegistradas.find(
@@ -527,7 +527,7 @@ export function MaquinistaPE1603Tab({
         .from('actuaciones_1603')
         .update({
           fecha_real: fechaActuacion,
-          resultado: resultado || null,
+          resultado: null,
           indice_prever: indicePreverValue,
           km_recorridos: editingActuacion.tipo === 'registro' ? kmValue : null,
           observaciones: observaciones || null,
@@ -1539,12 +1539,6 @@ export function MaquinistaPE1603Tab({
                       </div>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         {actuacion.observaciones ? <span>{actuacion.observaciones}</span> : <span>Sin observaciones</span>}
-                        {actuacion.resultado && (
-                          <>
-                            <span>•</span>
-                            <span>Resultado: {actuacion.resultado}</span>
-                          </>
-                        )}
                       </div>
                     </div>
                     {puedeEditar && (
@@ -1740,21 +1734,6 @@ export function MaquinistaPE1603Tab({
               </div>
             )}
 
-            {/* Resultado (para Alcohol/Drogas) */}
-            {selectedTipo && (selectedTipo === 'alcohol' || selectedTipo === 'drogas') && (
-              <div className="space-y-2">
-                <Label>Resultado</Label>
-                <Select value={resultado} onValueChange={setResultado}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona resultado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Negativo">Negativo</SelectItem>
-                    <SelectItem value="Positivo">Positivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Observaciones */}
             <div className="space-y-2">
@@ -1900,21 +1879,6 @@ export function MaquinistaPE1603Tab({
               </div>
             )}
 
-            {/* Resultado (para Alcohol/Drogas) */}
-            {selectedTipo && (selectedTipo === 'alcohol' || selectedTipo === 'drogas') && (
-              <div className="space-y-2">
-                <Label>Resultado</Label>
-                <Select value={resultado} onValueChange={setResultado}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona resultado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Negativo">Negativo</SelectItem>
-                    <SelectItem value="Positivo">Positivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Observaciones */}
             <div className="space-y-2">
