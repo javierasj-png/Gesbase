@@ -220,6 +220,11 @@ export default function PE1603Page() {
                           )}
                         </div>
                         
+                        {expediente.estado === 'abierto' && fechaFinPrevista && fechaFinPrevista < new Date() && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-status-vencido-bg text-status-vencido">
+                            Pendiente de cierre
+                          </span>
+                        )}
                         <StatusBadge estado={expediente.estado === 'abierto' ? 'Activo' : 'Cerrado'} />
                         <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
